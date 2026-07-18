@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="description" content="回声协议：3D 风格长篇剧情解谜游戏">
+  <title>回声协议 · ECHO PROTOCOL</title>
+  <style>
+    :root{
+      --bg:#05070d;--panel:#101827;--ink:#eef5ff;--muted:#9fb0c7;--cyan:#5ff5ff;--green:#b9ff66;--red:#ff5f78;--gold:#ffd166;--line:rgba(255,255,255,.16)
+    }
+    *{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}button{font:inherit;color:inherit}a{color:inherit;text-decoration:none}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 20%,#163254 0 22%,transparent 46%),linear-gradient(180deg,#05070d,#070b13 52%,#020309);z-index:-3}
+    body:after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px);mix-blend-mode:screen;opacity:.16;z-index:8}
+    .game{position:relative;width:100vw;height:100dvh;overflow:hidden}
+    canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#05070d}
+    .hud{position:absolute;z-index:3;inset:18px 18px auto;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;pointer-events:none}
+    .glass{background:linear-gradient(180deg,rgba(13,24,42,.82),rgba(8,13,24,.66));border:1px solid var(--line);box-shadow:0 18px 50px #0008, inset 0 1px #ffffff22;backdrop-filter:blur(10px)}
+    .brand{padding:14px 16px;border-radius:18px}.brand small{display:block;color:var(--green);font-weight:900;letter-spacing:.22em;font-size:11px}.brand b{display:block;font-size:22px;letter-spacing:-.04em;margin-top:4px}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+    .meters{min-width:280px;padding:14px 18px;border-radius:18px;text-align:center}.meters strong{font-size:36px;letter-spacing:-.05em}.meters small{display:block;color:var(--muted);font-weight:800;letter-spacing:.12em}.bar{height:8px;border-radius:999px;background:#ffffff18;overflow:hidden;margin-top:10px}.fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--green),var(--gold));box-shadow:0 0 22px var(--cyan)}
+    .stats{justify-self:end;padding:12px;border-radius:18px;min-width:260px}.stat{display:grid;grid-template-columns:76px 1fr 42px;gap:8px;align-items:center;margin:5px 0;color:var(--muted);font-size:12px;font-weight:800}.stat i{height:7px;background:#ffffff19;border-radius:999px;overflow:hidden}.stat i b{display:block;height:100%;width:100%;background:var(--cyan);box-shadow:0 0 16px currentColor}.stat:nth-child(2) i b{background:var(--green)}.stat:nth-child(3) i b{background:var(--gold)}
+    .chapter{position:absolute;z-index:3;left:50%;top:104px;transform:translateX(-50%);padding:9px 14px;border-radius:999px;font-size:12px;font-weight:900;color:#cde8ff;letter-spacing:.16em;pointer-events:none;white-space:nowrap}
+    .message{position:absolute;z-index:4;left:50%;bottom:118px;transform:translateX(-50%);width:min(780px,calc(100% - 28px));padding:16px 18px;border-radius:22px;display:none}.message.show{display:block;animation:rise .25s ease}.speaker{font-size:12px;font-weight:900;color:var(--green);letter-spacing:.18em}.line{font-size:22px;line-height:1.45;font-weight:900;margin-top:7px}.subline{font-size:14px;line-height:1.7;color:var(--muted);margin-top:8px}
+    @keyframes rise{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+    .menu,.story,.ending,.pause{position:absolute;z-index:10;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 55% 35%,rgba(36,86,130,.6),rgba(2,4,9,.96) 58%),linear-gradient(135deg,#08101c,#05070d);padding:22px}.story,.ending,.pause{display:none}
+    .panel{width:min(960px,100%);border-radius:30px;padding:32px}.panel h1{font-size:clamp(54px,9vw,118px);line-height:.82;letter-spacing:-.09em;margin:8px 0 18px}.panel h1 em{font-family:Georgia,serif;color:var(--green);font-weight:400}.panel p{color:#bfd0e9;line-height:1.85;font-size:16px}.tagrow{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tag{padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:#dceaff;background:#ffffff0a;font-size:12px;font-weight:800}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.primary,.secondary{border:0;border-radius:16px;padding:15px 20px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#071006;box-shadow:0 0 30px rgba(185,255,102,.24)}.secondary{background:#ffffff12;border:1px solid var(--line)}
+    .brief{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}.brief div{border:1px solid var(--line);border-radius:18px;padding:14px;background:#ffffff08}.brief b{display:block;color:#fff;margin-bottom:6px}.brief small{color:var(--muted);line-height:1.5}
+    .story-card{width:min(920px,100%);display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:center}.portrait{height:290px;border-radius:28px;background:linear-gradient(160deg,#182e4b,#070d18);border:1px solid var(--line);position:relative;overflow:hidden}.face{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);width:120px;height:142px;border-radius:45% 45% 48% 48%;background:#d89478;box-shadow:0 0 0 10px #0b111d}.hair{position:absolute;left:34px;top:35px;width:150px;height:80px;background:#0a0d17;border-radius:90px 90px 20px 20px;transform:rotate(-7deg)}.eye{position:absolute;top:92px;width:28px;height:7px;border-radius:999px;background:#eaf9ff}.eye.l{left:73px}.eye.r{right:73px}.mouth{position:absolute;left:50%;top:143px;transform:translateX(-50%);width:46px;height:9px;border-radius:0 0 999px 999px;background:#622744;animation:talk .45s infinite alternate}.story:not(.speaking) .mouth{animation:none;height:5px}.body{position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);width:190px;height:150px;background:linear-gradient(135deg,#202b44,#8129d9);clip-path:polygon(20% 0,80% 0,100% 100%,0 100%)}.halo{position:absolute;left:50%;top:52%;width:210px;height:210px;border:8px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);opacity:.42}
+    @keyframes talk{from{height:5px;width:42px}to{height:18px;width:54px}}
+    .bubble{position:relative;border-radius:28px;padding:26px;background:#f7fbff;color:#0b1424;box-shadow:0 24px 70px #0009}.bubble:before{content:"";position:absolute;left:-24px;top:72px;border-right:26px solid #f7fbff;border-top:18px solid transparent;border-bottom:18px solid transparent}.bubble small{font-size:12px;color:#486078;font-weight:900;letter-spacing:.18em}.bubble h2{font-size:clamp(30px,5vw,58px);line-height:1.03;letter-spacing:-.08em;margin:10px 0 12px}.bubble p{color:#435168;font-weight:700}.hint{font-size:13px;color:#7c8fa6!important;margin-top:16px!important}
+    .controls{position:absolute;z-index:5;left:18px;right:18px;bottom:18px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}.pad,.rightpad{display:flex;gap:12px;pointer-events:auto}.key{width:76px;height:76px;border-radius:24px;border:1px solid #ffffff2b;background:rgba(11,19,35,.72);box-shadow:0 12px 40px #0008,inset 0 1px #fff2;color:#ecfbff;font-weight:1000;font-size:24px;touch-action:none}.wide{width:132px}.pausebtn{position:absolute;z-index:6;right:20px;top:122px;width:48px;height:48px;border-radius:16px;border:1px solid var(--line);background:#0d1728cc;cursor:pointer}
+    .floating-tip{position:absolute;z-index:3;right:22px;bottom:110px;max-width:310px;padding:12px 14px;border-radius:16px;color:#c9d8eb;font-size:13px;line-height:1.5;pointer-events:none}
+    @media(max-width:760px){.hud{grid-template-columns:1fr;inset:10px}.brand{display:none}.meters{min-width:0}.stats{justify-self:stretch;min-width:0}.chapter{top:150px}.line{font-size:17px}.message{bottom:126px}.brief{grid-template-columns:1fr}.story-card{grid-template-columns:1fr}.portrait{height:210px}.bubble:before{display:none}.panel{padding:20px}.key{width:88px;height:88px;font-size:28px}.wide{width:150px}.floating-tip{display:none}}
+  </style>
+</head>
+<body>
+  <div class="game">
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="brand glass"><small>ECHO PROTOCOL</small><b>回声协议</b><span>3D 档案空间 · 长篇剧情任务</span></div>
+      <div class="meters glass"><small>深度 / 目标 36000M</small><strong id="distance">00000M</strong><div class="bar"><div class="fill" id="progress"></div></div></div>
+      <div class="stats glass">
+        <div class="stat"><span>稳定度</span><i><b id="hpbar"></b></i><b id="hptext">100</b></div>
+        <div class="stat"><span>回声能量</span><i><b id="echobar"></b></i><b id="echotext">100</b></div>
+        <div class="stat"><span>记忆密钥</span><i><b id="keybar"></b></i><b id="keytext">0/18</b></div>
+      </div>
+    </div>
+    <div class="chapter glass" id="chapter">CHAPTER 01 · 静默入口</div>
+    <button class="pausebtn" id="pauseBtn" type="button">Ⅱ</button>
+    <div class="message glass" id="message"><div class="speaker" id="speaker"></div><div class="line" id="line"></div><div class="subline" id="subline"></div></div>
+    <div class="floating-tip glass">A/D 或 ←/→ 横移，W/S 调整推进速度。空格录下回声分身，让它替你站在光门里。手机可用下方大按钮。</div>
+    <div class="controls">
+      <div class="pad">
+        <button class="key" data-hold="left">←</button>
+        <button class="key" data-hold="right">→</button>
+      </div>
+      <div class="rightpad">
+        <button class="key" data-hold="slow">刹</button>
+        <button class="key wide" data-tap="echo">回声</button>
+      </div>
+    </div>
+    <section class="menu" id="menu">
+      <div class="panel glass">
+        <div class="tagrow"><span class="tag">3D 风格</span><span class="tag">长篇剧情</span><span class="tag">回声分身解谜</span><span class="tag">目标 36000M</span></div>
+        <h1>回声协议<br><em>ECHO PROTOCOL</em></h1>
+        <p>月背档案站在七年前失联，只留下不断重复的求救录音。你是档案潜航员“洛”，任务是进入站内 36000 米深处，唤醒中枢 MIRA，并确认那个自称“零号回声”的声音到底是谁。</p>
+        <div class="brief">
+          <div><b>怎么玩</b><small>A/D 横移，躲开红色失真体，收集绿色记忆密钥。</small></div>
+          <div><b>核心机制</b><small>按空格录下回声。回声会留在原车道数秒，可以替你开启同车道光门。</small></div>
+          <div><b>长线目标</b><small>全程分 5 章，越往后机关越密，剧情会自动插入。</small></div>
+        </div>
+        <div class="actions"><button class="primary" id="startBtn">进入档案站</button><a class="secondary" href="index.html">返回游戏库</a></div>
+      </div>
+    </section>
+    <section class="story" id="story">
+      <div class="story-card">
+        <div class="portrait">
+          <div class="halo"></div><div class="hair"></div><div class="face"></div><div class="eye l"></div><div class="eye r"></div><div class="mouth"></div><div class="body"></div>
+        </div>
+        <div class="bubble">
+          <small id="storyName">MIRA</small>
+          <h2 id="storyTitle">标题</h2>
+          <p id="storyText">正文</p>
+          <p class="hint">剧情会自动继续，也可以点击跳过等待。</p>
+        </div>
+      </div>
+    </section>
+    <section class="ending" id="ending">
+      <div class="panel glass">
+        <div class="tagrow"><span class="tag" id="endingTag">任务完成</span><span class="tag" id="endingScore">0 密钥</span></div>
+        <h1 id="endingTitle">协议关闭</h1>
+        <p id="endingText"></p>
+        <div class="actions"><button class="primary" id="againBtn">重新进入</button><a class="secondary" href="index.html">返回游戏库</a></div>
+      </div>
+    </section>
+    <section class="pause" id="pause">
+      <div class="panel glass">
+        <h1>暂停</h1>
+        <p>回声不会消失，档案站也暂时停止崩塌。深呼吸一下，再继续。</p>
+        <div class="actions"><button class="primary" id="resumeBtn">继续任务</button><a class="secondary" href="index.html">返回游戏库</a></div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const canvas=document.querySelector('#scene'),ctx=canvas.getContext('2d');
+    const $=s=>document.querySelector(s);
+    const lanes=[-1,0,1];
+    const goalDistance=36000;
+    const chapterData=[
+      {at:0,name:'CHAPTER 01 · 静默入口',fog:'#163254'},
+      {at:7000,name:'CHAPTER 02 · 倒放走廊',fog:'#28325f'},
+      {at:14000,name:'CHAPTER 03 · 失真档案馆',fog:'#3a2046'},
+      {at:22000,name:'CHAPTER 04 · 记忆温室',fog:'#173f3a'},
+      {at:30000,name:'CHAPTER 05 · 零号核心',fog:'#46331a'}
+    ];
+    const storyBeats=[
+      {at:0,who:'MIRA',title:'欢迎回来，洛。',text:'如果你听见这句话，说明档案站终于承认你还活着。别紧张，我会在耳机里陪你。第一段路只练习移动和回声。'},
+      {at:2500,who:'洛',title:'这里像一座被折起来的城市。',text:'走廊在前面弯曲，窗外却是七年前的街景。有人把整座城的记忆塞进了空间站。'},
+      {at:5200,who:'MIRA',title:'看见绿色碎片了吗？',text:'那是记忆密钥。多收集一点，后面的门才会相信你是真人。红色失真体不要碰，它们会把你的稳定度撕开。'},
+      {at:7600,who:'零号回声',title:'你不是第一次来。',text:'我在每一条走廊都留下了你的脚步。你以为自己在前进，其实只是越来越接近我。'},
+      {at:10800,who:'MIRA',title:'空格，录下自己。',text:'回声会停在你按下空格的位置。遇到光门时，让回声站在同一条车道，门就会短暂打开。'},
+      {at:14500,who:'洛',title:'档案开始反击了。',text:'墙上全是我的名字，像有人把我的人生拆成了很多备份。MIRA，如果零号回声也是我呢？'},
+      {at:18100,who:'MIRA',title:'那也要把他带回家。',text:'回声不是敌人，它是没被听见的部分。继续走，别让失真体把你逼到墙边。'},
+      {at:22400,who:'零号回声',title:'你们总说“回家”。',text:'可家早就被上传成一串校验码。洛，你真的想恢复城市，还是只想恢复你记得的那个人？'},
+      {at:26200,who:'MIRA',title:'我找到旧日志了。',text:'七年前你亲手启动了回声协议，把所有居民意识备份到这里。你不是闯入者，你是钥匙。'},
+      {at:30400,who:'洛',title:'那最后一道门后面是什么？',text:'如果打开核心，城市会醒来；如果关闭它，所有回声都会安静。零号在等我做选择。'},
+      {at:33800,who:'零号回声',title:'别按剧本救世界。',text:'看看你收集了多少真实记忆。足够多，我们就能让城市醒来；不够多，醒来的只会是一座空壳。'}
+    ];
+    let W=0,H=0,scale=1,last=0,state='menu',distance=0,playerX=0,targetX=0,speed=135,hp=100,echo=100,keys=0,shake=0,storyIndex=-1,storyTimer=0,objects=[],echoes=[],particles=[],spawnTimer=0,messageTimer=0,keysDown={};
+    function resize(){W=canvas.width=Math.floor(innerWidth*devicePixelRatio);H=canvas.height=Math.floor(innerHeight*devicePixelRatio);scale=devicePixelRatio}
+    addEventListener('resize',resize);resize();
+    function reset(){distance=0;playerX=0;targetX=0;speed=135;hp=100;echo=100;keys=0;shake=0;storyIndex=-1;storyTimer=0;objects=[];echoes=[];particles=[];spawnTimer=0;messageTimer=0;last=performance.now();updateHud()}
+    function start(){reset();$('#menu').style.display='none';state='story';showStory(0)}
+    function pause(){if(state==='play'){state='pause';$('#pause').style.display='grid'}}
+    function resume(){if(state==='pause'){state='play';$('#pause').style.display='none';last=performance.now()}}
+    function currentChapter(){let c=chapterData[0];for(const item of chapterData)if(distance>=item.at)c=item;return c}
+    function showStory(i){const beat=storyBeats[i];if(!beat)return;storyIndex=i;state='story';storyTimer=beat.text.length*45+2300;$('#story').style.display='grid';$('#story').classList.add('speaking');$('#storyName').textContent=beat.who;$('#storyTitle').textContent=beat.title;$('#storyText').textContent=beat.text;setTimeout(()=>$('#story').classList.remove('speaking'),Math.min(2600,storyTimer-300))}
+    function closeStory(){if(state!=='story')return;$('#story').style.display='none';state='play';last=performance.now();showMsg('系统提示','继续推进，下一段剧情会在更深处自动触发。','收集密钥、避开失真体、善用回声开门。')}
+    function updateHud(){let d=Math.floor(distance).toString().padStart(5,'0');$('#distance').textContent=d+'M';$('#progress').style.width=Math.min(100,distance/goalDistance*100)+'%';$('#hpbar').style.width=hp+'%';$('#hptext').textContent=Math.max(0,Math.floor(hp));$('#echobar').style.width=echo+'%';$('#echotext').textContent=Math.floor(echo);$('#keybar').style.width=Math.min(100,keys/18*100)+'%';$('#keytext').textContent=keys+'/18';$('#chapter').textContent=currentChapter().name}
+    function showMsg(a,b,c=''){messageTimer=3.6;$('#speaker').textContent=a;$('#line').textContent=b;$('#subline').textContent=c;$('#message').classList.add('show')}
+    function randLane(){return lanes[Math.floor(Math.random()*lanes.length)]}
+    function spawn(kind,z,lane){objects.push({kind,z,lane,width:kind==='gate'?1.05:.42,hit:false,open:false,phase:Math.random()*9})}
+    function spawnSet(){const zone=distance/goalDistance;const gap=780-zone*330;spawnTimer-=speed*.018;if(spawnTimer>0)return;spawnTimer=gap+Math.random()*260;const r=Math.random();if(r<.42)spawn('key',1700,randLane());else if(r<.74)spawn('glitch',1750,randLane());else spawnGate()}
+    function spawnGate(){const lane=randLane();spawn('gate',1850,lane);if(Math.random()<.72){const other=lanes.filter(x=>x!==lane);spawn('glitch',1260,other[Math.floor(Math.random()*other.length)])}}
+    function recordEcho(){if(echo<58||state!=='play')return;echo-=58;echoes.push({lane:Math.round(playerX),life:8.5,max:8.5});showMsg('回声已录制','过去的你留在了这条车道。','它能替你按住光门，也会让零号回声更容易听见你。');for(let i=0;i<22;i++)particles.push({x:playerX,y:0,z:80+i*16,life:1.1,color:'#5ff5ff'})}
+    function project(lane,z,y=0){const horizon=H*.43;const depth=1/(z/520+1);const cx=W/2+lane*W*.22*depth;const cy=horizon+(H*.52)*depth-y*depth;return{x:cx,y:cy,s:depth}}
+    function drawCorridor(t){const ch=currentChapter();const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#050912');g.addColorStop(.48,ch.fog);g.addColorStop(1,'#02040a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.save();ctx.translate((Math.random()-.5)*shake*scale,(Math.random()-.5)*shake*scale);const horizon=H*.43;ctx.strokeStyle='rgba(95,245,255,.16)';ctx.lineWidth=1*scale;for(let i=-8;i<=8;i++){ctx.beginPath();ctx.moveTo(W/2,horizon);ctx.lineTo(W/2+i*W*.115,H);ctx.stroke()}for(let z=90;z<1900;z+=150){const p=project(0,z);ctx.strokeStyle=`rgba(185,255,102,${.05+p.s*.18})`;ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(W,p.y);ctx.stroke()}for(let side of [-1,1]){for(let i=0;i<16;i++){const z=(i*160+(distance*1.7)%160);const p=project(side*2.15,z,70);ctx.fillStyle=`rgba(95,245,255,${.08+p.s*.35})`;ctx.fillRect(p.x-4*scale,p.y-140*p.s*scale,8*scale,180*p.s*scale)}}ctx.fillStyle='rgba(0,0,0,.36)';ctx.fillRect(0,horizon,W,H-horizon);ctx.restore()}
+    function drawPlayer(t){const p=project(playerX,42);ctx.save();ctx.translate(p.x,p.y+18*scale);ctx.shadowColor='#5ff5ff';ctx.shadowBlur=18*scale;ctx.fillStyle='#101827';ctx.beginPath();ctx.moveTo(0,-34*scale);ctx.lineTo(42*scale,24*scale);ctx.lineTo(-42*scale,24*scale);ctx.closePath();ctx.fill();ctx.fillStyle='#5ff5ff';ctx.fillRect(-28*scale,-4*scale,56*scale,7*scale);ctx.fillStyle='#b9ff66';ctx.fillRect(-16*scale,17*scale,32*scale,5*scale);ctx.restore()}
+    function drawObject(o,t){const p=project(o.lane,o.z);if(o.z<10||o.z>2100)return;if(o.kind==='key'){ctx.save();ctx.translate(p.x,p.y-34*p.s*scale);ctx.rotate(t*.004+o.phase);ctx.shadowColor='#b9ff66';ctx.shadowBlur=24*scale*p.s;ctx.strokeStyle='#b9ff66';ctx.lineWidth=Math.max(2,5*p.s)*scale;ctx.strokeRect(-22*p.s*scale,-22*p.s*scale,44*p.s*scale,44*p.s*scale);ctx.fillStyle='#eaffba';ctx.fillRect(-7*p.s*scale,-7*p.s*scale,14*p.s*scale,14*p.s*scale);ctx.restore()}else if(o.kind==='glitch'){ctx.save();ctx.translate(p.x,p.y-34*p.s*scale);ctx.shadowColor='#ff5f78';ctx.shadowBlur=24*scale*p.s;ctx.fillStyle='#ff5f78';ctx.beginPath();ctx.moveTo(0,-58*p.s*scale);ctx.lineTo(35*p.s*scale,25*p.s*scale);ctx.lineTo(-28*p.s*scale,40*p.s*scale);ctx.closePath();ctx.fill();ctx.fillStyle='#290816';ctx.fillRect(-18*p.s*scale,-5*p.s*scale,36*p.s*scale,8*p.s*scale);ctx.restore()}else{const active=gateActive(o.lane);ctx.save();ctx.translate(p.x,p.y-80*p.s*scale);ctx.strokeStyle=active?'#b9ff66':'#ffd166';ctx.shadowColor=active?'#b9ff66':'#ffd166';ctx.shadowBlur=26*scale*p.s;ctx.lineWidth=Math.max(2,8*p.s)*scale;ctx.strokeRect(-76*p.s*scale,-92*p.s*scale,152*p.s*scale,184*p.s*scale);ctx.fillStyle=active?'rgba(185,255,102,.12)':'rgba(255,209,102,.22)';ctx.fillRect(-76*p.s*scale,-92*p.s*scale,152*p.s*scale,184*p.s*scale);ctx.fillStyle=active?'#b9ff66':'#ffd166';ctx.font=`${Math.max(10,22*p.s)*scale}px Arial`;ctx.textAlign='center';ctx.fillText(active?'OPEN':'ECHO',0,-106*p.s*scale);ctx.restore()}}
+    function gateActive(lane){if(Math.abs(Math.round(playerX)-lane)<.12)return true;return echoes.some(e=>e.lane===lane&&e.life>0)}
+    function drawEchoes(){for(const e of echoes){const p=project(e.lane,95);ctx.save();ctx.globalAlpha=Math.max(.15,e.life/e.max*.75);ctx.translate(p.x,p.y-22*scale);ctx.shadowColor='#5ff5ff';ctx.shadowBlur=30*scale;ctx.strokeStyle='#5ff5ff';ctx.lineWidth=4*scale;ctx.beginPath();ctx.ellipse(0,0,34*scale,58*scale,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(95,245,255,.18)';ctx.fillRect(-20*scale,-34*scale,40*scale,70*scale);ctx.restore()}}
+    function drawParticles(dt){particles=particles.filter(p=>p.life>0);for(const p of particles){p.life-=dt;p.z+=80*dt;const q=project(p.x,p.z);ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.fillRect(q.x-3*scale,q.y-3*scale,6*scale,6*scale)}ctx.globalAlpha=1}
+    function update(dt){if(keysDown.left)targetX-=dt*3.4;if(keysDown.right)targetX+=dt*3.4;if(keysDown.slow)speed=Math.max(92,speed-dt*90);else if(keysDown.fast)speed=Math.min(188,speed+dt*40);else speed+=((135+distance/goalDistance*38)-speed)*dt*.55;targetX=Math.max(-1,Math.min(1,targetX));playerX+=(targetX-playerX)*Math.min(1,dt*8.8);distance+=speed*dt;echo=Math.min(100,echo+dt*9.5);shake=Math.max(0,shake-dt*18);echoes.forEach(e=>e.life-=dt);echoes=echoes.filter(e=>e.life>0);spawnSet();objects.forEach(o=>o.z-=speed*dt*2.1);for(const o of objects){if(o.z<115&&!o.hit){o.hit=true;if(o.kind==='key'){keys++;showMsg('记忆密钥 +1','你听见了一段旧日街声。',keys>=18?'密钥足够，但真相仍需要你走到核心。':'继续收集，结局会不同。')}else if(o.kind==='glitch'){if(Math.abs(playerX-o.lane)<.48){hp-=16;shake=13;showMsg('稳定度下降','失真体擦过了你的记忆。','靠边移动，别硬撞。')}}else{if(!gateActive(o.lane)){hp-=22;shake=16;showMsg('光门拒绝通行','需要你或回声站在同一车道。','提前按空格，把回声留在门要求的位置。')}else{showMsg('光门开启','回声替你按住了门。','你们两个正在合作穿过同一段过去。')}}}}
+      objects=objects.filter(o=>o.z>-160);const next=storyBeats.findIndex((b,i)=>i>storyIndex&&distance>=b.at);if(next>=0)showStory(next);if(hp<=0)end(false);if(distance>=goalDistance)end(true);updateHud();if(messageTimer>0){messageTimer-=dt;if(messageTimer<=0)$('#message').classList.remove('show')}}
+    function end(win){state='end';$('#ending').style.display='grid';const tag=$('#endingTag'),title=$('#endingTitle'),text=$('#endingText');$('#endingScore').textContent=keys+' 个记忆密钥';if(!win){tag.textContent='最坏结局';title.textContent='信号断线';text.textContent='稳定度归零，洛的意识被失真体切成碎片。MIRA 仍在广播你的名字，但回应她的只剩下一串空白回声。下次进入时，先练好移动和回声开门。'}else if(keys>=18){tag.textContent='真结局';title.textContent='城市醒来';text.textContent='你带回了足够多的真实记忆。零号回声承认自己不是敌人，而是七年前被你留在核心里的勇气。城市从备份中苏醒，街灯一盏盏亮起，MIRA 终于第一次说：欢迎回家。'}else if(keys>=10){tag.textContent='普通结局';title.textContent='半座黎明';text.textContent='核心被打开，但缺少的记忆让城市只醒来一半。有人记得雨声，有人忘了自己的名字。MIRA 说这不是失败，只是下一次修复的开始。'}else{tag.textContent='坏结局';title.textContent='空壳城市';text.textContent='你抵达了核心，却没有带回足够的记忆密钥。城市恢复了道路、楼群和天气，却没有恢复住在里面的人。零号回声关上门，轻声说：这不是拯救。'}}
+    function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;drawCorridor(t);objects.slice().sort((a,b)=>b.z-a.z).forEach(o=>drawObject(o,t));drawEchoes();drawParticles(dt);drawPlayer(t);if(state==='play')update(dt);else if(state==='story'){storyTimer-=dt*1000;if(storyTimer<=0)closeStory()}requestAnimationFrame(loop)}
+    addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')keysDown.left=true;if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')keysDown.right=true;if(e.key.toLowerCase()==='w')keysDown.fast=true;if(e.key.toLowerCase()==='s')keysDown.slow=true;if(e.code==='Space'){e.preventDefault();recordEcho()}if(e.key==='Escape')pause()});
+    addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')keysDown.left=false;if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')keysDown.right=false;if(e.key.toLowerCase()==='w')keysDown.fast=false;if(e.key.toLowerCase()==='s')keysDown.slow=false});
+    document.querySelectorAll('[data-hold]').forEach(btn=>{const k=btn.dataset.hold;const on=e=>{e.preventDefault();keysDown[k]=true};const off=e=>{e.preventDefault();keysDown[k]=false};btn.addEventListener('pointerdown',on);btn.addEventListener('pointerup',off);btn.addEventListener('pointerleave',off);btn.addEventListener('pointercancel',off)});
+    document.querySelector('[data-tap="echo"]').addEventListener('pointerdown',e=>{e.preventDefault();recordEcho()});
+    $('#startBtn').onclick=start;$('#againBtn').onclick=()=>{$('#ending').style.display='none';start()};$('#pauseBtn').onclick=pause;$('#resumeBtn').onclick=resume;$('#story').onclick=closeStory;requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
