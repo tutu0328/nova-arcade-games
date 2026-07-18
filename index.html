@@ -26,8 +26,8 @@
   <dialog id="dialog"><button class="close" aria-label="关闭">×</button><div class="modal"><div class="modal-art"><span id="modalSymbol"></span></div><div class="modal-copy"><small id="modalMeta"></small><h2 id="modalTitle"></h2><p id="modalDesc"></p><button class="primary" id="modalPlay" type="button">开始游戏 ↗</button></div></div></dialog>
   <script>
     const games=[
-      {title:'霓虹漂移',en:'NEON DRIFT',type:'动作',year:'2026',status:'已发布',desc:'在会呼吸的霓虹赛道上穿梭，用精准漂移追回被盗走的城市核心。',color:'#ff5c35',symbol:'↗'},
-      {title:'回声协议',en:'ECHO PROTOCOL',type:'解谜',year:'2025',status:'已发布',desc:'录下过去的自己，与回声协作，解开废弃空间站最后一道门。',color:'#b9ff66',symbol:'◎'},
+      {title:'霓虹漂移',en:'NEON DRIFT',type:'动作',year:'2026',status:'已发布',desc:'在会呼吸的霓虹赛道上穿梭，用精准漂移追回被盗走的城市核心。',color:'#ff5c35',symbol:'↗',href:'neon-drift.html'},
+      {title:'回声协议',en:'ECHO PROTOCOL',type:'解谜',year:'2025',status:'已发布',desc:'录下过去的自己，与回声协作，解开废弃空间站最后一道门。',color:'#b9ff66',symbol:'◎',href:'echo-protocol.html'},
       {title:'小小星球',en:'TINY ORBIT',type:'休闲',year:'2025',status:'已发布',desc:'照顾一颗巴掌大的星球，认识古怪居民，把荒芜变成花园。',color:'#ffd84a',symbol:'✦'},
       {title:'深海信号',en:'SIGNAL BELOW',type:'解谜',year:'2026',status:'开发中',desc:'潜入无光海域，校准声呐，从噪音里辨认一个不该存在的信号。',color:'#64d9ff',symbol:'⌁'},
       {title:'最后一杯',en:'ONE LAST CUP',type:'休闲',year:'2024',status:'已发布',desc:'经营宇宙尽头的小酒馆，调一杯饮料，也听一段旅人的故事。',color:'#ff9acc',symbol:'◡'},
@@ -40,7 +40,7 @@
     ];
     const grid=document.querySelector('#grid'),dialog=document.querySelector('#dialog');
     function render(filter='全部'){grid.innerHTML=games.filter(g=>filter==='全部'||g.type===filter).map((g,i)=>`<article class="card"><button class="visual" style="--a:${g.color}" data-title="${g.title}"><span class="number">0${i+1}</span><span class="symbol">${g.symbol}</span><span class="english">${g.en}</span><span class="arrow">↗</span></button><div class="meta"><div><small>${g.type} / ${g.year}</small><h3>${g.title}</h3></div><span class="status">${g.status}</span></div><p class="desc">${g.desc}</p><button class="details" data-title="${g.title}">查看游戏 ↗</button></article>`).join('');}
-    function openGame(title){const g=games.find(x=>x.title===title);document.querySelector('#modalTitle').textContent=g.title;document.querySelector('#modalMeta').textContent=`${g.type} · ${g.year} · ${g.status}`;document.querySelector('#modalDesc').textContent=g.desc;document.querySelector('#modalSymbol').textContent=g.symbol;document.querySelector('.modal-art').style.setProperty('--a',g.color);const play=document.querySelector('#modalPlay');play.textContent=g.title==='霓虹漂移'?'立即进入游戏 ↗':'试玩准备中';play.disabled=g.title!=='霓虹漂移';play.onclick=()=>location.href='neon-drift.html';dialog.showModal()}
+    function openGame(title){const g=games.find(x=>x.title===title);document.querySelector('#modalTitle').textContent=g.title;document.querySelector('#modalMeta').textContent=`${g.type} · ${g.year} · ${g.status}`;document.querySelector('#modalDesc').textContent=g.desc;document.querySelector('#modalSymbol').textContent=g.symbol;document.querySelector('.modal-art').style.setProperty('--a',g.color);const play=document.querySelector('#modalPlay');play.textContent=g.href?'立即进入游戏 ↗':'试玩准备中';play.disabled=!g.href;play.onclick=()=>{if(g.href)location.href=g.href};dialog.showModal()}
     document.querySelector('.filters').addEventListener('click',e=>{if(!e.target.dataset.filter)return;document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');render(e.target.dataset.filter)});
     grid.addEventListener('click',e=>{const button=e.target.closest('[data-title]');if(button)openGame(button.dataset.title)});document.querySelector('.close').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});render();
   </script>
