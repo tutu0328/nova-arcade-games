@@ -18,7 +18,7 @@
 </head>
 <body>
   <nav class="shell"><a class="brand" href="#top"><span class="logo">N</span>NOVA ARCADE</a><div class="links"><a href="#games">游戏</a><a href="#about">关于</a><a class="contact" href="mailto:hello@example.com">联系我 ↗</a></div></nav>
-  <header class="hero" id="top"><div><p class="eyebrow">独立游戏收藏</p><h1>我做游戏，<br>也造一点<br><em>新世界。</em></h1><p class="lead">这里收集了我独立开发的游戏。<br>每一款，都是一次新的实验。</p><a class="primary" href="#games">浏览全部游戏 ↓</a></div><a class="art" href="neon-drift.html"><span class="disc">PLAY ↗</span><span class="art-title">NEON<br>DRIFT</span></a></header>
+  <header class="hero" id="top"><div><p class="eyebrow">独立游戏收藏</p><h1>我做游戏，<br>也造一点<br><em>新世界。</em></h1><p class="lead">这里收集了我独立开发的游戏。<br>11 个项目先放进档案，以后可以逐个完善。</p><a class="primary" href="#games">浏览全部游戏 ↓</a></div><a class="art" href="neon-drift.html"><span class="disc">PLAY ↗</span><span class="art-title">NEON<br>DRIFT</span></a></header>
   <div class="ticker">PLAY SOMETHING NEW ✦ 独立制作 ✦ SMALL GAMES, BIG FEELINGS ✦ PLAY SOMETHING NEW</div>
   <main class="games shell" id="games"><div class="section-head"><div><p class="eyebrow">游戏档案</p><h2>选择一个世界</h2></div><div class="filters" aria-label="筛选游戏"><button class="active" data-filter="全部">全部</button><button data-filter="动作">动作</button><button data-filter="解谜">解谜</button><button data-filter="休闲">休闲</button></div></div><div class="grid" id="grid"></div></main>
   <section class="about" id="about"><div class="about-inner shell"><small>( 关于我 )</small><div><h2>独立开发，<br><em>认真玩耍。</em></h2><p>我喜欢有手感的操作、奇怪但迷人的世界，以及玩家通关后还会想一想的故事。这里的每个项目，都由好奇心开始。</p></div></div></section>
@@ -30,7 +30,13 @@
       {title:'回声协议',en:'ECHO PROTOCOL',type:'解谜',year:'2025',status:'已发布',desc:'录下过去的自己，与回声协作，解开废弃空间站最后一道门。',color:'#b9ff66',symbol:'◎'},
       {title:'小小星球',en:'TINY ORBIT',type:'休闲',year:'2025',status:'已发布',desc:'照顾一颗巴掌大的星球，认识古怪居民，把荒芜变成花园。',color:'#ffd84a',symbol:'✦'},
       {title:'深海信号',en:'SIGNAL BELOW',type:'解谜',year:'2026',status:'开发中',desc:'潜入无光海域，校准声呐，从噪音里辨认一个不该存在的信号。',color:'#64d9ff',symbol:'⌁'},
-      {title:'最后一杯',en:'ONE LAST CUP',type:'休闲',year:'2024',status:'已发布',desc:'经营宇宙尽头的小酒馆，调一杯饮料，也听一段旅人的故事。',color:'#ff9acc',symbol:'◡'}
+      {title:'最后一杯',en:'ONE LAST CUP',type:'休闲',year:'2024',status:'已发布',desc:'经营宇宙尽头的小酒馆，调一杯饮料，也听一段旅人的故事。',color:'#ff9acc',symbol:'◡'},
+      {title:'雨巷快递',en:'RAIN RUNNER',type:'动作',year:'2026',status:'开发中',desc:'在下雨的城市小巷里骑车送包裹，躲开积水、路障和突然冲出的猫。',color:'#7dd3fc',symbol:'☂'},
+      {title:'像素厨神',en:'PIXEL CHEF',type:'休闲',year:'2026',status:'开发中',desc:'用有限时间切菜、上菜、升级厨房，把一家小餐车做成夜市传说。',color:'#f97316',symbol:'◍'},
+      {title:'影子迷宫',en:'SHADOW MAZE',type:'解谜',year:'2026',status:'开发中',desc:'移动灯光改变影子，让真正的路从墙上出现，找到逃出迷宫的方法。',color:'#a78bfa',symbol:'◒'},
+      {title:'弹幕花园',en:'BULLET GARDEN',type:'动作',year:'2026',status:'开发中',desc:'不是消灭敌人，而是在弹幕里种花；每次闪避都会让花园多开一朵。',color:'#fb7185',symbol:'✿'},
+      {title:'月球修理工',en:'MOON MECHANIC',type:'解谜',year:'2026',status:'开发中',desc:'修复月球基地的电路、氧气和重力系统，在倒计时前救回整个小队。',color:'#cbd5e1',symbol:'◌'},
+      {title:'猫咪地铁',en:'CAT METRO',type:'休闲',year:'2026',status:'开发中',desc:'安排猫咪乘客换乘地铁，别让橘猫坐过站，也别让站台被鱼罐头堵住。',color:'#facc15',symbol:'♢'}
     ];
     const grid=document.querySelector('#grid'),dialog=document.querySelector('#dialog');
     function render(filter='全部'){grid.innerHTML=games.filter(g=>filter==='全部'||g.type===filter).map((g,i)=>`<article class="card"><button class="visual" style="--a:${g.color}" data-title="${g.title}"><span class="number">0${i+1}</span><span class="symbol">${g.symbol}</span><span class="english">${g.en}</span><span class="arrow">↗</span></button><div class="meta"><div><small>${g.type} / ${g.year}</small><h3>${g.title}</h3></div><span class="status">${g.status}</span></div><p class="desc">${g.desc}</p><button class="details" data-title="${g.title}">查看游戏 ↗</button></article>`).join('');}
