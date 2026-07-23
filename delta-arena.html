@@ -375,7 +375,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.5</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.6</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -391,7 +391,7 @@
 
   <div class="bottom hidden" id="bottom">
     <div class="status panel"><b id="weaponName">M4A1</b><small id="weaponInfo">步枪 · 自动</small></div>
-    <div class="ammo panel"><b><span id="ammo">30</span>/<span id="reserve">120</span></b><small>R 换弹 · 1/2 切枪</small></div>
+    <div class="ammo panel"><b><span id="ammo">30</span>/<span id="reserve">120</span></b><small>R 换弹 · 1/2/3 切换</small></div>
   </div>
 
   <section class="overlay" id="lobby">
@@ -417,7 +417,7 @@
             <label>蓝队人数</label>
             <div class="counter"><button class="step" data-input="blueSlots" data-delta="-1">−</button><input id="blueSlots" type="number" min="1" max="8" value="5"><button class="step" data-input="blueSlots" data-delta="1">+</button></div>
           </div>
-          <div class="field"><label>对战模式</label><select id="mode"><option value="team">团队竞技</option><option value="sniper">狙击对决</option><option value="gun">枪械乱斗</option></select></div>
+          <div class="field"><label>对战模式</label><select id="mode"><option value="team">团队竞技</option><option value="sniper">狙击对决</option><option value="gun">枪械乱斗</option><option value="knife">刀战近身</option></select></div>
           <div class="field"><label>比赛时间</label><select id="matchTime"><option value="300">5 分钟</option><option value="600" selected>10 分钟</option><option value="1200">20 分钟</option></select></div>
           <div class="field"><label>击杀目标</label><select id="killTarget"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select></div>
           <div class="field"><label>地图</label><select id="map"><option value="0">三角训练基地</option><option value="1">废弃工厂</option><option value="2">雪山基地</option><option value="3">城市街区</option></select></div>
@@ -463,9 +463,10 @@
       <div class="rules">
         <div class="rule"><b>WASD / Shift</b>移动与冲刺</div>
         <div class="rule"><b>左键 / 右键</b>开火与瞄准</div>
-        <div class="rule"><b>C</b>滑铲压进</div>
+        <div class="rule"><b>Q / E</b>左右探头 Peek</div>
+        <div class="rule"><b>C / 4 / 5 / 6</b>滑铲、烟雾、手雷、燃烧瓶</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃</div>
-        <div class="rule"><b>R / 1 / 2</b>换弹与切枪</div>
+        <div class="rule"><b>R / 1 / 2 / 3</b>换弹、主副武器与近战刀</div>
       </div>
     </div>
   </section>
@@ -523,14 +524,19 @@
       m200: { name: 'M200', cat: '狙击枪', damage: 126, rate: .72, mag: 5, reserve: 20, reload: 3.15, recoil: .11, spread: .0015, move: .04, color: '#bca67c', auto: false, falloff: 90, needsAds: true },
       shotgun: { name: 'M870', cat: '霰弹枪', damage: 15, pellets: 9, rate: .95, mag: 8, reserve: 40, reload: .42, recoil: .12, spread: .09, move: .035, color: '#ba8757', auto: false, falloff: 11, shellReload: true },
       bow: { name: '复合弓', cat: '弓箭', damage: 96, rate: 1.05, mag: 1, reserve: 24, reload: .75, recoil: .01, spread: .007, move: .01, color: '#91b88a', auto: false, falloff: 58, charge: true, quiet: true },
+      knife: { name: '战术刀', cat: '近战', damage: 72, rate: 1.7, mag: 1, reserve: 0, reload: 0, recoil: 0, spread: 0, move: 0, color: '#d8e0d2', auto: false, falloff: 1.75, melee: true, quiet: true },
+      frag: { name: '破片手雷', cat: '投掷物', damage: 92, color: '#6b715f', throwable: true },
+      molotov: { name: '燃烧瓶', cat: '投掷物', damage: 9, color: '#ff8a2a', throwable: true },
+      smoke: { name: '烟雾弹', cat: '投掷物', damage: 0, color: '#b8bfb0', throwable: true },
       glock: { name: 'Glock 17', cat: '手枪', damage: 24, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
       deagle: { name: '沙漠之鹰', cat: '手枪', damage: 64, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
     };
 
     const mapNames = ['三角训练基地', '废弃工厂', '雪山基地', '城市街区'];
-    const modeNames = { team: '团队竞技', sniper: '狙击对决', gun: '枪械乱斗' };
+    const modeNames = { team: '团队竞技', sniper: '狙击对决', gun: '枪械乱斗', knife: '刀战近身' };
 
     Object.entries(weapons).forEach(([key, weapon]) => {
+      if (weapon.melee || weapon.throwable) return;
       const option = `<option value="${key}">${weapon.cat} · ${weapon.name}</option>`;
       if (weapon.cat === '手枪') $('#secondary').insertAdjacentHTML('beforeend', option);
       else $('#primary').insertAdjacentHTML('beforeend', option);
@@ -578,8 +584,13 @@
     let vy = 0;
     let slideTimer = 0;
     let slideAngle = 0;
+    let lean = 0;
     let hitPulse = 0;
     let damagePulse = 0;
+    let knifeSlash = 0;
+    let smokeCooldown = 0;
+    let fragCooldown = 0;
+    let molotovCooldown = 0;
     let bowCharge = 0;
     let chargingBow = false;
     let audio = null;
@@ -591,6 +602,11 @@
     const bulletHoles = [];
     const tracers = [];
     const particles = [];
+    const smokes = [];
+    const fires = [];
+    const seenSmokes = new Set();
+    const seenExplosions = new Set();
+    const seenFires = new Set();
     const seenDeaths = new Set();
     const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0 };
     const BODY_RADIUS = .34;
@@ -973,7 +989,13 @@
         return mesh;
       };
 
-      if (w.cat === '弓箭') {
+      if (w.melee) {
+        add(new THREE.BoxGeometry(.16, .14, .42), dark, .06, -.18, -.58);
+        add(new THREE.BoxGeometry(.32, .055, .13), metal, .06, -.08, -.76);
+        add(new THREE.BoxGeometry(.09, .045, .72), accent, .06, .02, -1.06);
+        const tip = add(new THREE.ConeGeometry(.07, .18, 4), accent, .06, .02, -1.49);
+        tip.rotation.x = Math.PI / 2;
+      } else if (w.cat === '弓箭') {
         add(new THREE.BoxGeometry(.08, .86, .08), accent, .12, .02, -.76);
         add(new THREE.BoxGeometry(.04, .78, .04), dark, -.02, .02, -.76);
         add(new THREE.BoxGeometry(.06, .08, .78), dark, .04, 0, -.77);
@@ -1002,9 +1024,9 @@
       add(new THREE.BoxGeometry(.16, .42, .16), hand, -.16, -.38, -.54);
       add(new THREE.BoxGeometry(.16, .36, .16), hand, .18, -.34, -.92);
       muzzle = new THREE.PointLight(0xffc878, 0, 2.2);
-      muzzle.position.set(.02, .06, w.cat === '弓箭' ? -1.34 : -1.68);
+      muzzle.position.set(.02, .06, w.melee ? -1.1 : w.cat === '弓箭' ? -1.34 : -1.68);
       gun.add(muzzle);
-      gun.position.set(.34, -.3, -.55);
+      gun.position.set(w.melee ? .45 : .34, w.melee ? -.34 : -.3, w.melee ? -.48 : -.55);
       camera.add(gun);
     }
 
@@ -1185,6 +1207,21 @@
           applyDeath(data);
           if (isHost) broadcast(data, conn);
         }
+
+        if (data.type === 'smoke') {
+          spawnSmoke(data.x, data.y, data.id, false);
+          if (isHost) broadcast(data, conn);
+        }
+
+        if (data.type === 'explosion') {
+          spawnExplosion(data.x, data.y, data.id, data, false);
+          if (isHost) broadcast(data, conn);
+        }
+
+        if (data.type === 'fire') {
+          spawnFire(data.x, data.y, data.id, data, false);
+          if (isHost) broadcast(data, conn);
+        }
       });
 
       conn.on('close', () => {
@@ -1294,8 +1331,8 @@
       clearShotFX();
       buildLevel();
       const p = spawnPoint(team);
-      const primary = gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
-      const secondary = gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
+      const primary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
+      const secondary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
       player = {
         x: p.x,
         y: p.y,
@@ -1304,7 +1341,7 @@
         dead: 0,
         stance: 0,
         weapon: 0,
-        loadout: [primary, secondary],
+        loadout: [primary, secondary, 'knife'],
         ammo: [],
         reserve: []
       };
@@ -1326,7 +1363,12 @@
       vx = 0;
       vy = 0;
       slideTimer = 0;
+      lean = 0;
       lookPitch = 0;
+      knifeSlash = 0;
+      smokeCooldown = 0;
+      fragCooldown = 0;
+      molotovCooldown = 0;
       bowCharge = 0;
       chargingBow = false;
       seenDeaths.clear();
@@ -1476,6 +1518,10 @@
       }
 
       fireTimer = Math.max(0, fireTimer - dt);
+      knifeSlash = Math.max(0, knifeSlash - dt);
+      smokeCooldown = Math.max(0, smokeCooldown - dt);
+      fragCooldown = Math.max(0, fragCooldown - dt);
+      molotovCooldown = Math.max(0, molotovCooldown - dt);
       hitPulse = Math.max(0, hitPulse - dt);
       damagePulse = Math.max(0, damagePulse - dt);
       $('#cross').classList.toggle('hit', hitPulse > 0);
@@ -1513,14 +1559,17 @@
       } else {
         const tx = (Math.cos(player.a) * ff + Math.cos(player.a + Math.PI / 2) * rr) * speed;
         const ty = (Math.sin(player.a) * ff + Math.sin(player.a + Math.PI / 2) * rr) * speed;
-        const accel = ff || rr ? 18 : 24;
+        const reversing = (ff || rr) && (vx * tx + vy * ty < -.08);
+        const accel = reversing ? 54 : (ff || rr ? 25 : 58);
         const blend = 1 - Math.exp(-accel * dt);
         vx += (tx - vx) * blend;
         vy += (ty - vy) * blend;
-        if (!ff && !rr && Math.hypot(vx, vy) < .02) vx = vy = 0;
+        if (!ff && !rr && Math.hypot(vx, vy) < .045) vx = vy = 0;
       }
 
       moveEntity(player, vx * dt, vy * dt);
+      const leanTarget = player.dead > 0 ? 0 : (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
+      lean += (leanTarget - lean) * (1 - Math.exp(-14 * dt));
       const movement = Math.hypot(vx, vy);
       moveBlend += (Math.min(1, movement / 2.7) - moveBlend) * (1 - Math.exp(-10 * dt));
       if (moveBlend > .04) bob += movement * dt * 4.1;
@@ -1560,10 +1609,56 @@
       return value;
     }
 
+    function sendHit(targetId, damage, headshot, weapon, sx = player.x, sy = player.y) {
+      const msg = {
+        type: 'hit',
+        id: localId,
+        target: targetId,
+        damage,
+        headshot,
+        weapon,
+        shooterName: roomPlayers.get(localId)?.name || localName(),
+        shooterTeam: team,
+        sx,
+        sy
+      };
+      if (isHost) broadcast(msg);
+      else sendToHost(msg);
+    }
+
+    function meleeAttack() {
+      if (!player || fireTimer > 0 || reloadTimer > 0 || player.dead > 0) return;
+      const key = currentWeaponKey();
+      const w = weapons[key];
+      fireTimer = 1 / w.rate;
+      knifeSlash = .22;
+      matchStats.shots++;
+      tone(330, .06, .035, 'triangle');
+      const hit = [...remotePlayers.values()]
+        .filter(target => target.team !== team && target.hp > 0)
+        .map(target => {
+          const d = Math.hypot(target.x - player.x, target.y - player.y);
+          const da = Math.abs(norm(Math.atan2(target.y - player.y, target.x - player.x) - player.a));
+          return { target, d, da };
+        })
+        .filter(item => item.d <= 1.85 && item.da < .76 && lineOfSight(player, item.target))
+        .sort((a, b) => a.d - b.d)[0];
+      if (hit) {
+        matchStats.hits++;
+        showHitMarker(false);
+        sendHit(hit.target.id, w.damage, false, key);
+      }
+      updateHud();
+    }
+
     function shoot(charge = 1) {
       if (!player || fireTimer > 0 || reloadTimer > 0 || player.dead > 0) return;
       const key = currentWeaponKey();
       const w = weapons[key];
+      if (w.melee) {
+        meleeAttack();
+        return;
+      }
       if (player.ammo[player.weapon] <= 0) {
         reload();
         return;
@@ -1604,20 +1699,7 @@
           matchStats.hits++;
           if (headshot) matchStats.headshots++;
           showHitMarker(headshot);
-          const msg = {
-            type: 'hit',
-            id: localId,
-            target: hit.target.id,
-            damage,
-            headshot,
-            weapon: key,
-            shooterName: roomPlayers.get(localId)?.name || localName(),
-            shooterTeam: team,
-            sx: player.x,
-            sy: player.y
-          };
-          if (isHost) broadcast(msg);
-          else sendToHost(msg);
+          sendHit(hit.target.id, damage, headshot, key);
         }
       }
 
@@ -1638,11 +1720,13 @@
     }
 
     function applyIncomingHit(data) {
+      if (!player || player.dead > 0) return;
       player.hp = Math.max(0, player.hp - data.damage);
       damagePulse = .22;
       addFeed(data.headshot ? '受到爆头伤害' : '受到攻击', '#ff5b55');
       tone(90, .09, .06, 'sawtooth');
       if (player.hp <= 0) {
+        player.dead = 1.5;
         matchStats.deaths++;
         const death = {
           type: 'death',
@@ -1658,7 +1742,6 @@
         applyDeath(death);
         if (isHost) broadcast(death);
         else sendToHost(death);
-        setTimeout(respawnPlayer, 1500);
       }
     }
 
@@ -1696,14 +1779,21 @@
       const holeSize = ray.type === 4 ? .075 : ray.type === 3 ? .12 : .105;
       const hole = new THREE.Mesh(
         new THREE.CircleGeometry(holeSize + Math.random() * .025, 8),
-        new THREE.MeshBasicMaterial({ color: ray.type === 3 ? 0x1b0d05 : 0x030302, transparent: true, opacity: .98, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8 })
+        new THREE.MeshBasicMaterial({
+          color: ray.kind === 'ground' ? 0x090705 : ray.type === 3 ? 0x1b0d05 : 0x030302,
+          transparent: true,
+          opacity: .92,
+          depthTest: true,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -1,
+          polygonOffsetUnits: -1
+        })
       );
-      hole.position.copy(end).addScaledVector(dir, -.01);
+      hole.position.copy(end).addScaledVector(dir, -.006);
       if (ray.kind === 'ground') {
-        hole.position.y = .045;
+        hole.position.y = .018;
         hole.rotation.x = -Math.PI / 2;
-        hole.material.depthTest = false;
-        hole.renderOrder = 22;
       } else {
         hole.position.y += Math.random() * .045 - .022;
         if (ray.side === 0) hole.rotation.y = Math.PI / 2;
@@ -1726,6 +1816,185 @@
       }
     }
 
+    function spawnSmoke(x, y, id = nowId(), sync = false) {
+      if (seenSmokes.has(id)) return;
+      seenSmokes.add(id);
+      const group = new THREE.Group();
+      const smokeGeo = new THREE.BoxGeometry(.78, .62, .78);
+      for (let i = 0; i < 22; i++) {
+        const mat = new THREE.MeshLambertMaterial({
+          color: i % 3 === 0 ? 0xc6cabb : 0x9fa69a,
+          transparent: true,
+          opacity: .22 + Math.random() * .12,
+          depthWrite: false,
+          depthTest: true
+        });
+        const puff = new THREE.Mesh(smokeGeo, mat);
+        puff.position.set((Math.random() - .5) * 2.2, .42 + Math.random() * 1.35, (Math.random() - .5) * 2.2);
+        puff.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        puff.scale.setScalar(.58 + Math.random() * .82);
+        group.add(puff);
+      }
+      group.position.set(x, 0, y);
+      scene.add(group);
+      smokes.push({ id, mesh: group, life: 8.4, max: 8.4 });
+      addFeed('烟雾弹展开', '#c8ff62');
+      if (sync) {
+        const msg = { type: 'smoke', id, x, y };
+        if (isHost) broadcast(msg);
+        else sendToHost(msg);
+      }
+    }
+
+    function throwSmoke() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (smokeCooldown > 0) {
+        addFeed(`烟雾弹冷却 ${Math.ceil(smokeCooldown)} 秒`, '#aab4a5');
+        return;
+      }
+      const ray = cast(player.x, player.y, player.a, 7);
+      const dist = clamp((ray.type ? ray.dist - .7 : 6.2), 1.4, 6.2);
+      const x = player.x + Math.cos(player.a) * dist;
+      const y = player.y + Math.sin(player.a) * dist;
+      smokeCooldown = 12;
+      spawnSmoke(x, y, nowId(), true);
+      tone(180, .08, .05, 'triangle');
+    }
+
+    function tacticalPoint(max = 7, margin = .75) {
+      const ray = cast(player.x, player.y, player.a, max);
+      const dist = clamp(ray.type ? ray.dist - margin : max - .45, 1.35, max - .45);
+      return {
+        x: player.x + Math.cos(player.a) * dist,
+        y: player.y + Math.sin(player.a) * dist
+      };
+    }
+
+    function localExplosionSource(weapon) {
+      return {
+        shooterId: localId,
+        shooterName: roomPlayers.get(localId)?.name || localName(),
+        shooterTeam: team,
+        weapon
+      };
+    }
+
+    function applyLocalAreaDamage(source, radius, maxDamage, weapon, requireSight = true) {
+      if (!player || state !== 'play' || player.dead > 0 || spawnProtect > 0) return;
+      if (!source || source.shooterTeam === team) return;
+      const d = Math.hypot(player.x - source.x, player.y - source.y);
+      if (d > radius) return;
+      if (requireSight) {
+        const angle = Math.atan2(player.y - source.y, player.x - source.x);
+        if (cast(source.x, source.y, angle, d + .1).dist < d - .18) return;
+      }
+      const falloff = clamp(1 - d / radius, .2, 1);
+      applyIncomingHit({
+        id: source.shooterId,
+        damage: maxDamage * falloff,
+        headshot: false,
+        weapon,
+        shooterName: source.shooterName || 'PLAYER',
+        shooterTeam: source.shooterTeam,
+        sx: source.x,
+        sy: source.y
+      });
+    }
+
+    function spawnExplosion(x, y, id = nowId(), source = {}, sync = false) {
+      if (seenExplosions.has(id)) return;
+      seenExplosions.add(id);
+      const event = { ...source, id, x, y, weapon: 'frag' };
+      for (let i = 0; i < 36; i++) {
+        const chip = new THREE.Mesh(
+          new THREE.BoxGeometry(.06 + Math.random() * .05, .06 + Math.random() * .08, .06 + Math.random() * .05),
+          new THREE.MeshBasicMaterial({
+            color: i % 3 === 0 ? 0xfff0a8 : i % 3 === 1 ? 0xff8a2a : 0x2b2a24,
+            transparent: true,
+            opacity: .95
+          })
+        );
+        chip.position.set(x + (Math.random() - .5) * .35, .35 + Math.random() * .5, y + (Math.random() - .5) * .35);
+        scene.add(chip);
+        const power = .9 + Math.random() * 2.6;
+        const angle = Math.random() * Math.PI * 2;
+        particles.push({ mesh: chip, vx: Math.cos(angle) * power, vy: .9 + Math.random() * 2.2, vz: Math.sin(angle) * power, life: .62 });
+      }
+      const flash = new THREE.PointLight(0xffad42, 4.5, 6);
+      flash.position.set(x, 1.1, y);
+      scene.add(flash);
+      particles.push({ mesh: flash, vx: 0, vy: 0, vz: 0, life: .2 });
+      applyLocalAreaDamage(event, 3.2, weapons.frag.damage, 'frag', true);
+      addFeed('破片手雷爆炸', '#ffb15a');
+      tone(62, .18, .12, 'sawtooth');
+      if (sync) {
+        const msg = { type: 'explosion', ...event };
+        if (isHost) broadcast(msg);
+        else sendToHost(msg);
+      }
+    }
+
+    function spawnFire(x, y, id = nowId(), source = {}, sync = false) {
+      if (seenFires.has(id)) return;
+      seenFires.add(id);
+      const event = { ...source, id, x, y, weapon: 'molotov' };
+      const group = new THREE.Group();
+      for (let i = 0; i < 20; i++) {
+        const mat = new THREE.MeshBasicMaterial({
+          color: i % 2 ? 0xff7a18 : 0xffd455,
+          transparent: true,
+          opacity: .82,
+          depthTest: true,
+          depthWrite: false
+        });
+        const flame = new THREE.Mesh(new THREE.BoxGeometry(.22, .52 + Math.random() * .55, .22), mat);
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.sqrt(Math.random()) * 1.55;
+        flame.position.set(Math.cos(angle) * dist, .16 + Math.random() * .18, Math.sin(angle) * dist);
+        flame.rotation.y = Math.random() * Math.PI;
+        flame.scale.setScalar(.65 + Math.random() * .75);
+        group.add(flame);
+      }
+      group.position.set(x, .02, y);
+      scene.add(group);
+      fires.push({ id, mesh: group, life: 7.2, max: 7.2, tick: .1, source: event });
+      addFeed('燃烧瓶碎裂，火区展开', '#ff8a2a');
+      tone(120, .16, .06, 'sawtooth');
+      if (sync) {
+        const msg = { type: 'fire', ...event };
+        if (isHost) broadcast(msg);
+        else sendToHost(msg);
+      }
+    }
+
+    function throwFrag() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (fragCooldown > 0) {
+        addFeed(`手雷冷却 ${Math.ceil(fragCooldown)} 秒`, '#aab4a5');
+        return;
+      }
+      const point = tacticalPoint(8.5, .85);
+      const source = { ...localExplosionSource('frag'), x: point.x, y: point.y };
+      fragCooldown = 11;
+      addFeed('破片手雷抛出', '#ffb15a');
+      tone(220, .07, .04, 'triangle');
+      setTimeout(() => spawnExplosion(point.x, point.y, nowId(), source, true), 720);
+    }
+
+    function throwMolotov() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (molotovCooldown > 0) {
+        addFeed(`燃烧瓶冷却 ${Math.ceil(molotovCooldown)} 秒`, '#aab4a5');
+        return;
+      }
+      const point = tacticalPoint(7.4, .75);
+      const source = { ...localExplosionSource('molotov'), x: point.x, y: point.y };
+      molotovCooldown = 13;
+      addFeed('燃烧瓶抛出', '#ff8a2a');
+      tone(260, .07, .04, 'triangle');
+      setTimeout(() => spawnFire(point.x, point.y, nowId(), source, true), 380);
+    }
+
     function updateTracers(dt) {
       for (let i = tracers.length - 1; i >= 0; i--) {
         const t = tracers[i];
@@ -1743,10 +2012,44 @@
         p.mesh.position.y += p.vy * dt;
         p.mesh.position.z += p.vz * dt;
         p.vy -= 2.8 * dt;
-        p.mesh.material.opacity = Math.max(0, p.life / .32);
+        if (p.mesh.material) p.mesh.material.opacity = Math.max(0, p.life / .62);
+        if (p.mesh.isLight) p.mesh.intensity = Math.max(0, p.life / .2) * 4.5;
         if (p.life <= 0) {
           scene.remove(p.mesh);
           particles.splice(i, 1);
+        }
+      }
+      for (let i = smokes.length - 1; i >= 0; i--) {
+        const s = smokes[i];
+        s.life -= dt;
+        const age = 1 - s.life / s.max;
+        const fade = clamp(Math.min(s.life / 1.6, age / .55), 0, 1);
+        s.mesh.scale.setScalar(1 + age * .55);
+        s.mesh.children.forEach(child => {
+          child.material.opacity = (.28 + age * .16) * fade;
+          child.rotation.y += dt * .15;
+        });
+        if (s.life <= 0) {
+          scene.remove(s.mesh);
+          smokes.splice(i, 1);
+        }
+      }
+      for (let i = fires.length - 1; i >= 0; i--) {
+        const f = fires[i];
+        f.life -= dt;
+        f.tick -= dt;
+        const fade = clamp(Math.min(f.life / 1.4, (f.max - f.life) / .55), 0, 1);
+        f.mesh.children.forEach((child, index) => {
+          child.material.opacity = (.58 + Math.sin(performance.now() * .012 + index) * .16) * fade;
+          child.scale.y = .75 + Math.abs(Math.sin(performance.now() * .01 + index)) * .8;
+        });
+        if (f.tick <= 0) {
+          f.tick = .48;
+          applyLocalAreaDamage(f.source, 2.15, weapons.molotov.damage, 'molotov', false);
+        }
+        if (f.life <= 0) {
+          scene.remove(f.mesh);
+          fires.splice(i, 1);
         }
       }
     }
@@ -1755,6 +2058,11 @@
       bulletHoles.splice(0).forEach(mesh => scene.remove(mesh));
       tracers.splice(0).forEach(item => scene.remove(item.mesh));
       particles.splice(0).forEach(item => scene.remove(item.mesh));
+      smokes.splice(0).forEach(item => scene.remove(item.mesh));
+      fires.splice(0).forEach(item => scene.remove(item.mesh));
+      seenSmokes.clear();
+      seenExplosions.clear();
+      seenFires.clear();
     }
 
     function updateRemoteMeshes(dt) {
@@ -1778,7 +2086,9 @@
         mesh.userData.rightFoot.rotation.z = swing * .45;
         const stepLift = Math.abs(Math.sin(mesh.userData.walk * 2)) * clamp(travel * 3.2, 0, .045);
         mesh.position.set(p.x, stepLift, p.y);
+        mesh.rotation.order = 'YXZ';
         mesh.rotation.y = -p.a;
+        mesh.rotation.z = -(p.lean || 0) * .12;
         mesh.visible = p.hp > 0;
         p.flash = Math.max(0, (p.flash || 0) - dt);
         mesh.traverse(child => {
@@ -1799,19 +2109,25 @@
         return;
       }
       const scoped = isSniperScoped();
+      const w = currentWeapon();
       const eye = eyeHeight();
       const cameraBob = Math.sin(bob) * .022 * moveBlend;
       camera.position.set(player.x, eye + jump + cameraBob, player.y);
+      camera.position.x += Math.cos(player.a + Math.PI / 2) * lean * .22;
+      camera.position.z += Math.sin(player.a + Math.PI / 2) * lean * .22;
       camera.rotation.order = 'YXZ';
       camera.rotation.y = -player.a - Math.PI / 2;
       camera.rotation.x = lookPitch;
+      camera.rotation.z = -lean * .09;
       camera.fov = scoped ? 18 : ads ? 46 : 72;
       camera.updateProjectionMatrix();
       gun.visible = !scoped;
-      gun.position.x = ads ? 0 : .34;
-      gun.position.y = ads ? -.18 : -.3 + Math.abs(Math.cos(bob)) * .012 * moveBlend;
-      gun.position.z = ads ? -.5 : -.55;
-      gun.rotation.x = -lookPitch * .18;
+      const slash = knifeSlash > 0 ? Math.sin((1 - knifeSlash / .22) * Math.PI) : 0;
+      gun.position.x = ads ? 0 : (w?.melee ? .45 : .34);
+      gun.position.y = ads ? -.18 : (w?.melee ? -.34 : -.3) + Math.abs(Math.cos(bob)) * .012 * moveBlend - slash * .08;
+      gun.position.z = ads ? -.5 : (w?.melee ? -.48 : -.55) - slash * .16;
+      gun.rotation.x = -lookPitch * .18 - slash * .48;
+      gun.rotation.z = w?.melee ? -.25 - slash * .75 : 0;
       renderer.render(scene, camera);
     }
 
@@ -1871,6 +2187,20 @@
         ctx.fillText('8X SCOPE', cx - radius + 34, cy + radius - 34);
         ctx.restore();
       }
+      if (knifeSlash > 0) {
+        const t = knifeSlash / .22;
+        ctx.save();
+        ctx.strokeStyle = `rgba(230,255,210,${.7 * t})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(W * (.68 - .06 * t), H * (.64 + .04 * t));
+        ctx.lineTo(W * (.86 + .02 * t), H * (.42 - .08 * t));
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(20,25,20,${.6 * t})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
       if (player.dead > 0) {
         ctx.fillStyle = 'rgba(120,0,0,.38)';
         ctx.fillRect(0, 0, W, H);
@@ -1894,6 +2224,7 @@
         a: player.a,
         hp: player.hp,
         stance: player.stance,
+        lean,
         weapon: currentWeaponKey(),
         flash: 0
       };
@@ -1905,6 +2236,7 @@
       if (!player || reloadTimer > 0) return;
       const index = player.weapon;
       const w = weapons[player.loadout[index]];
+      if (w.melee) return;
       if (player.ammo[index] >= w.mag || player.reserve[index] <= 0) return;
       reloadTimer = w.reload;
       shellReloading = !!w.shellReload;
@@ -1968,9 +2300,11 @@
       $('#stance').textContent = spawnProtect > 0 ? `保护 ${Math.ceil(spawnProtect)}` : slideTimer > 0 ? '滑铲' : ['站立', '蹲下', '趴下'][player.stance];
       const chargeText = chargingBow ? ` · 蓄力 ${Math.round(bowCharge * 100)}%` : '';
       $('#weaponName').textContent = `${w.name}${reloadTimer > 0 ? ' · 换弹中' : ''}${chargeText}`;
-      $('#weaponInfo').textContent = `${w.cat} · ${w.auto ? '自动' : w.charge ? '蓄力' : '半自动'} · 击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
-      $('#ammo').textContent = player.ammo[player.weapon];
-      $('#reserve').textContent = player.reserve[player.weapon];
+      const action = w.melee ? '左键近战' : w.auto ? '自动' : w.charge ? '蓄力' : '半自动';
+      const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'}`;
+      $('#weaponInfo').textContent = `${w.cat} · ${action} · ${tools} · 击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
+      $('#ammo').textContent = w.melee ? '刀' : player.ammo[player.weapon];
+      $('#reserve').textContent = w.melee ? '近战' : player.reserve[player.weapon];
     }
 
     function addFeed(text, color = '#c8ff62') {
@@ -1991,7 +2325,8 @@
       $('#cross').classList.add('hidden');
       const main = weapons[player.loadout[0]].name;
       const second = weapons[player.loadout[1]].name;
-      $('#briefText').textContent = `${mapNames[mapKind]} · ${team === 'red' ? '赤队' : '蓝队'} · ${modeNames[gameMode]} · ${main} / ${second} · ${roomPlayers.size || 1} 名真人玩家。`;
+      const kit = gameMode === 'knife' ? '战术刀专场' : `${main} / ${second} / 战术刀`;
+      $('#briefText').textContent = `${mapNames[mapKind]} · ${team === 'red' ? '赤队' : '蓝队'} · ${modeNames[gameMode]} · ${kit} · ${roomPlayers.size || 1} 名真人玩家。`;
       state = 'brief';
     }
 
@@ -2127,9 +2462,14 @@
         player.stance = 1;
         addFeed('战术滑铲', '#c8ff62');
       }
+      if (state === 'play' && !event.repeat && event.key === '4') throwSmoke();
+      if (state === 'play' && !event.repeat && event.key === '5') throwFrag();
+      if (state === 'play' && !event.repeat && event.key === '6') throwMolotov();
       if (event.key.toLowerCase() === 'r') reload();
-      if (event.key === '1' || event.key === '2') {
-        player.weapon = parseInt(event.key, 10) - 1;
+      if (event.key === '1' || event.key === '2' || event.key === '3') {
+        const index = parseInt(event.key, 10) - 1;
+        if (!player.loadout[index]) return;
+        player.weapon = index;
         reloadTimer = 0;
         shellReloading = false;
         chargingBow = false;
@@ -2207,9 +2547,9 @@
       dead: 0,
       stance: 0,
       weapon: 0,
-      loadout: ['m4', 'glock'],
-      ammo: [30, 17],
-      reserve: [120, 68]
+      loadout: ['m4', 'glock', 'knife'],
+      ammo: [30, 17, 1],
+      reserve: [120, 68, 0]
     };
     makeGun3D('m4');
     requestAnimationFrame(loop);
