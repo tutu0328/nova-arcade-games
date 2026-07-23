@@ -43,6 +43,21 @@
     .hidden { display: none !important; }
     #world { z-index: 0; image-rendering: crisp-edges; }
     #game { z-index: 1; pointer-events: auto; image-rendering: crisp-edges; }
+    #radar {
+      position: fixed;
+      z-index: 5;
+      left: auto;
+      right: 16px;
+      top: 150px;
+      bottom: auto;
+      width: 158px;
+      height: 158px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      background: rgba(5,8,7,.84);
+      box-shadow: 0 18px 60px #0009, inset 0 0 0 1px rgba(255,255,255,.06);
+      pointer-events: none;
+    }
 
     body::after {
       content: "";
@@ -360,6 +375,7 @@
       .brand, .vitals { display: none; }
       .score { justify-self: center; grid-template-columns: 58px 130px 58px; }
       .feed { top: 86px; right: 10px; }
+      #radar { width: 126px; height: 126px; right: 10px; top: 150px; }
       .form { grid-template-columns: 1fr 1fr; }
       .wide { grid-column: span 2; }
       .room { grid-template-columns: 1fr; }
@@ -375,7 +391,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.6</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.7</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -387,6 +403,7 @@
   <div class="feed" id="feed"></div>
   <div class="cross hidden" id="cross"></div>
   <div class="hit-flash" id="hitFlash"></div>
+  <canvas class="hidden" id="radar" width="158" height="158"></canvas>
   <div class="charge hidden" id="charge"><span id="chargeFill"></span></div>
 
   <div class="bottom hidden" id="bottom">
@@ -464,7 +481,7 @@
         <div class="rule"><b>WASD / Shift</b>移动与冲刺</div>
         <div class="rule"><b>左键 / 右键</b>开火与瞄准</div>
         <div class="rule"><b>Q / E</b>左右探头 Peek</div>
-        <div class="rule"><b>C / 4 / 5 / 6</b>滑铲、烟雾、手雷、燃烧瓶</div>
+        <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃</div>
         <div class="rule"><b>R / 1 / 2 / 3</b>换弹、主副武器与近战刀</div>
       </div>
@@ -505,6 +522,8 @@
     const canvas = $('#game');
     const ctx = canvas.getContext('2d');
     const world = $('#world');
+    const radar = $('#radar');
+    const radarCtx = radar.getContext('2d');
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const randCode = () => Math.random().toString(36).slice(2, 8).toUpperCase().padEnd(6, 'Q').slice(0, 6);
     const nowId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -591,6 +610,10 @@
     let smokeCooldown = 0;
     let fragCooldown = 0;
     let molotovCooldown = 0;
+    let throwPrime = null;
+    let footTimer = 0;
+    let emptyClickTimer = 0;
+    let recoilKick = 0;
     let bowCharge = 0;
     let chargingBow = false;
     let audio = null;
@@ -604,11 +627,14 @@
     const particles = [];
     const smokes = [];
     const fires = [];
+    const projectiles = [];
+    const trajectoryDots = [];
     const seenSmokes = new Set();
     const seenExplosions = new Set();
     const seenFires = new Set();
+    const seenProjectiles = new Set();
     const seenDeaths = new Set();
-    const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0 };
+    const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0 };
     const BODY_RADIUS = .34;
 
     const renderer = new THREE.WebGLRenderer({ canvas: world, antialias: false, powerPreference: 'high-performance' });
@@ -1213,6 +1239,11 @@
           if (isHost) broadcast(data, conn);
         }
 
+        if (data.type === 'projectile') {
+          spawnProjectile(data.kind, data, data.id, data, false);
+          if (isHost) broadcast(data, conn);
+        }
+
         if (data.type === 'explosion') {
           spawnExplosion(data.x, data.y, data.id, data, false);
           if (isHost) broadcast(data, conn);
@@ -1369,10 +1400,14 @@
       smokeCooldown = 0;
       fragCooldown = 0;
       molotovCooldown = 0;
+      throwPrime = null;
+      footTimer = 0;
+      emptyClickTimer = 0;
+      recoilKick = 0;
       bowCharge = 0;
       chargingBow = false;
       seenDeaths.clear();
-      Object.assign(matchStats, { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0 });
+      Object.assign(matchStats, { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0 });
       makeGun3D(currentWeaponKey());
       updateHud();
     }
@@ -1522,6 +1557,12 @@
       smokeCooldown = Math.max(0, smokeCooldown - dt);
       fragCooldown = Math.max(0, fragCooldown - dt);
       molotovCooldown = Math.max(0, molotovCooldown - dt);
+      emptyClickTimer = Math.max(0, emptyClickTimer - dt);
+      if (recoilKick > 0) {
+        const recover = Math.min(recoilKick, dt * .46);
+        lookPitch = clamp(lookPitch - recover, -1.18, .82);
+        recoilKick -= recover;
+      }
       hitPulse = Math.max(0, hitPulse - dt);
       damagePulse = Math.max(0, damagePulse - dt);
       $('#cross').classList.toggle('hit', hitPulse > 0);
@@ -1573,6 +1614,14 @@
       const movement = Math.hypot(vx, vy);
       moveBlend += (Math.min(1, movement / 2.7) - moveBlend) * (1 - Math.exp(-10 * dt));
       if (moveBlend > .04) bob += movement * dt * 4.1;
+      footTimer -= dt;
+      if (movement > .85 && jump === 0 && slideTimer <= 0) {
+        const interval = player.stance === 1 ? .52 : keys.shift ? .28 : .38;
+        if (footTimer <= 0) {
+          footTimer = interval;
+          tone(player.stance === 1 ? 125 : keys.shift ? 82 : 105, .035, player.stance === 1 ? .012 : .022, 'square');
+        }
+      }
 
       if (jump > 0 || jumpV > 0) {
         jump += jumpV * dt;
@@ -1592,6 +1641,7 @@
       }
 
       if (mouseDown && weapons[currentWeaponKey()].auto) shoot();
+      updateTrajectoryPreview();
       updateTracers(dt);
       updateRemoteMeshes(dt);
       sendState(performance.now());
@@ -1660,6 +1710,11 @@
         return;
       }
       if (player.ammo[player.weapon] <= 0) {
+        if (emptyClickTimer <= 0) {
+          emptyClickTimer = .24;
+          addFeed('空仓，按 R 换弹', '#aab4a5');
+          tone(260, .04, .03, 'square');
+        }
         reload();
         return;
       }
@@ -1705,6 +1760,9 @@
 
       const recoil = w.recoil * (ads ? .48 : 1) * (player.stance === 2 ? .6 : player.stance === 1 ? .78 : 1);
       player.a += (Math.random() - .42) * recoil;
+      const lift = recoil * (w.cat === '狙击枪' ? .95 : w.cat === '霰弹枪' ? .82 : .55);
+      lookPitch = clamp(lookPitch + lift, -1.18, .82);
+      recoilKick = Math.min(.18, recoilKick + lift);
       if (w.quiet) tone(210 + charge * 180, .05, .025, 'triangle');
       else tone(w.cat === '狙击枪' ? 72 : w.cat === '霰弹枪' ? 58 : w.cat === '手枪' ? 145 : 108, .07, w.cat === '狙击枪' || w.cat === '霰弹枪' ? .09 : .055, 'sawtooth');
       if (w.charge) setTimeout(reload, 160);
@@ -1728,6 +1786,9 @@
       if (player.hp <= 0) {
         player.dead = 1.5;
         matchStats.deaths++;
+        matchStats.streak = 0;
+        throwPrime = null;
+        hideTrajectoryDots();
         const death = {
           type: 'death',
           id: nowId(),
@@ -1752,6 +1813,8 @@
       if (data.killerTeam === 'blue') blueScore++;
       if (data.killer === localId) {
         matchStats.kills++;
+        matchStats.streak++;
+        matchStats.bestStreak = Math.max(matchStats.bestStreak, matchStats.streak);
         if (gameMode === 'gun') advanceGun();
       }
       const weaponName = weapons[data.weapon]?.name || '武器';
@@ -1846,19 +1909,165 @@
       }
     }
 
-    function throwSmoke() {
-      if (!player || state !== 'play' || player.dead > 0) return;
-      if (smokeCooldown > 0) {
-        addFeed(`烟雾弹冷却 ${Math.ceil(smokeCooldown)} 秒`, '#aab4a5');
+    const throwProfiles = {
+      smoke: { label: '烟雾弹', color: 0xb8bfb0, speed: 7.2, fuse: 1.35, bounce: .46, cooldown: 12, finish: 'smoke' },
+      frag: { label: '破片手雷', color: 0x6b715f, speed: 8.6, fuse: 2.45, bounce: .58, cooldown: 11, finish: 'explosion' },
+      molotov: { label: '燃烧瓶', color: 0xff8a2a, speed: 7.8, fuse: 4.5, bounce: .22, cooldown: 13, finish: 'fire', breakOnImpact: true }
+    };
+
+    function cooldownFor(kind) {
+      if (kind === 'smoke') return smokeCooldown;
+      if (kind === 'frag') return fragCooldown;
+      if (kind === 'molotov') return molotovCooldown;
+      return 0;
+    }
+
+    function setThrowableCooldown(kind) {
+      const value = throwProfiles[kind]?.cooldown || 10;
+      if (kind === 'smoke') smokeCooldown = value;
+      if (kind === 'frag') fragCooldown = value;
+      if (kind === 'molotov') molotovCooldown = value;
+    }
+
+    function makeThrowLaunch(kind) {
+      const profile = throwProfiles[kind];
+      const pitch = clamp(lookPitch + .26, -.18, .72);
+      const speed = profile.speed;
+      const horizontal = Math.max(.28, Math.cos(pitch));
+      return {
+        kind,
+        x: player.x + Math.cos(player.a) * .48,
+        z: player.y + Math.sin(player.a) * .48,
+        h: eyeHeight() + jump - .22,
+        vx: Math.cos(player.a) * speed * horizontal,
+        vz: Math.sin(player.a) * speed * horizontal,
+        vh: Math.sin(pitch) * speed + 2.35
+      };
+    }
+
+    function ensureTrajectoryDots() {
+      if (trajectoryDots.length) return;
+      for (let i = 0; i < 22; i++) {
+        const dot = new THREE.Mesh(
+          new THREE.BoxGeometry(.075, .075, .075),
+          new THREE.MeshBasicMaterial({ color: 0xc8ff62, transparent: true, opacity: .72, depthTest: true, depthWrite: false })
+        );
+        dot.visible = false;
+        scene.add(dot);
+        trajectoryDots.push(dot);
+      }
+    }
+
+    function hideTrajectoryDots() {
+      trajectoryDots.forEach(dot => { dot.visible = false; });
+    }
+
+    function stepThrowPhysics(p, dt, preview = false) {
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(p.vx), Math.abs(p.vz), Math.abs(p.vh)) * dt / .09));
+      const step = dt / steps;
+      let impact = false;
+      for (let i = 0; i < steps; i++) {
+        p.vh -= 8.9 * step;
+        const nx = p.x + p.vx * step;
+        const nz = p.z + p.vz * step;
+        if (blockedAt(nx, p.z, .13)) {
+          p.vx = -p.vx * p.bounce;
+          p.vz *= .82;
+          impact = true;
+        } else {
+          p.x = nx;
+        }
+        if (blockedAt(p.x, nz, .13)) {
+          p.vz = -p.vz * p.bounce;
+          p.vx *= .82;
+          impact = true;
+        } else {
+          p.z = nz;
+        }
+        p.h += p.vh * step;
+        if (p.h <= .13) {
+          p.h = .13;
+          if (Math.abs(p.vh) > .65) {
+            p.vh = -p.vh * p.bounce;
+            p.vx *= .74;
+            p.vz *= .74;
+            impact = true;
+          } else {
+            p.vh = 0;
+            p.vx *= .55;
+            p.vz *= .55;
+          }
+        }
+      }
+      if (impact && !preview) tone(p.kind === 'frag' ? 190 : 230, .035, .025, 'square');
+      return impact;
+    }
+
+    function updateTrajectoryPreview() {
+      if (!throwPrime || !player || state !== 'play') {
+        hideTrajectoryDots();
         return;
       }
-      const ray = cast(player.x, player.y, player.a, 7);
-      const dist = clamp((ray.type ? ray.dist - .7 : 6.2), 1.4, 6.2);
-      const x = player.x + Math.cos(player.a) * dist;
-      const y = player.y + Math.sin(player.a) * dist;
-      smokeCooldown = 12;
-      spawnSmoke(x, y, nowId(), true);
-      tone(180, .08, .05, 'triangle');
+      ensureTrajectoryDots();
+      const launch = makeThrowLaunch(throwPrime.kind);
+      const sample = {
+        ...launch,
+        bounce: throwProfiles[throwPrime.kind].bounce,
+        age: 0,
+        life: throwProfiles[throwPrime.kind].fuse
+      };
+      for (let i = 0; i < trajectoryDots.length; i++) {
+        for (let j = 0; j < 4; j++) {
+          sample.age += .055;
+          sample.life -= .055;
+          stepThrowPhysics(sample, .055, true);
+        }
+        const dot = trajectoryDots[i];
+        dot.visible = sample.life > 0 && sample.h >= .12;
+        dot.position.set(sample.x, sample.h, sample.z);
+        dot.material.color.setHex(throwProfiles[throwPrime.kind].color);
+        dot.material.opacity = clamp(.78 - i * .026, .18, .78);
+      }
+    }
+
+    function startThrowPrime(kind) {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      const left = cooldownFor(kind);
+      if (left > 0) {
+        addFeed(`${throwProfiles[kind].label}冷却 ${Math.ceil(left)} 秒`, '#aab4a5');
+        return;
+      }
+      throwPrime = { kind };
+      updateTrajectoryPreview();
+    }
+
+    function releaseThrowPrime(kind) {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (!throwPrime || throwPrime.kind !== kind) return;
+      launchThrowable(kind);
+      throwPrime = null;
+      hideTrajectoryDots();
+    }
+
+    function launchThrowable(kind) {
+      const profile = throwProfiles[kind];
+      if (!profile || cooldownFor(kind) > 0) return;
+      const launch = makeThrowLaunch(kind);
+      const id = nowId();
+      const source = localExplosionSource(kind);
+      const packet = {
+        type: 'projectile',
+        id,
+        kind,
+        ...launch,
+        shooterId: source.shooterId,
+        shooterName: source.shooterName,
+        shooterTeam: source.shooterTeam
+      };
+      setThrowableCooldown(kind);
+      addFeed(`${profile.label}抛出`, kind === 'frag' ? '#ffb15a' : kind === 'molotov' ? '#ff8a2a' : '#c8ff62');
+      tone(kind === 'frag' ? 220 : kind === 'molotov' ? 260 : 180, .07, .04, 'triangle');
+      spawnProjectile(kind, packet, id, packet, true);
     }
 
     function tacticalPoint(max = 7, margin = .75) {
@@ -1877,6 +2086,73 @@
         shooterTeam: team,
         weapon
       };
+    }
+
+    function spawnProjectile(kind, launch, id = nowId(), source = {}, sync = false) {
+      const profile = throwProfiles[kind];
+      if (!profile || seenProjectiles.has(id)) return;
+      seenProjectiles.add(id);
+      const material = new THREE.MeshLambertMaterial({ color: profile.color });
+      const mesh = withEdges(
+        new THREE.Mesh(kind === 'molotov' ? new THREE.BoxGeometry(.16, .38, .16) : new THREE.SphereGeometry(.14, 8, 6), material),
+        0x050706,
+        .7
+      );
+      mesh.position.set(launch.x, launch.h, launch.z);
+      scene.add(mesh);
+      projectiles.push({
+        id,
+        kind,
+        mesh,
+        x: launch.x,
+        z: launch.z,
+        h: launch.h,
+        vx: launch.vx,
+        vz: launch.vz,
+        vh: launch.vh,
+        life: profile.fuse,
+        age: 0,
+        bounce: profile.bounce,
+        source: {
+          shooterId: source.shooterId,
+          shooterName: source.shooterName,
+          shooterTeam: source.shooterTeam,
+          weapon: kind
+        }
+      });
+      if (sync) {
+        const msg = {
+          type: 'projectile',
+          id,
+          kind,
+          x: launch.x,
+          z: launch.z,
+          h: launch.h,
+          vx: launch.vx,
+          vz: launch.vz,
+          vh: launch.vh,
+          shooterId: source.shooterId,
+          shooterName: source.shooterName,
+          shooterTeam: source.shooterTeam
+        };
+        if (isHost) broadcast(msg);
+        else sendToHost(msg);
+      }
+    }
+
+    function finishProjectile(p) {
+      const event = {
+        shooterId: p.source.shooterId,
+        shooterName: p.source.shooterName,
+        shooterTeam: p.source.shooterTeam,
+        weapon: p.kind,
+        x: p.x,
+        y: p.z
+      };
+      if (p.kind === 'frag') spawnExplosion(p.x, p.z, `${p.id}-boom`, event, false);
+      if (p.kind === 'molotov') spawnFire(p.x, p.z, `${p.id}-fire`, event, false);
+      if (p.kind === 'smoke') spawnSmoke(p.x, p.z, `${p.id}-smoke`, false);
+      p.done = true;
     }
 
     function applyLocalAreaDamage(source, radius, maxDamage, weapon, requireSight = true) {
@@ -1967,33 +2243,9 @@
       }
     }
 
-    function throwFrag() {
-      if (!player || state !== 'play' || player.dead > 0) return;
-      if (fragCooldown > 0) {
-        addFeed(`手雷冷却 ${Math.ceil(fragCooldown)} 秒`, '#aab4a5');
-        return;
-      }
-      const point = tacticalPoint(8.5, .85);
-      const source = { ...localExplosionSource('frag'), x: point.x, y: point.y };
-      fragCooldown = 11;
-      addFeed('破片手雷抛出', '#ffb15a');
-      tone(220, .07, .04, 'triangle');
-      setTimeout(() => spawnExplosion(point.x, point.y, nowId(), source, true), 720);
-    }
-
-    function throwMolotov() {
-      if (!player || state !== 'play' || player.dead > 0) return;
-      if (molotovCooldown > 0) {
-        addFeed(`燃烧瓶冷却 ${Math.ceil(molotovCooldown)} 秒`, '#aab4a5');
-        return;
-      }
-      const point = tacticalPoint(7.4, .75);
-      const source = { ...localExplosionSource('molotov'), x: point.x, y: point.y };
-      molotovCooldown = 13;
-      addFeed('燃烧瓶抛出', '#ff8a2a');
-      tone(260, .07, .04, 'triangle');
-      setTimeout(() => spawnFire(point.x, point.y, nowId(), source, true), 380);
-    }
+    function throwSmoke() { startThrowPrime('smoke'); releaseThrowPrime('smoke'); }
+    function throwFrag() { startThrowPrime('frag'); releaseThrowPrime('frag'); }
+    function throwMolotov() { startThrowPrime('molotov'); releaseThrowPrime('molotov'); }
 
     function updateTracers(dt) {
       for (let i = tracers.length - 1; i >= 0; i--) {
@@ -2017,6 +2269,24 @@
         if (p.life <= 0) {
           scene.remove(p.mesh);
           particles.splice(i, 1);
+        }
+      }
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.age += dt;
+        p.life -= dt;
+        const impact = stepThrowPhysics(p, dt, false);
+        p.mesh.position.set(p.x, p.h, p.z);
+        p.mesh.rotation.x += dt * (4 + Math.abs(p.vh));
+        p.mesh.rotation.z += dt * (3 + Math.hypot(p.vx, p.vz));
+        const speed = Math.hypot(p.vx, p.vz, p.vh);
+        const grounded = p.h <= .14 && speed < .45;
+        if (p.life <= 0 || (p.kind === 'smoke' && p.age > .45 && grounded) || (p.kind === 'molotov' && p.age > .12 && (impact || p.h <= .14))) {
+          finishProjectile(p);
+        }
+        if (p.done) {
+          scene.remove(p.mesh);
+          projectiles.splice(i, 1);
         }
       }
       for (let i = smokes.length - 1; i >= 0; i--) {
@@ -2058,11 +2328,14 @@
       bulletHoles.splice(0).forEach(mesh => scene.remove(mesh));
       tracers.splice(0).forEach(item => scene.remove(item.mesh));
       particles.splice(0).forEach(item => scene.remove(item.mesh));
+      projectiles.splice(0).forEach(item => scene.remove(item.mesh));
       smokes.splice(0).forEach(item => scene.remove(item.mesh));
       fires.splice(0).forEach(item => scene.remove(item.mesh));
+      trajectoryDots.splice(0).forEach(item => scene.remove(item));
       seenSmokes.clear();
       seenExplosions.clear();
       seenFires.clear();
+      seenProjectiles.clear();
     }
 
     function updateRemoteMeshes(dt) {
@@ -2211,6 +2484,49 @@
       }
     }
 
+    function renderRadar() {
+      if (!player || state !== 'play') return;
+      const size = radar.width;
+      radarCtx.clearRect(0, 0, size, size);
+      radarCtx.fillStyle = 'rgba(5,8,7,.88)';
+      radarCtx.fillRect(0, 0, size, size);
+      const scale = size / 24;
+      radarCtx.fillStyle = 'rgba(210,220,205,.24)';
+      for (let z = 0; z < map.length; z++) {
+        for (let x = 0; x < map[z].length; x++) {
+          if (map[z][x]) radarCtx.fillRect(x * scale, z * scale, scale, scale);
+        }
+      }
+      radarCtx.strokeStyle = 'rgba(200,255,98,.38)';
+      radarCtx.lineWidth = 2;
+      radarCtx.strokeRect(1, 1, size - 2, size - 2);
+      const dot = (x, y, color, r = 3) => {
+        radarCtx.fillStyle = color;
+        radarCtx.fillRect(x * scale - r, y * scale - r, r * 2, r * 2);
+      };
+      smokes.forEach(s => dot(s.mesh.position.x, s.mesh.position.z, 'rgba(190,205,185,.75)', 4));
+      fires.forEach(f => dot(f.mesh.position.x, f.mesh.position.z, 'rgba(255,130,32,.85)', 4));
+      projectiles.forEach(p => dot(p.x, p.z, '#ffd36d', 2));
+      remotePlayers.forEach(p => dot(p.x, p.y, p.team === team ? '#4db8ff' : '#ff5b55', p.team === team ? 3 : 2));
+      const px = player.x * scale;
+      const py = player.y * scale;
+      radarCtx.save();
+      radarCtx.translate(px, py);
+      radarCtx.rotate(player.a);
+      radarCtx.fillStyle = team === 'red' ? '#ff5b55' : '#4db8ff';
+      radarCtx.beginPath();
+      radarCtx.moveTo(7, 0);
+      radarCtx.lineTo(-5, -4);
+      radarCtx.lineTo(-3, 0);
+      radarCtx.lineTo(-5, 4);
+      radarCtx.closePath();
+      radarCtx.fill();
+      radarCtx.restore();
+      radarCtx.fillStyle = '#c8ff62';
+      radarCtx.font = '900 9px monospace';
+      radarCtx.fillText('RADAR', 8, 14);
+    }
+
     function sendState(time) {
       if (!peer?.open || state !== 'play' || !player || time - lastNet < 55) return;
       lastNet = time;
@@ -2323,6 +2639,7 @@
       $('#hud').classList.add('hidden');
       $('#bottom').classList.add('hidden');
       $('#cross').classList.add('hidden');
+      $('#radar').classList.add('hidden');
       const main = weapons[player.loadout[0]].name;
       const second = weapons[player.loadout[1]].name;
       const kit = gameMode === 'knife' ? '战术刀专场' : `${main} / ${second} / 战术刀`;
@@ -2337,6 +2654,7 @@
       $('#hud').classList.remove('hidden');
       $('#bottom').classList.remove('hidden');
       $('#cross').classList.remove('hidden');
+      $('#radar').classList.remove('hidden');
       canvas.requestPointerLock?.();
       last = performance.now();
     }
@@ -2344,15 +2662,21 @@
     function endMatch() {
       state = 'end';
       document.exitPointerLock?.();
+      throwPrime = null;
+      hideTrajectoryDots();
       $('#hud').classList.add('hidden');
       $('#bottom').classList.add('hidden');
       $('#cross').classList.add('hidden');
+      $('#radar').classList.add('hidden');
       $('#result').classList.remove('hidden');
       $('#finalScore').textContent = `${redScore} — ${blueScore}`;
       const winner = redScore === blueScore ? '平局' : redScore > blueScore ? '赤队获胜' : '蓝队获胜';
       const accuracy = matchStats.shots ? Math.round(matchStats.hits / matchStats.shots * 100) : 0;
+      const oldBest = parseInt(localStorage.getItem('deltaArenaBestKills') || '0', 10);
+      const bestKills = Math.max(oldBest, matchStats.kills);
+      localStorage.setItem('deltaArenaBestKills', String(bestKills));
       $('#resultTitle').textContent = winner;
-      $('#resultText').textContent = `${mapNames[mapKind]} · 击杀 ${matchStats.kills} · 死亡 ${matchStats.deaths} · 射击 ${matchStats.shots} · 命中 ${matchStats.hits} · 爆头 ${matchStats.headshots} · 准确率 ${accuracy}%`;
+      $('#resultText').textContent = `${mapNames[mapKind]} · K/D ${matchStats.kills}/${matchStats.deaths} · 射击 ${matchStats.shots} · 命中 ${matchStats.hits} · 爆头 ${matchStats.headshots} · 准确率 ${accuracy}% · 最佳连杀 ${matchStats.bestStreak} · 本机最高击杀 ${bestKills}`;
     }
 
     function loop(time) {
@@ -2361,6 +2685,7 @@
       update(dt);
       render3D();
       renderOverlay();
+      renderRadar();
       requestAnimationFrame(loop);
     }
 
@@ -2462,9 +2787,11 @@
         player.stance = 1;
         addFeed('战术滑铲', '#c8ff62');
       }
-      if (state === 'play' && !event.repeat && event.key === '4') throwSmoke();
-      if (state === 'play' && !event.repeat && event.key === '5') throwFrag();
-      if (state === 'play' && !event.repeat && event.key === '6') throwMolotov();
+      if (state === 'play' && !event.repeat && (event.key === '4' || event.key === '5' || event.key === '6')) {
+        event.preventDefault();
+        const kind = event.key === '4' ? 'smoke' : event.key === '5' ? 'frag' : 'molotov';
+        startThrowPrime(kind);
+      }
       if (event.key.toLowerCase() === 'r') reload();
       if (event.key === '1' || event.key === '2' || event.key === '3') {
         const index = parseInt(event.key, 10) - 1;
@@ -2481,6 +2808,11 @@
 
     addEventListener('keyup', event => {
       keys[event.key.toLowerCase()] = false;
+      if (state === 'play' && (event.key === '4' || event.key === '5' || event.key === '6')) {
+        event.preventDefault();
+        const kind = event.key === '4' ? 'smoke' : event.key === '5' ? 'frag' : 'molotov';
+        releaseThrowPrime(kind);
+      }
     });
 
     addEventListener('mousemove', event => {
