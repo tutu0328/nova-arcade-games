@@ -488,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.7</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.8</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -522,6 +522,7 @@
       <button class="touch-btn" data-touch="smoke" type="button">烟雾</button>
       <button class="touch-btn" data-touch="molotov" type="button">火瓶</button>
       <button class="touch-btn" data-touch="unstuck" type="button">脱卡</button>
+      <button class="touch-btn" data-touch="camera" type="button">视角</button>
     </div>
   </div>
 
@@ -603,6 +604,7 @@
         <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃/攀爬</div>
         <div class="rule"><b>F / R / T</b>补弹、换弹、脱离卡死</div>
+        <div class="rule"><b>V / 滚轮</b>第一/第三人称；第三人称调远近</div>
         <div class="rule"><b>1 / 2 / 3</b>切枪；夺旗模式抢核心</div>
         <div class="rule"><b>手机</b>左摇杆移动，右侧滑动转视角，按钮开火/瞄准/投掷</div>
       </div>
@@ -769,6 +771,7 @@
     const roomPlayers = new Map();
     const remotePlayers = new Map();
     const remoteMeshes = new Map();
+    let localPlayerMesh = null;
     const bulletHoles = [];
     const tracers = [];
     const particles = [];
@@ -786,6 +789,10 @@
     const seenDeaths = new Set();
     const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0, captures: 0 };
     const BODY_RADIUS = .34;
+    const thirdPersonPresets = [2.7, 4.2, 6.2];
+    let cameraView = 'first';
+    let thirdPersonDistance = 4.2;
+    let thirdPersonPreset = 1;
 
     const renderer = new THREE.WebGLRenderer({ canvas: world, antialias: false, powerPreference: 'high-performance' });
     const scene = new THREE.Scene();
@@ -1354,6 +1361,50 @@
       gun.add(muzzle);
       gun.position.set(w.melee ? .45 : .34, w.melee ? -.34 : -.3, w.melee ? -.48 : -.55);
       camera.add(gun);
+    }
+
+    function ensureLocalPlayerMesh() {
+      if (localPlayerMesh?.userData?.team === team) return localPlayerMesh;
+      if (localPlayerMesh) scene.remove(localPlayerMesh);
+      localPlayerMesh = createPlayerMesh(team);
+      localPlayerMesh.userData.team = team;
+      localPlayerMesh.visible = false;
+      scene.add(localPlayerMesh);
+      return localPlayerMesh;
+    }
+
+    function setCameraView(view, silent = false) {
+      cameraView = view === 'third' ? 'third' : 'first';
+      if (!silent) addFeed(cameraView === 'third' ? `第三人称视角 · 距离 ${thirdPersonDistance.toFixed(1)}` : '第一人称视角', '#c8ff62');
+      updateHud();
+    }
+
+    function adjustThirdPersonDistance(delta, silent = false) {
+      thirdPersonDistance = clamp(thirdPersonDistance + delta, 2.2, 7.4);
+      const nearest = thirdPersonPresets
+        .map((value, index) => ({ value, index, diff: Math.abs(value - thirdPersonDistance) }))
+        .sort((a, b) => a.diff - b.diff)[0];
+      thirdPersonPreset = nearest.index;
+      if (cameraView !== 'third') cameraView = 'third';
+      if (!silent) addFeed(`第三人称距离 ${thirdPersonDistance.toFixed(1)}`, '#c8ff62');
+      updateHud();
+    }
+
+    function cycleCameraView() {
+      if (cameraView === 'first') {
+        thirdPersonPreset = 1;
+        thirdPersonDistance = thirdPersonPresets[thirdPersonPreset];
+        setCameraView('third');
+        return;
+      }
+      if (isTouchDevice && thirdPersonPreset < thirdPersonPresets.length - 1) {
+        thirdPersonPreset++;
+        thirdPersonDistance = thirdPersonPresets[thirdPersonPreset];
+        addFeed(`第三人称视角 · 距离 ${thirdPersonDistance.toFixed(1)}`, '#c8ff62');
+        updateHud();
+        return;
+      }
+      setCameraView('first');
     }
 
     function roomPeerId(code) {
@@ -3370,6 +3421,24 @@
       }
     }
 
+    function updateLocalPlayerMesh(thirdPerson) {
+      const mesh = ensureLocalPlayerMesh();
+      mesh.visible = !!thirdPerson && state === 'play' && player && player.dead <= 0;
+      if (!mesh.visible) return;
+      const movement = Math.hypot(vx, vy);
+      mesh.userData.walk += movement * .12;
+      const swing = Math.sin(mesh.userData.walk * 10) * clamp(movement * .08, 0, .42);
+      mesh.userData.leftLeg.rotation.z = swing;
+      mesh.userData.rightLeg.rotation.z = -swing;
+      mesh.userData.leftFoot.rotation.z = -swing * .45;
+      mesh.userData.rightFoot.rotation.z = swing * .45;
+      const stepLift = Math.abs(Math.sin(mesh.userData.walk * 20)) * clamp(movement * .018, 0, .045);
+      mesh.position.set(player.x, climbHeight + stepLift, player.y);
+      mesh.rotation.order = 'YXZ';
+      mesh.rotation.y = -player.a;
+      mesh.rotation.z = -lean * .12;
+    }
+
     function render3D() {
       if (!player) {
         renderer.render(scene, camera);
@@ -3379,17 +3448,42 @@
       const w = currentWeapon();
       const eye = eyeHeight();
       const cameraBob = Math.sin(bob) * .022 * moveBlend;
-      camera.position.set(player.x, eye + jump + climbHeight + cameraBob, player.y);
-      camera.position.x += Math.cos(player.a + Math.PI / 2) * lean * .22;
-      camera.position.z += Math.sin(player.a + Math.PI / 2) * lean * .22;
-      camera.rotation.order = 'YXZ';
-      camera.rotation.y = -player.a - Math.PI / 2;
-      camera.rotation.x = lookPitch;
-      camera.rotation.z = -lean * .09;
-      camera.fov = scoped ? 18 : ads ? 46 : 72;
+      const thirdPerson = cameraView === 'third' && !scoped;
+      updateLocalPlayerMesh(thirdPerson);
+      if (thirdPerson) {
+        const forwardX = Math.cos(player.a);
+        const forwardZ = Math.sin(player.a);
+        const sideX = Math.cos(player.a + Math.PI / 2);
+        const sideZ = Math.sin(player.a + Math.PI / 2);
+        const ray = cast(player.x, player.y, player.a + Math.PI, thirdPersonDistance + .65);
+        const back = ray.type ? clamp(ray.dist - .45, 1.25, thirdPersonDistance) : thirdPersonDistance;
+        const eyeY = eye + jump + climbHeight;
+        const pitchLift = clamp(Math.sin(lookPitch), -.55, .55);
+        camera.position.set(
+          player.x - forwardX * back + sideX * lean * .18,
+          eyeY + .72 + pitchLift * 1.15 + cameraBob,
+          player.y - forwardZ * back + sideZ * lean * .18
+        );
+        camera.lookAt(
+          player.x + forwardX * 4.8,
+          eyeY + .35 + pitchLift * 3.8,
+          player.y + forwardZ * 4.8
+        );
+        camera.rotation.z = -lean * .04;
+      } else {
+        if (localPlayerMesh) localPlayerMesh.visible = false;
+        camera.position.set(player.x, eye + jump + climbHeight + cameraBob, player.y);
+        camera.position.x += Math.cos(player.a + Math.PI / 2) * lean * .22;
+        camera.position.z += Math.sin(player.a + Math.PI / 2) * lean * .22;
+        camera.rotation.order = 'YXZ';
+        camera.rotation.y = -player.a - Math.PI / 2;
+        camera.rotation.x = lookPitch;
+        camera.rotation.z = -lean * .09;
+      }
+      camera.fov = scoped ? 18 : thirdPerson ? 78 : ads ? 46 : 72;
       camera.updateProjectionMatrix();
       const opticOnly = ads && !scoped && !w?.melee;
-      gun.visible = !scoped && !opticOnly;
+      gun.visible = !thirdPerson && !scoped && !opticOnly;
       gun.scale.setScalar(opticOnly ? .72 : 1);
       const slash = knifeSlash > 0 ? Math.sin((1 - knifeSlash / .22) * Math.PI) : 0;
       const reloadProgress = reloadTotal > 0 && reloadTimer > 0 ? clamp(1 - reloadTimer / reloadTotal, 0, 1) : 0;
@@ -3803,7 +3897,8 @@
       const chargeText = chargingBow ? ` · 蓄力 ${Math.round(bowCharge * 100)}%` : '';
       $('#weaponName').textContent = `${w.name}${reloadTimer > 0 ? ' · 换弹中' : ''}${chargeText}`;
       const action = w.melee ? '左键近战' : w.auto ? '自动' : w.charge ? '蓄力' : '半自动';
-      const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'} · T脱卡 ${unstuckCooldown > 0 ? Math.ceil(unstuckCooldown) : '✓'}`;
+      const viewText = cameraView === 'third' ? `第三人称 ${thirdPersonDistance.toFixed(1)}` : '第一人称';
+      const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'} · T脱卡 ${unstuckCooldown > 0 ? Math.ceil(unstuckCooldown) : '✓'} · V ${viewText}`;
       const scoreText = gameMode === 'core' ? `夺旗 ${matchStats.captures} · 击杀 ${matchStats.kills}` : `击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
       const damageText = w.pellets ? `${Math.round(w.damage)}×${w.pellets}` : Math.round(w.damage);
       $('#weaponInfo').textContent = `${w.cat} · 伤害 ${damageText} · ${action} · ${tools} · ${scoreText}`;
@@ -4029,6 +4124,7 @@
       if (action === 'swap') cycleWeapon();
       if (action === 'refill') refillAmmo();
       if (action === 'unstuck') useUnstuck();
+      if (action === 'camera') cycleCameraView();
       if (action === 'frag' || action === 'smoke' || action === 'molotov') startThrowPrime(action);
     }
 
@@ -4221,6 +4317,7 @@
       }
       if (state === 'play' && !event.repeat && event.key.toLowerCase() === 'f') refillAmmo();
       if (state === 'play' && !event.repeat && event.key.toLowerCase() === 't') useUnstuck();
+      if (state === 'play' && !event.repeat && event.key.toLowerCase() === 'v') cycleCameraView();
       if (event.key.toLowerCase() === 'r') reload();
       if (event.key === '1' || event.key === '2' || event.key === '3') {
         const index = parseInt(event.key, 10) - 1;
@@ -4257,6 +4354,12 @@
         lookPitch = clamp(lookPitch - moveY * .0022 * sensitivity, -1.18, .82);
       }
     });
+
+    addEventListener('wheel', event => {
+      if (state !== 'play' || cameraView !== 'third') return;
+      event.preventDefault();
+      adjustThirdPersonDistance(event.deltaY > 0 ? .35 : -.35);
+    }, { passive: false });
 
     addEventListener('mousedown', event => {
       if (event.button === 0 && state === 'play') startFire();
