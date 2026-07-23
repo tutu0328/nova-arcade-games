@@ -38,6 +38,7 @@
       width: 100%;
       height: 100%;
       display: block;
+      touch-action: none;
     }
 
     .hidden { display: none !important; }
@@ -207,6 +208,91 @@
     .hit-flash.on {
       border-width: 22px;
       border-color: rgba(255, 74, 65, .38);
+    }
+
+    .mobile-controls {
+      position: fixed;
+      z-index: 8;
+      inset: 0;
+      pointer-events: none;
+      touch-action: none;
+      user-select: none;
+    }
+    .stick-zone {
+      position: absolute;
+      left: 18px;
+      bottom: 92px;
+      width: 148px;
+      height: 148px;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    .stick-base {
+      position: absolute;
+      inset: 0;
+      border: 2px solid rgba(200,255,98,.38);
+      border-radius: 50%;
+      background: rgba(5,8,7,.36);
+      box-shadow: 0 12px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+    .stick-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 58px;
+      height: 58px;
+      margin: -29px 0 0 -29px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-radius: 50%;
+      background: rgba(200,255,98,.78);
+      box-shadow: 0 0 18px rgba(200,255,98,.28);
+      transform: translate(0, 0);
+    }
+    .touch-actions {
+      position: absolute;
+      right: 14px;
+      bottom: 82px;
+      width: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 62px);
+      grid-auto-rows: 52px;
+      gap: 9px;
+      justify-content: end;
+      pointer-events: auto;
+    }
+    .touch-btn {
+      border: 2px solid rgba(200,255,98,.38);
+      border-radius: 14px;
+      color: #efffee;
+      background: rgba(5,8,7,.72);
+      box-shadow: 0 10px 28px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.07);
+      font-size: 12px;
+      font-weight: 900;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .touch-btn.primary {
+      grid-row: span 2;
+      min-height: 113px;
+      background: rgba(255,91,85,.78);
+      border-color: rgba(255,255,255,.32);
+      font-size: 15px;
+    }
+    .touch-btn:active, .touch-btn.active {
+      transform: translateY(1px);
+      background: rgba(200,255,98,.82);
+      color: #061006;
+    }
+    .touch-hint {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 250px;
+      text-align: center;
+      color: rgba(238,255,232,.7);
+      font-size: 11px;
+      text-shadow: 0 2px 8px #000;
+      pointer-events: none;
     }
 
     .overlay {
@@ -387,9 +473,13 @@
       .wide { grid-column: span 2; }
       .room { grid-template-columns: 1fr; }
       .room-teams, .rules { grid-template-columns: 1fr; }
-      .bottom { left: 10px; right: 10px; }
+      .bottom { left: 10px; right: 10px; bottom: 8px; transform: scale(.82); transform-origin: bottom left; }
       .status, .ammo { min-width: 0; }
       .ammo b { font-size: 26px; }
+      .touch-actions { right: 10px; bottom: 82px; grid-template-columns: repeat(3, 54px); grid-auto-rows: 46px; gap: 7px; }
+      .touch-btn.primary { min-height: 99px; }
+      .stick-zone { width: 132px; height: 132px; bottom: 86px; }
+      .stick-knob { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
     }
   </style>
 </head>
@@ -398,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.1</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.3</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -412,6 +502,27 @@
   <div class="hit-flash" id="hitFlash"></div>
   <canvas class="hidden" id="radar" width="158" height="158"></canvas>
   <div class="charge hidden" id="charge"><span id="chargeFill"></span></div>
+
+  <div class="mobile-controls hidden" id="mobileControls">
+    <div class="touch-hint">左摇杆移动 · 右侧空白区域滑动转视角</div>
+    <div class="stick-zone" id="stickZone">
+      <div class="stick-base"></div>
+      <div class="stick-knob" id="stickKnob"></div>
+    </div>
+    <div class="touch-actions">
+      <button class="touch-btn primary" data-touch="fire" type="button">开火</button>
+      <button class="touch-btn" data-touch="ads" type="button">瞄准</button>
+      <button class="touch-btn" data-touch="jump" type="button">跳/爬</button>
+      <button class="touch-btn" data-touch="slide" type="button">滑铲</button>
+      <button class="touch-btn" data-touch="crouch" type="button">蹲</button>
+      <button class="touch-btn" data-touch="reload" type="button">换弹</button>
+      <button class="touch-btn" data-touch="swap" type="button">切枪</button>
+      <button class="touch-btn" data-touch="refill" type="button">补给</button>
+      <button class="touch-btn" data-touch="frag" type="button">手雷</button>
+      <button class="touch-btn" data-touch="smoke" type="button">烟雾</button>
+      <button class="touch-btn" data-touch="molotov" type="button">火瓶</button>
+    </div>
+  </div>
 
   <div class="bottom hidden" id="bottom">
     <div class="status panel"><b id="weaponName">M4A1</b><small id="weaponInfo">步枪 · 自动</small></div>
@@ -489,8 +600,9 @@
         <div class="rule"><b>左键 / 右键</b>开火与瞄准</div>
         <div class="rule"><b>Q / E</b>左右探头 Peek</div>
         <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
-        <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃</div>
+        <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃/攀爬</div>
         <div class="rule"><b>F / R / 1 / 2 / 3</b>补弹；夺旗抢核心；切枪</div>
+        <div class="rule"><b>手机</b>左摇杆移动，右侧滑动转视角，按钮开火/瞄准/投掷</div>
       </div>
     </div>
   </section>
@@ -500,7 +612,7 @@
       <span class="kicker">COMBAT BRIEFING</span>
       <h1>部署到<br><em>像素训练基地。</em></h1>
       <p id="briefText"></p>
-      <p class="notice">点击部署后鼠标会锁定。按 Esc 可释放鼠标并暂停。</p>
+      <p class="notice">电脑点击部署后鼠标会锁定，按 Esc 暂停；手机会显示摇杆、瞄准、开火、换弹和投掷按钮。</p>
       <div class="actions">
         <button class="btn primary" id="deploy">部署</button>
         <button class="btn" id="backLobby">返回等待室</button>
@@ -541,26 +653,27 @@
     };
 
     const weapons = {
-      m4: { name: 'M4A1', cat: '步枪', damage: 28, rate: 9.5, mag: 30, reserve: 120, reload: 1.65, recoil: .024, spread: .012, move: .018, color: '#d7e3d9', auto: true, falloff: 38 },
-      ak: { name: 'AK-47', cat: '步枪', damage: 37, rate: 7.2, mag: 30, reserve: 120, reload: 2.05, recoil: .044, spread: .017, move: .027, color: '#b77a46', auto: true, falloff: 36 },
-      scar: { name: 'SCAR-H', cat: '步枪', damage: 43, rate: 6.2, mag: 20, reserve: 100, reload: 2.15, recoil: .049, spread: .014, move: .02, color: '#bfa56c', auto: true, falloff: 42 },
-      mp5: { name: 'MP5', cat: '冲锋枪', damage: 23, rate: 12.8, mag: 30, reserve: 150, reload: 1.45, recoil: .018, spread: .023, move: .009, color: '#b9c4bd', auto: true, falloff: 19 },
-      vector: { name: 'Vector', cat: '冲锋枪', damage: 20, rate: 16.5, mag: 25, reserve: 150, reload: 1.55, recoil: .023, spread: .026, move: .011, color: '#d2dad4', auto: true, falloff: 17 },
-      awm: { name: 'AWM', cat: '狙击枪', damage: 112, rate: .92, mag: 5, reserve: 25, reload: 2.85, recoil: .095, spread: .002, move: .035, color: '#91a087', auto: false, falloff: 80, needsAds: true },
-      m200: { name: 'M200', cat: '狙击枪', damage: 126, rate: .72, mag: 5, reserve: 20, reload: 3.15, recoil: .11, spread: .0015, move: .04, color: '#bca67c', auto: false, falloff: 90, needsAds: true },
-      shotgun: { name: 'M870', cat: '霰弹枪', damage: 15, pellets: 9, rate: .95, mag: 8, reserve: 40, reload: .42, recoil: .12, spread: .09, move: .035, color: '#ba8757', auto: false, falloff: 11, shellReload: true },
-      bow: { name: '复合弓', cat: '弓箭', damage: 96, rate: 1.05, mag: 1, reserve: 24, reload: .75, recoil: .01, spread: .007, move: .01, color: '#91b88a', auto: false, falloff: 58, charge: true, quiet: true },
-      knife: { name: '战术刀', cat: '近战', damage: 72, rate: 1.7, mag: 1, reserve: 0, reload: 0, recoil: 0, spread: 0, move: 0, color: '#d8e0d2', auto: false, falloff: 1.75, melee: true, quiet: true },
-      frag: { name: '破片手雷', cat: '投掷物', damage: 92, color: '#6b715f', throwable: true },
+      m4: { name: 'M4A1', cat: '步枪', damage: 35, rate: 9.5, mag: 30, reserve: 120, reload: 1.65, recoil: .024, spread: .012, move: .018, color: '#d7e3d9', auto: true, falloff: 38 },
+      ak: { name: 'AK-47', cat: '步枪', damage: 49, rate: 7.2, mag: 30, reserve: 120, reload: 2.05, recoil: .044, spread: .017, move: .027, color: '#b77a46', auto: true, falloff: 36 },
+      scar: { name: 'SCAR-H', cat: '步枪', damage: 56, rate: 6.2, mag: 20, reserve: 100, reload: 2.15, recoil: .049, spread: .014, move: .02, color: '#bfa56c', auto: true, falloff: 42 },
+      mp5: { name: 'MP5', cat: '冲锋枪', damage: 26, rate: 12.8, mag: 30, reserve: 150, reload: 1.45, recoil: .018, spread: .023, move: .009, color: '#b9c4bd', auto: true, falloff: 19 },
+      vector: { name: 'Vector', cat: '冲锋枪', damage: 23, rate: 16.5, mag: 25, reserve: 150, reload: 1.55, recoil: .023, spread: .026, move: .011, color: '#d2dad4', auto: true, falloff: 17 },
+      awm: { name: 'AWM', cat: '狙击枪', damage: 180, rate: .92, mag: 5, reserve: 25, reload: 2.85, recoil: .095, spread: .002, move: .035, color: '#91a087', auto: false, falloff: 80, needsAds: true },
+      m200: { name: 'M200', cat: '狙击枪', damage: 195, rate: .72, mag: 5, reserve: 20, reload: 3.15, recoil: .11, spread: .0015, move: .04, color: '#bca67c', auto: false, falloff: 90, needsAds: true },
+      shotgun: { name: 'M870', cat: '霰弹枪', damage: 22, pellets: 10, rate: .95, mag: 8, reserve: 40, reload: .42, recoil: .12, spread: .09, move: .035, color: '#ba8757', auto: false, falloff: 11, shellReload: true },
+      bow: { name: '复合弓', cat: '弓箭', damage: 125, rate: 1.05, mag: 1, reserve: 24, reload: .75, recoil: .01, spread: .007, move: .01, color: '#91b88a', auto: false, falloff: 58, charge: true, quiet: true },
+      knife: { name: '战术刀', cat: '近战', damage: 100, rate: 1.7, mag: 1, reserve: 0, reload: 0, recoil: 0, spread: 0, move: 0, color: '#d8e0d2', auto: false, falloff: 1.75, melee: true, quiet: true },
+      frag: { name: '破片手雷', cat: '投掷物', damage: 130, color: '#6b715f', throwable: true },
       molotov: { name: '燃烧瓶', cat: '投掷物', damage: 9, color: '#ff8a2a', throwable: true },
       smoke: { name: '烟雾弹', cat: '投掷物', damage: 0, color: '#b8bfb0', throwable: true },
       zone: { name: '安全区', cat: '环境', damage: 0, color: '#ff5b55', throwable: true },
-      glock: { name: 'Glock 17', cat: '手枪', damage: 24, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
-      deagle: { name: '沙漠之鹰', cat: '手枪', damage: 64, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
+      glock: { name: 'Glock 17', cat: '手枪', damage: 28, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
+      deagle: { name: '沙漠之鹰', cat: '手枪', damage: 95, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
     };
 
     const mapNames = ['三角训练基地', '废弃工厂', '雪山基地', '城市街区'];
     const modeNames = { team: '团队竞技', core: '战术夺旗', sniper: '狙击对决', gun: '枪械乱斗', knife: '刀战近身' };
+    const cellHeights = { 1: 2.8, 2: 1.55, 3: 1.25, 4: 2.25 };
 
     Object.entries(weapons).forEach(([key, weapon]) => {
       if (weapon.melee || weapon.throwable) return;
@@ -596,6 +709,11 @@
     let lastNet = 0;
     let player = null;
     let keys = {};
+    const isTouchDevice = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    const mobileMove = { active: false, id: null, ox: 0, oy: 0, strafe: 0, forward: 0, mag: 0 };
+    let mobileLookId = null;
+    let mobileLookX = 0;
+    let mobileLookY = 0;
     let mouseDown = false;
     let ads = false;
     let lookPitch = 0;
@@ -608,6 +726,12 @@
     let spawnProtect = 0;
     let jump = 0;
     let jumpV = 0;
+    let climbHeight = 0;
+    let climbTimer = 0;
+    let climbTotal = 0;
+    let climbCooldown = 0;
+    let climbStart = null;
+    let climbEnd = null;
     let bob = 0;
     let moveBlend = 0;
     let vx = 0;
@@ -748,16 +872,26 @@
     function playGunshot(w, charge = 1) {
       if (!w) return;
       if (w.charge || w.cat === '弓箭') {
-        tone(260 + charge * 260, .08, .055, 'triangle');
-        noiseBurst(.05, .035, 2200, 'highpass');
+        tone(260 + charge * 260, .08, .095, 'triangle');
+        noiseBurst(.055, .07, 2400, 'highpass');
         return;
       }
-      const loud = w.cat === '狙击枪' ? .21 : w.cat === '霰弹枪' ? .2 : w.cat === '手枪' ? .13 : .155;
+      const loud = w.cat === '狙击枪' ? .36 : w.cat === '霰弹枪' ? .34 : w.cat === '手枪' ? .23 : .27;
       const body = w.cat === '狙击枪' ? 58 : w.cat === '霰弹枪' ? 52 : w.cat === '冲锋枪' ? 128 : w.cat === '手枪' ? 150 : 92;
-      tone(body, .09, loud, 'sawtooth');
-      tone(body * 1.9, .045, loud * .42, 'square');
-      noiseBurst(w.cat === '狙击枪' || w.cat === '霰弹枪' ? .12 : .075, loud * .9, w.cat === '手枪' ? 1800 : 1250, 'lowpass');
-      setTimeout(() => tone(body * .62, .075, loud * .28, 'sine'), 42);
+      tone(body, .105, loud, 'sawtooth');
+      tone(body * 1.9, .055, loud * .58, 'square');
+      noiseBurst(w.cat === '狙击枪' || w.cat === '霰弹枪' ? .16 : .1, loud * 1.15, w.cat === '手枪' ? 1900 : 1350, 'lowpass');
+      setTimeout(() => tone(body * .62, .09, loud * .42, 'sine'), 42);
+      setTimeout(() => noiseBurst(.055, loud * .28, 3200, 'highpass'), 24);
+    }
+
+    function playDistantGunshot(w, source) {
+      if (!w || !player || !source) return;
+      const distance = Math.hypot(source.x - player.x, source.y - player.y);
+      const volumeScale = clamp(1 - distance / 28, .12, .72);
+      const body = w.cat === '狙击枪' ? 54 : w.cat === '霰弹枪' ? 48 : w.cat === '冲锋枪' ? 118 : w.cat === '手枪' ? 145 : 86;
+      tone(body, .075, volumeScale * (w.cat === '狙击枪' ? .18 : .13), 'sawtooth');
+      noiseBurst(.07, volumeScale * .12, 1100, 'lowpass');
     }
 
     function playReloadSound(stage, w = currentWeapon()) {
@@ -1037,12 +1171,11 @@
       floor.receiveShadow = true;
       levelGroup.add(floor);
 
-      const heights = { 1: 2.8, 2: 1.55, 3: 1.25, 4: 2.25 };
       for (let z = 0; z < map.length; z++) {
         for (let x = 0; x < map[z].length; x++) {
           const type = map[z][x];
           if (!type) continue;
-          const height = heights[type] || 2.8;
+          const height = cellHeights[type] || 2.8;
           const mesh = block(new THREE.BoxGeometry(1, height, 1), cellMaterial(type), x + .5, height / 2, z + .5);
           if (type === 2) mesh.scale.x = .96;
           if (type === 3) mesh.scale.set(.82, .82, .82);
@@ -1053,6 +1186,9 @@
         const [kind, x, z] = prop;
         if (kind === 'crate') {
           block(new THREE.BoxGeometry(.9, .9, .9), materials.wood, x, .45, z);
+          block(new THREE.BoxGeometry(.52, .08, .08), materials.lime, x, .96, z - .48, levelGroup, 0x050706);
+          block(new THREE.BoxGeometry(.08, .08, .36), materials.lime, x - .22, .96, z - .48, levelGroup, 0x050706);
+          block(new THREE.BoxGeometry(.08, .08, .36), materials.lime, x + .22, .96, z - .48, levelGroup, 0x050706);
         }
         if (kind === 'ammo') {
           block(new THREE.BoxGeometry(.9, .32, .66), materials.metal, x, .16, z, levelGroup, 0x11160f);
@@ -1077,6 +1213,9 @@
           block(new THREE.BoxGeometry(.18, 2.7, .18), materials.metal, x + .5, 1.35, z - .5);
           block(new THREE.BoxGeometry(.18, 2.7, .18), materials.metal, x - .5, 1.35, z + .5);
           block(new THREE.BoxGeometry(.18, 2.7, .18), materials.metal, x + .5, 1.35, z + .5);
+          block(new THREE.BoxGeometry(.62, .08, .08), materials.lime, x, 2.86, z - .66, levelGroup, 0x050706);
+          block(new THREE.BoxGeometry(.08, .08, .46), materials.lime, x - .28, 2.86, z - .66, levelGroup, 0x050706);
+          block(new THREE.BoxGeometry(.08, .08, .46), materials.lime, x + .28, 2.86, z - .66, levelGroup, 0x050706);
         }
       });
 
@@ -1386,7 +1525,10 @@
 
         if (data.type === 'shot') {
           const p = remotePlayers.get(data.id);
-          if (p) p.flash = .08;
+          if (p) {
+            p.flash = .08;
+            playDistantGunshot(weapons[data.weapon], p);
+          }
           if (isHost) broadcast(data, conn);
         }
 
@@ -1573,6 +1715,12 @@
       shellReloading = false;
       jump = 0;
       jumpV = 0;
+      climbHeight = 0;
+      climbTimer = 0;
+      climbTotal = 0;
+      climbCooldown = 0;
+      climbStart = null;
+      climbEnd = null;
       bob = 0;
       moveBlend = 0;
       vx = 0;
@@ -1586,6 +1734,11 @@
       molotovCooldown = 0;
       ammoCooldown = 0;
       throwPrime = null;
+      mouseDown = false;
+      mobileLookId = null;
+      resetMobileMove();
+      setAds(false);
+      hideTrajectoryDots();
       footTimer = 0;
       emptyClickTimer = 0;
       recoilKick = 0;
@@ -1659,15 +1812,14 @@
       const horizontalLimit = max * horizontal;
       const wallRay = cast(player.x, player.y, angle, horizontalLimit);
       const wallFullDist = wallRay.type && wallRay.dist <= horizontalLimit ? wallRay.dist / horizontal : Infinity;
-      const wallHitHeight = eyeHeight() + jump - .04 + vertical * wallFullDist;
-      const wallHeights = { 1: 2.8, 2: 1.55, 3: 1.25, 4: 2.25 };
-      const hasWall = wallRay.type && wallHitHeight >= .06 && wallHitHeight <= (wallHeights[wallRay.type] || 2.8);
+      const wallHitHeight = eyeHeight() + jump + climbHeight - .04 + vertical * wallFullDist;
+      const hasWall = wallRay.type && wallHitHeight >= .06 && wallHitHeight <= (cellHeights[wallRay.type] || 2.8);
       let best = hasWall
         ? { ...wallRay, kind: 'wall', dist: wallFullDist, horizontalDist: wallRay.dist }
         : { ...wallRay, kind: vertical > .02 ? 'sky' : 'range', dist: max, horizontalDist: horizontalLimit, type: 0 };
 
       if (vertical < -.015) {
-        const groundFullDist = (eyeHeight() + jump - .04) / -vertical;
+        const groundFullDist = (eyeHeight() + jump + climbHeight - .04) / -vertical;
         const groundHorizontal = groundFullDist * horizontal;
         if (groundFullDist > .35 && groundFullDist <= max && groundFullDist < best.dist && !blockedAt(player.x + Math.cos(angle) * groundHorizontal, player.y + Math.sin(angle) * groundHorizontal, .08)) {
           best = { kind: 'ground', dist: groundFullDist, horizontalDist: groundHorizontal, side: 2, mx: Math.floor(player.x + Math.cos(angle) * groundHorizontal), my: Math.floor(player.y + Math.sin(angle) * groundHorizontal), type: 0 };
@@ -1686,17 +1838,20 @@
       return (x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2;
     }
 
-    function blockedAt(x, y, radius = BODY_RADIUS) {
+    function blockedAt(x, y, radius = BODY_RADIUS, elevation = 0) {
       const minX = Math.floor(x - radius);
       const maxX = Math.floor(x + radius);
       const minY = Math.floor(y - radius);
       const maxY = Math.floor(y + radius);
       for (let yy = minY; yy <= maxY; yy++) {
         for (let xx = minX; xx <= maxX; xx++) {
-          if (map[yy]?.[xx]) return true;
+          const type = map[yy]?.[xx] || 0;
+          if (type && elevation < (cellHeights[type] || 2.8) - .18) return true;
         }
       }
       return levelData?.props?.some(([kind, px, py]) => {
+        const propHeight = kind === 'tower' ? 1.45 : kind === 'crate' ? .9 : kind === 'ammo' ? .58 : .62;
+        if (elevation > propHeight + .16) return false;
         if (kind === 'pipe') return circleHitsRect(x, y, radius, px, py, .98, .48);
         if (kind === 'tower') return circleHitsRect(x, y, radius, px, py, .72, .72);
         if (kind === 'ammo') return circleHitsRect(x, y, radius, px, py, .52, .42);
@@ -1705,7 +1860,8 @@
     }
 
     function canMove(x, y, ignore, radius = BODY_RADIUS) {
-      if (blockedAt(x, y, radius)) return false;
+      const elevation = ignore === player ? climbHeight : 0;
+      if (blockedAt(x, y, radius, elevation)) return false;
       if (ignore !== player && player && Math.hypot(player.x - x, player.y - y) < radius * 1.9) return false;
       return true;
     }
@@ -1728,10 +1884,113 @@
       }
     }
 
+    function surfaceHeightAt(x, y) {
+      let height = 0;
+      const cell = map[Math.floor(y)]?.[Math.floor(x)] || 0;
+      if (cell === 3) height = Math.max(height, cellHeights[3]);
+      levelData?.props?.forEach(([kind, px, py]) => {
+        if (kind === 'crate' && circleHitsRect(x, y, .18, px, py, .5, .5)) height = Math.max(height, .9);
+        if (kind === 'tower' && circleHitsRect(x, y, .18, px, py, .72, .72)) height = Math.max(height, 1.45);
+      });
+      return height;
+    }
+
+    function findClimbTarget() {
+      if (!player || player.dead > 0 || player.stance === 2 || slideTimer > 0 || climbTimer > 0 || climbCooldown > 0) return null;
+      const forward = { x: Math.cos(player.a), y: Math.sin(player.a) };
+      const candidates = [];
+      levelData?.props?.forEach(([kind, px, py]) => {
+        if (kind !== 'crate' && kind !== 'tower') return;
+        const dx = px - player.x;
+        const dy = py - player.y;
+        const dist = Math.hypot(dx, dy);
+        const dot = (dx * forward.x + dy * forward.y) / Math.max(dist, .001);
+        const height = kind === 'tower' ? 1.45 : .9;
+        if (dist < (kind === 'tower' ? 1.45 : 1.25) && dot > .35 && !blockedAt(px, py, .3, height + .24)) {
+          candidates.push({ x: px, y: py, height, d: dist, label: kind === 'tower' ? '高台' : '箱子' });
+        }
+      });
+      for (let step = .55; step <= 1.25; step += .18) {
+        const tx = player.x + forward.x * step;
+        const ty = player.y + forward.y * step;
+        const cx = Math.floor(tx);
+        const cy = Math.floor(ty);
+        const type = map[cy]?.[cx] || 0;
+        const height = cellHeights[type] || 0;
+        if ((type === 2 || type === 3) && height <= 1.65 && !blockedAt(cx + .5, cy + .5, .3, height + .24)) {
+          candidates.push({ x: cx + .5, y: cy + .5, height, d: step, label: type === 2 ? '集装箱' : '木掩体' });
+          break;
+        }
+      }
+      return candidates.sort((a, b) => a.d - b.d)[0] || null;
+    }
+
+    function startClimb() {
+      const target = findClimbTarget();
+      if (!target) return false;
+      climbStart = { x: player.x, y: player.y, h: climbHeight };
+      climbEnd = target;
+      climbTotal = .34 + target.height * .12;
+      climbTimer = climbTotal;
+      climbCooldown = .32;
+      player.stance = 0;
+      vx = 0;
+      vy = 0;
+      jump = 0;
+      jumpV = 0;
+      addFeed(`攀爬上${target.label}`, '#c8ff62');
+      tone(420, .06, .075, 'triangle');
+      return true;
+    }
+
+    function updateClimb(dt) {
+      climbCooldown = Math.max(0, climbCooldown - dt);
+      if (!player) return false;
+      if (climbTimer > 0 && climbStart && climbEnd) {
+        climbTimer = Math.max(0, climbTimer - dt);
+        const t = 1 - climbTimer / climbTotal;
+        const eased = 1 - Math.pow(1 - t, 3);
+        player.x = climbStart.x + (climbEnd.x - climbStart.x) * eased;
+        player.y = climbStart.y + (climbEnd.y - climbStart.y) * eased;
+        climbHeight = climbStart.h + (climbEnd.height - climbStart.h) * Math.sin(eased * Math.PI / 2);
+        if (climbTimer <= 0) {
+          climbHeight = climbEnd.height;
+          climbStart = null;
+          climbEnd = null;
+          tone(560, .045, .055, 'square');
+        }
+        return true;
+      }
+      const support = surfaceHeightAt(player.x, player.y);
+      if (support > .05) climbHeight += (support - climbHeight) * (1 - Math.exp(-18 * dt));
+      else climbHeight = Math.max(0, climbHeight - dt * 5.2);
+      return false;
+    }
+
+    function smokeBlocksLine(a, b) {
+      if (!smokes.length) return false;
+      const ax = a.x;
+      const ay = a.y;
+      const bx = b.x;
+      const by = b.y;
+      const vxLine = bx - ax;
+      const vyLine = by - ay;
+      const lenSq = vxLine * vxLine + vyLine * vyLine || .0001;
+      return smokes.some(s => {
+        if (s.life <= .35) return false;
+        const sx = s.mesh.position.x;
+        const sy = s.mesh.position.z;
+        const t = clamp(((sx - ax) * vxLine + (sy - ay) * vyLine) / lenSq, 0, 1);
+        const cx = ax + vxLine * t;
+        const cy = ay + vyLine * t;
+        return Math.hypot(sx - cx, sy - cy) < 1.95;
+      });
+    }
+
     function lineOfSight(a, b) {
       const angle = Math.atan2(b.y - a.y, b.x - a.x);
       const dist = Math.hypot(b.x - a.x, b.y - a.y);
-      return cast(a.x, a.y, angle, dist + .1).dist > dist - .18;
+      return !smokeBlocksLine(a, b) && cast(a.x, a.y, angle, dist + .1).dist > dist - .18;
     }
 
     function dispatchObjectiveEvent(action, payload = {}) {
@@ -1968,7 +2227,7 @@
       const side = player.a + Math.PI / 2;
       mag.position.set(
         player.x + Math.cos(player.a) * .42 + Math.cos(side) * .22,
-        eyeHeight() + jump - .55,
+        eyeHeight() + jump + climbHeight - .55,
         player.y + Math.sin(player.a) * .42 + Math.sin(side) * .22
       );
       mag.rotation.set(Math.random() * .8, player.a + Math.PI / 2, Math.random() * .8);
@@ -2073,19 +2332,25 @@
         return;
       }
 
-      const f = (keys.w ? 1 : 0) - (keys.s ? 1 : 0);
-      const r = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+      const climbing = updateClimb(dt);
+      const f = (keys.w ? 1 : 0) - (keys.s ? 1 : 0) + mobileMove.forward;
+      const r = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + mobileMove.strafe;
       let ff = f;
       let rr = r;
-      if (ff && rr) {
-        ff *= .707;
-        rr *= .707;
+      const inputMag = Math.hypot(ff, rr);
+      if (inputMag > 1) {
+        ff /= inputMag;
+        rr /= inputMag;
       }
-      let speed = player.stance === 2 ? 1.05 : player.stance === 1 ? 1.65 : keys.shift ? 3.85 : 2.45;
+      const sprinting = keys.shift || mobileMove.mag > .72;
+      let speed = player.stance === 2 ? 1.28 : player.stance === 1 ? 2.05 : sprinting ? 4.9 : 3.15;
 
-      if (slideTimer > 0) {
+      if (climbing) {
+        vx = 0;
+        vy = 0;
+      } else if (slideTimer > 0) {
         slideTimer = Math.max(0, slideTimer - dt);
-        const slideSpeed = 3.7 + slideTimer * 3.5;
+        const slideSpeed = 5.2 + slideTimer * 4.5;
         vx = Math.cos(slideAngle) * slideSpeed;
         vy = Math.sin(slideAngle) * slideSpeed;
         if (slideTimer <= 0) player.stance = 0;
@@ -2093,22 +2358,22 @@
         const tx = (Math.cos(player.a) * ff + Math.cos(player.a + Math.PI / 2) * rr) * speed;
         const ty = (Math.sin(player.a) * ff + Math.sin(player.a + Math.PI / 2) * rr) * speed;
         const reversing = (ff || rr) && (vx * tx + vy * ty < -.08);
-        const accel = reversing ? 54 : (ff || rr ? 25 : 58);
+        const accel = reversing ? 72 : (ff || rr ? 38 : 70);
         const blend = 1 - Math.exp(-accel * dt);
         vx += (tx - vx) * blend;
         vy += (ty - vy) * blend;
         if (!ff && !rr && Math.hypot(vx, vy) < .045) vx = vy = 0;
       }
 
-      moveEntity(player, vx * dt, vy * dt);
+      if (!climbing) moveEntity(player, vx * dt, vy * dt);
       const leanTarget = player.dead > 0 ? 0 : (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
       lean += (leanTarget - lean) * (1 - Math.exp(-14 * dt));
       const movement = Math.hypot(vx, vy);
       moveBlend += (Math.min(1, movement / 2.7) - moveBlend) * (1 - Math.exp(-10 * dt));
       if (moveBlend > .04) bob += movement * dt * 4.1;
       footTimer -= dt;
-      if (movement > .85 && jump === 0 && slideTimer <= 0) {
-        const interval = player.stance === 1 ? .52 : keys.shift ? .28 : .38;
+      if (movement > .85 && jump === 0 && climbHeight < .08 && slideTimer <= 0) {
+        const interval = player.stance === 1 ? .48 : sprinting ? .24 : .32;
         if (footTimer <= 0) {
           footTimer = interval;
           tone(player.stance === 1 ? 125 : keys.shift ? 82 : 105, .035, player.stance === 1 ? .012 : .022, 'square');
@@ -2117,7 +2382,7 @@
 
       if (jump > 0 || jumpV > 0) {
         jump += jumpV * dt;
-        jumpV -= 12 * dt;
+        jumpV -= 16 * dt;
         if (jump <= 0) {
           jump = 0;
           jumpV = 0;
@@ -2190,7 +2455,7 @@
         .sort((a, b) => a.d - b.d)[0];
       if (hit) {
         matchStats.hits++;
-        showHitMarker(false);
+        showHitMarker(false, w.damage, key);
         sendHit(hit.target.id, w.damage, false, key);
       }
       updateHud();
@@ -2221,6 +2486,8 @@
       else sendToHost(shotMsg);
 
       const pellets = w.pellets || 1;
+      let totalDamage = 0;
+      let hadHeadshot = false;
       for (let pellet = 0; pellet < pellets; pellet++) {
         const spread = weaponSpread(w, charge);
         const angle = player.a + (Math.random() - .5) * spread;
@@ -2233,7 +2500,7 @@
             const d = Math.hypot(target.x - player.x, target.y - player.y);
             const da = Math.abs(norm(Math.atan2(target.y - player.y, target.x - player.x) - angle));
             const targetY = target.stance === 2 ? .74 : target.stance === 1 ? 1.12 : 1.38;
-            const targetPitch = Math.atan2(targetY - (eyeHeight() + jump - .04), d);
+            const targetPitch = Math.atan2((targetY + (target.climb || 0)) - (eyeHeight() + jump + climbHeight - .04), d);
             const dp = Math.abs(targetPitch - shotPitch);
             const error = Math.hypot(da, dp);
             return { target, d, da, dp, error };
@@ -2248,10 +2515,12 @@
           const damage = w.damage * falloff * (headshot ? 1.75 : 1) * (w.charge ? clamp(.35 + charge * .85, .35, 1.2) : 1);
           matchStats.hits++;
           if (headshot) matchStats.headshots++;
-          showHitMarker(headshot);
+          totalDamage += damage;
+          hadHeadshot = hadHeadshot || headshot;
           sendHit(hit.target.id, damage, headshot, key);
         }
       }
+      if (totalDamage > 0) showHitMarker(hadHeadshot, totalDamage, key);
 
       const recoil = w.recoil * (ads ? .48 : 1) * (player.stance === 2 ? .6 : player.stance === 1 ? .78 : 1);
       player.a += (Math.random() - .42) * recoil;
@@ -2263,10 +2532,12 @@
       updateHud();
     }
 
-    function showHitMarker(headshot) {
+    function showHitMarker(headshot, amount = 0, key = currentWeaponKey()) {
       hitPulse = .18;
       $('#cross').classList.toggle('head', headshot);
-      addFeed(headshot ? '爆头命中' : '命中确认', headshot ? '#ff5b55' : '#c8ff62');
+      const damageText = amount ? ` -${Math.round(amount)} HP` : '';
+      const weaponText = weapons[key]?.name ? ` · ${weapons[key].name}` : '';
+      addFeed(`${headshot ? '爆头命中' : '命中确认'}${damageText}${weaponText}`, headshot ? '#ff5b55' : '#c8ff62');
       setTimeout(() => $('#cross').classList.remove('head'), 160);
       tone(headshot ? 720 : 520, .035, .03, 'square');
     }
@@ -2275,7 +2546,9 @@
       if (!player || player.dead > 0) return;
       player.hp = Math.max(0, player.hp - data.damage);
       damagePulse = .22;
-      addFeed(data.headshot ? '受到爆头伤害' : '受到攻击', '#ff5b55');
+      const amount = Math.round(data.damage || 0);
+      const weaponName = weapons[data.weapon]?.name || '伤害';
+      addFeed(`${data.headshot ? '受到爆头' : '受到攻击'} -${amount} HP · ${weaponName}`, '#ff5b55');
       tone(90, .09, .06, 'sawtooth');
       if (player.hp <= 0) {
         player.dead = 1.5;
@@ -2336,7 +2609,7 @@
 
     function addShotFX(angle, ray, key) {
       matchStats.shots++;
-      const start = new THREE.Vector3(player.x, eyeHeight() + jump - .04, player.y);
+      const start = new THREE.Vector3(player.x, eyeHeight() + jump + climbHeight - .04, player.y);
       const dir = new THREE.Vector3(Math.cos(angle) * ray.horizontal, ray.vertical, Math.sin(angle) * ray.horizontal).normalize();
       const end = start.clone().addScaledVector(dir, ray.dist);
       const tracerMaterial = new THREE.LineBasicMaterial({
@@ -2394,24 +2667,32 @@
       if (seenSmokes.has(id)) return;
       seenSmokes.add(id);
       const group = new THREE.Group();
-      const smokeGeo = new THREE.BoxGeometry(.78, .62, .78);
-      for (let i = 0; i < 22; i++) {
+      const smokeGeo = new THREE.BoxGeometry(1.05, .9, 1.05);
+      for (let i = 0; i < 38; i++) {
         const mat = new THREE.MeshLambertMaterial({
-          color: i % 3 === 0 ? 0xc6cabb : 0x9fa69a,
+          color: i % 4 === 0 ? 0xe2e5d7 : i % 4 === 1 ? 0xc3c8ba : 0x9da499,
           transparent: true,
-          opacity: .22 + Math.random() * .12,
-          depthWrite: false,
+          opacity: .58 + Math.random() * .18,
+          depthWrite: true,
           depthTest: true
         });
         const puff = new THREE.Mesh(smokeGeo, mat);
-        puff.position.set((Math.random() - .5) * 2.2, .42 + Math.random() * 1.35, (Math.random() - .5) * 2.2);
+        puff.position.set((Math.random() - .5) * 2.55, .35 + Math.random() * 1.75, (Math.random() - .5) * 2.55);
         puff.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-        puff.scale.setScalar(.58 + Math.random() * .82);
+        puff.scale.setScalar(.82 + Math.random() * 1.1);
+        puff.userData.baseOpacity = mat.opacity;
         group.add(puff);
       }
+      const core = new THREE.Mesh(
+        new THREE.BoxGeometry(2.35, 1.75, 2.35),
+        new THREE.MeshLambertMaterial({ color: 0xb6bdb0, transparent: true, opacity: .76, depthWrite: true, depthTest: true })
+      );
+      core.position.set(0, 1.05, 0);
+      core.userData.baseOpacity = .76;
+      group.add(core);
       group.position.set(x, 0, y);
       scene.add(group);
-      smokes.push({ id, mesh: group, life: 8.4, max: 8.4 });
+      smokes.push({ id, mesh: group, life: 9.2, max: 9.2 });
       addFeed('烟雾弹展开', '#c8ff62');
       if (sync) {
         const msg = { type: 'smoke', id, x, y };
@@ -2449,7 +2730,7 @@
         kind,
         x: player.x + Math.cos(player.a) * .48,
         z: player.y + Math.sin(player.a) * .48,
-        h: eyeHeight() + jump - .22,
+        h: eyeHeight() + jump + climbHeight - .22,
         vx: Math.cos(player.a) * speed * horizontal,
         vz: Math.sin(player.a) * speed * horizontal,
         vh: Math.sin(pitch) * speed + 2.35
@@ -2828,11 +3109,11 @@
         const s = smokes[i];
         s.life -= dt;
         const age = 1 - s.life / s.max;
-        const fade = clamp(Math.min(s.life / 1.6, age / .55), 0, 1);
-        s.mesh.scale.setScalar(1 + age * .55);
+        const fade = clamp(Math.min(s.life / 1.8, age / .32), 0, 1);
+        s.mesh.scale.setScalar(1 + age * .35);
         s.mesh.children.forEach(child => {
-          child.material.opacity = (.28 + age * .16) * fade;
-          child.rotation.y += dt * .15;
+          child.material.opacity = (child.userData.baseOpacity || .68) * fade;
+          child.rotation.y += dt * .1;
         });
         if (s.life <= 0) {
           scene.remove(s.mesh);
@@ -2898,7 +3179,7 @@
         mesh.userData.leftFoot.rotation.z = -swing * .45;
         mesh.userData.rightFoot.rotation.z = swing * .45;
         const stepLift = Math.abs(Math.sin(mesh.userData.walk * 2)) * clamp(travel * 3.2, 0, .045);
-        mesh.position.set(p.x, stepLift, p.y);
+        mesh.position.set(p.x, (p.climb || 0) + stepLift, p.y);
         mesh.rotation.order = 'YXZ';
         mesh.rotation.y = -p.a;
         mesh.rotation.z = -(p.lean || 0) * .12;
@@ -2925,7 +3206,7 @@
       const w = currentWeapon();
       const eye = eyeHeight();
       const cameraBob = Math.sin(bob) * .022 * moveBlend;
-      camera.position.set(player.x, eye + jump + cameraBob, player.y);
+      camera.position.set(player.x, eye + jump + climbHeight + cameraBob, player.y);
       camera.position.x += Math.cos(player.a + Math.PI / 2) * lean * .22;
       camera.position.z += Math.sin(player.a + Math.PI / 2) * lean * .22;
       camera.rotation.order = 'YXZ';
@@ -3124,6 +3405,19 @@
         ctx.fillText('按 F 领取空投：弹药 + 医疗 + 投掷物', W / 2, H * .68 + 6);
         ctx.restore();
       }
+      const climbTarget = state === 'play' && player.dead <= 0 && climbTimer <= 0 && jump === 0 ? findClimbTarget() : null;
+      if (climbTarget) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '900 16px monospace';
+        ctx.fillStyle = 'rgba(5,8,7,.78)';
+        ctx.fillRect(W / 2 - 185, H * .56 - 18, 370, 38);
+        ctx.strokeStyle = 'rgba(200,255,98,.62)';
+        ctx.strokeRect(W / 2 - 185, H * .56 - 18, 370, 38);
+        ctx.fillStyle = '#c8ff62';
+        ctx.fillText(isTouchDevice ? '按「跳/爬」攀爬上去' : '按 Space 攀爬上去', W / 2, H * .56 + 6);
+        ctx.restore();
+      }
       const ammoStation = state === 'play' && player.dead <= 0 ? nearAmmoStation() : null;
       if (ammoStation) {
         ctx.save();
@@ -3230,6 +3524,7 @@
         a: player.a,
         hp: player.hp,
         stance: player.stance,
+        climb: climbHeight,
         lean,
         weapon: currentWeaponKey(),
         flash: 0
@@ -3323,13 +3618,14 @@
       $('#targetScore').textContent = targetScore;
       $('#timer').textContent = `${Math.max(0, Math.floor(timeLeft / 60))}:${String(Math.max(0, Math.floor(timeLeft % 60))).padStart(2, '0')}`;
       $('#hp').textContent = Math.max(0, Math.round(player.hp));
-      $('#stance').textContent = spawnProtect > 0 ? `保护 ${Math.ceil(spawnProtect)}` : slideTimer > 0 ? '滑铲' : ['站立', '蹲下', '趴下'][player.stance];
+      $('#stance').textContent = spawnProtect > 0 ? `保护 ${Math.ceil(spawnProtect)}` : climbTimer > 0 ? '攀爬' : climbHeight > .25 ? '高处' : slideTimer > 0 ? '滑铲' : ['站立', '蹲下', '趴下'][player.stance];
       const chargeText = chargingBow ? ` · 蓄力 ${Math.round(bowCharge * 100)}%` : '';
       $('#weaponName').textContent = `${w.name}${reloadTimer > 0 ? ' · 换弹中' : ''}${chargeText}`;
       const action = w.melee ? '左键近战' : w.auto ? '自动' : w.charge ? '蓄力' : '半自动';
       const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'}`;
       const scoreText = gameMode === 'core' ? `夺旗 ${matchStats.captures} · 击杀 ${matchStats.kills}` : `击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
-      $('#weaponInfo').textContent = `${w.cat} · ${action} · ${tools} · ${scoreText}`;
+      const damageText = w.pellets ? `${Math.round(w.damage)}×${w.pellets}` : Math.round(w.damage);
+      $('#weaponInfo').textContent = `${w.cat} · 伤害 ${damageText} · ${action} · ${tools} · ${scoreText}`;
       $('#ammo').textContent = w.melee ? '刀' : player.ammo[player.weapon];
       $('#reserve').textContent = w.melee ? '近战' : player.reserve[player.weapon];
     }
@@ -3351,6 +3647,7 @@
       $('#bottom').classList.add('hidden');
       $('#cross').classList.add('hidden');
       $('#radar').classList.add('hidden');
+      setMobileControlsVisible(false);
       const main = weapons[player.loadout[0]].name;
       const second = weapons[player.loadout[1]].name;
       const kit = gameMode === 'knife' ? '战术刀专场' : `${main} / ${second} / 战术刀`;
@@ -3370,7 +3667,8 @@
       $('#bottom').classList.remove('hidden');
       $('#cross').classList.remove('hidden');
       $('#radar').classList.remove('hidden');
-      canvas.requestPointerLock?.();
+      setMobileControlsVisible(true);
+      if (!isTouchDevice) canvas.requestPointerLock?.();
       last = performance.now();
     }
 
@@ -3379,6 +3677,7 @@
       document.exitPointerLock?.();
       throwPrime = null;
       hideTrajectoryDots();
+      setMobileControlsVisible(false);
       $('#hud').classList.add('hidden');
       $('#bottom').classList.add('hidden');
       $('#cross').classList.add('hidden');
@@ -3413,6 +3712,216 @@
       }
       $('#resultTitle').textContent = winner;
       $('#resultText').textContent = `${mapNames[mapKind]} · K/D ${matchStats.kills}/${matchStats.deaths} · 夺旗 ${matchStats.captures} · 射击 ${matchStats.shots} · 命中 ${matchStats.hits} · 爆头 ${matchStats.headshots} · 准确率 ${accuracy}% · 最佳连杀 ${matchStats.bestStreak} · 本机最高击杀 ${bestKills}${boardText ? ` · 本机排行榜 ${boardText}` : ''}`;
+    }
+
+    function resetMobileMove() {
+      mobileMove.active = false;
+      mobileMove.id = null;
+      mobileMove.forward = 0;
+      mobileMove.strafe = 0;
+      mobileMove.mag = 0;
+      const knob = $('#stickKnob');
+      if (knob) knob.style.transform = 'translate(0px, 0px)';
+    }
+
+    function setMobileControlsVisible(visible) {
+      const show = visible && isTouchDevice;
+      $('#mobileControls').classList.toggle('hidden', !show);
+      if (!show) {
+        resetMobileMove();
+        mouseDown = false;
+        chargingBow = false;
+        bowCharge = 0;
+        throwPrime = null;
+        hideTrajectoryDots();
+        setAds(false);
+      }
+    }
+
+    function setAds(on) {
+      ads = on;
+      $('#cross').classList.toggle('ads', ads);
+    }
+
+    function startFire() {
+      if (!player || state !== 'play') return;
+      const w = weapons[currentWeaponKey()];
+      if (w.charge) {
+        chargingBow = true;
+        bowCharge = 0;
+      } else {
+        mouseDown = true;
+        shoot();
+      }
+    }
+
+    function stopFire() {
+      if (chargingBow) {
+        shoot(bowCharge);
+        chargingBow = false;
+        bowCharge = 0;
+      }
+      mouseDown = false;
+    }
+
+    function startSlide() {
+      if (!player || state !== 'play' || slideTimer > 0 || climbTimer > 0) return;
+      const movingInput = mobileMove.mag > .2 || keys.w || keys.a || keys.s || keys.d || keys.shift || Math.hypot(vx, vy) > .65;
+      if (!movingInput) return;
+      slideTimer = .82;
+      slideAngle = Math.hypot(vx, vy) > .65 ? Math.atan2(vy, vx) : player.a;
+      player.stance = 1;
+      addFeed('战术滑铲', '#c8ff62');
+      tone(240, .055, .06, 'triangle');
+    }
+
+    function tryJumpOrClimb() {
+      if (!player || state !== 'play') return;
+      if (startClimb()) return;
+      if (player.stance === 0 && slideTimer <= 0 && jump === 0 && climbTimer <= 0) {
+        jumpV = 6.7;
+        tone(360, .045, .04, 'triangle');
+      }
+    }
+
+    function cycleWeapon() {
+      if (!player || state !== 'play') return;
+      for (let i = 1; i <= player.loadout.length; i++) {
+        const next = (player.weapon + i) % player.loadout.length;
+        if (player.loadout[next]) {
+          player.weapon = next;
+          reloadTimer = 0;
+          reloadTotal = 0;
+          reloadInsertCue = false;
+          reloadWeaponKey = '';
+          shellReloading = false;
+          chargingBow = false;
+          bowCharge = 0;
+          makeGun3D(currentWeaponKey());
+          updateHud();
+          return;
+        }
+      }
+    }
+
+    function tapThrowable(kind) {
+      if (!player || state !== 'play') return;
+      startThrowPrime(kind);
+      setTimeout(() => releaseThrowPrime(kind), 80);
+    }
+
+    function updateMobileStick(clientX, clientY) {
+      const base = $('#stickZone');
+      const knob = $('#stickKnob');
+      if (!base || !knob) return;
+      const rect = base.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const max = rect.width * .34;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > max) {
+        dx = dx / dist * max;
+        dy = dy / dist * max;
+      }
+      mobileMove.strafe = clamp(dx / max, -1, 1);
+      mobileMove.forward = clamp(-dy / max, -1, 1);
+      mobileMove.mag = clamp(Math.hypot(mobileMove.strafe, mobileMove.forward), 0, 1);
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+
+    function handleTouchAction(action, down, button) {
+      if (down) button?.classList.add('active');
+      else button?.classList.remove('active');
+      if (!player || state !== 'play') return;
+      if (action === 'fire') return down ? startFire() : stopFire();
+      if (action === 'ads') return setAds(down);
+      if (!down) {
+        if (action === 'frag' || action === 'smoke' || action === 'molotov') releaseThrowPrime(action);
+        return;
+      }
+      if (action === 'jump') tryJumpOrClimb();
+      if (action === 'slide') startSlide();
+      if (action === 'crouch' && slideTimer <= 0) player.stance = player.stance === 1 ? 0 : 1;
+      if (action === 'reload') reload();
+      if (action === 'swap') cycleWeapon();
+      if (action === 'refill') refillAmmo();
+      if (action === 'frag' || action === 'smoke' || action === 'molotov') startThrowPrime(action);
+    }
+
+    function initMobileControls() {
+      const stick = $('#stickZone');
+      if (stick) {
+        stick.addEventListener('pointerdown', event => {
+          if (!isTouchDevice) return;
+          event.preventDefault();
+          mobileMove.active = true;
+          mobileMove.id = event.pointerId;
+          stick.setPointerCapture?.(event.pointerId);
+          updateMobileStick(event.clientX, event.clientY);
+        });
+        stick.addEventListener('pointermove', event => {
+          if (!isTouchDevice || !mobileMove.active || mobileMove.id !== event.pointerId) return;
+          event.preventDefault();
+          updateMobileStick(event.clientX, event.clientY);
+        });
+        const endStick = event => {
+          if (!isTouchDevice || mobileMove.id !== event.pointerId) return;
+          event.preventDefault();
+          resetMobileMove();
+          stick.releasePointerCapture?.(event.pointerId);
+        };
+        stick.addEventListener('pointerup', endStick);
+        stick.addEventListener('pointercancel', endStick);
+      }
+
+      document.querySelectorAll('[data-touch]').forEach(button => {
+        button.addEventListener('pointerdown', event => {
+          if (!isTouchDevice) return;
+          event.preventDefault();
+          button.setPointerCapture?.(event.pointerId);
+          handleTouchAction(button.dataset.touch, true, button);
+        });
+        const end = event => {
+          if (!isTouchDevice) return;
+          event.preventDefault();
+          handleTouchAction(button.dataset.touch, false, button);
+          button.releasePointerCapture?.(event.pointerId);
+        };
+        button.addEventListener('pointerup', end);
+        button.addEventListener('pointercancel', end);
+        button.addEventListener('pointerleave', end);
+      });
+
+      canvas.addEventListener('pointerdown', event => {
+        if (!isTouchDevice || state !== 'play' || event.clientX < W * .32) return;
+        event.preventDefault();
+        mobileLookId = event.pointerId;
+        mobileLookX = event.clientX;
+        mobileLookY = event.clientY;
+        canvas.setPointerCapture?.(event.pointerId);
+      });
+      canvas.addEventListener('pointermove', event => {
+        if (!isTouchDevice || mobileLookId !== event.pointerId || state !== 'play') return;
+        event.preventDefault();
+        const dx = event.clientX - mobileLookX;
+        const dy = event.clientY - mobileLookY;
+        mobileLookX = event.clientX;
+        mobileLookY = event.clientY;
+        const scoped = isSniperScoped();
+        const sensitivity = scoped ? .52 : ads ? .72 : 1;
+        player.a += dx * .0062 * sensitivity;
+        lookPitch = clamp(lookPitch - dy * .0062 * sensitivity, -1.18, .82);
+      });
+      const endLook = event => {
+        if (!isTouchDevice || mobileLookId !== event.pointerId) return;
+        event.preventDefault();
+        mobileLookId = null;
+        canvas.releasePointerCapture?.(event.pointerId);
+      };
+      canvas.addEventListener('pointerup', endLook);
+      canvas.addEventListener('pointercancel', endLook);
     }
 
     function loop(time) {
@@ -3502,27 +4011,27 @@
     $('#backLobby').onclick = () => {
       $('#brief').classList.add('hidden');
       $('#lobby').classList.remove('hidden');
+      setMobileControlsVisible(false);
       state = 'lobby';
     };
     $('#rematch').onclick = () => showBrief(true);
     $('#returnLobby').onclick = () => {
       $('#result').classList.add('hidden');
       $('#lobby').classList.remove('hidden');
+      setMobileControlsVisible(false);
       state = 'lobby';
     };
 
     addEventListener('keydown', event => {
       keys[event.key.toLowerCase()] = true;
       if (!player) return;
-      if (event.code === 'Space' && state === 'play' && player.stance === 0 && slideTimer <= 0 && jump === 0) jumpV = 5;
+      if (event.code === 'Space' && state === 'play' && !event.repeat) {
+        event.preventDefault();
+        tryJumpOrClimb();
+      }
       if (event.key === 'Control' && slideTimer <= 0) player.stance = player.stance === 1 ? 0 : 1;
       if (event.key.toLowerCase() === 'z' && slideTimer <= 0) player.stance = player.stance === 2 ? 0 : 2;
-      if (event.key.toLowerCase() === 'c' && state === 'play' && slideTimer <= 0 && (keys.w || keys.shift)) {
-        slideTimer = .76;
-        slideAngle = player.a;
-        player.stance = 1;
-        addFeed('战术滑铲', '#c8ff62');
-      }
+      if (event.key.toLowerCase() === 'c' && state === 'play' && !event.repeat) startSlide();
       if (state === 'play' && !event.repeat && (event.key === '4' || event.key === '5' || event.key === '6')) {
         event.preventDefault();
         const kind = event.key === '4' ? 'smoke' : event.key === '5' ? 'frag' : 'molotov';
@@ -3567,40 +4076,18 @@
     });
 
     addEventListener('mousedown', event => {
-      if (event.button === 0 && state === 'play') {
-        const w = weapons[currentWeaponKey()];
-        if (w.charge) {
-          chargingBow = true;
-          bowCharge = 0;
-        } else {
-          mouseDown = true;
-          shoot();
-        }
-      }
-      if (event.button === 2) {
-        ads = true;
-        $('#cross').classList.add('ads');
-      }
+      if (event.button === 0 && state === 'play') startFire();
+      if (event.button === 2) setAds(true);
     });
 
     addEventListener('mouseup', event => {
-      if (event.button === 0) {
-        if (chargingBow) {
-          shoot(bowCharge);
-          chargingBow = false;
-          bowCharge = 0;
-        }
-        mouseDown = false;
-      }
-      if (event.button === 2) {
-        ads = false;
-        $('#cross').classList.remove('ads');
-      }
+      if (event.button === 0) stopFire();
+      if (event.button === 2) setAds(false);
     });
 
     addEventListener('contextmenu', event => event.preventDefault());
     addEventListener('pointerlockchange', () => {
-      if (state === 'play' && document.pointerLockElement !== canvas) {
+      if (!isTouchDevice && state === 'play' && document.pointerLockElement !== canvas) {
         state = 'brief';
         $('#brief').classList.remove('hidden');
         $('#hud').classList.add('hidden');
@@ -3610,6 +4097,7 @@
       }
     });
 
+    initMobileControls();
     buildLevel();
       player = {
       x: 21.35,
