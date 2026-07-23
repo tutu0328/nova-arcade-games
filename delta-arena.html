@@ -488,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.3</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.4</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -521,6 +521,7 @@
       <button class="touch-btn" data-touch="frag" type="button">手雷</button>
       <button class="touch-btn" data-touch="smoke" type="button">烟雾</button>
       <button class="touch-btn" data-touch="molotov" type="button">火瓶</button>
+      <button class="touch-btn" data-touch="unstuck" type="button">脱卡</button>
     </div>
   </div>
 
@@ -601,7 +602,8 @@
         <div class="rule"><b>Q / E</b>左右探头 Peek</div>
         <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃/攀爬</div>
-        <div class="rule"><b>F / R / 1 / 2 / 3</b>补弹；夺旗抢核心；切枪</div>
+        <div class="rule"><b>F / R / T</b>补弹、换弹、脱离卡死</div>
+        <div class="rule"><b>1 / 2 / 3</b>切枪；夺旗模式抢核心</div>
         <div class="rule"><b>手机</b>左摇杆移动，右侧滑动转视角，按钮开火/瞄准/投掷</div>
       </div>
     </div>
@@ -746,6 +748,7 @@
     let fragCooldown = 0;
     let molotovCooldown = 0;
     let ammoCooldown = 0;
+    let unstuckCooldown = 0;
     let throwPrime = null;
     let footTimer = 0;
     let emptyClickTimer = 0;
@@ -1733,6 +1736,7 @@
       fragCooldown = 0;
       molotovCooldown = 0;
       ammoCooldown = 0;
+      unstuckCooldown = 0;
       throwPrime = null;
       mouseDown = false;
       mobileLookId = null;
@@ -1857,6 +1861,76 @@
         if (kind === 'ammo') return circleHitsRect(x, y, radius, px, py, .52, .42);
         return circleHitsRect(x, y, radius, px, py, .5, .5);
       }) || false;
+    }
+
+    function inMapBounds(x, y, radius = BODY_RADIUS) {
+      return x > 1 + radius && y > 1 + radius && y < map.length - 1 - radius && x < (map[0]?.length || 0) - 1 - radius;
+    }
+
+    function safeGroundAt(x, y, radius = BODY_RADIUS) {
+      if (!inMapBounds(x, y, radius)) return false;
+      if (surfaceHeightAt(x, y) > .12) return false;
+      return !blockedAt(x, y, radius, 0);
+    }
+
+    function findUnstuckSpot() {
+      if (!player) return null;
+      const startAngle = player.a + Math.PI;
+      const candidates = [];
+      for (let radius = .65; radius <= 7.2; radius += .35) {
+        const points = Math.max(14, Math.ceil(radius * 13));
+        for (let i = 0; i < points; i++) {
+          const sweep = i % 2 === 0 ? i / 2 : -(i + 1) / 2;
+          const angle = startAngle + sweep * (Math.PI * 2 / points);
+          const x = player.x + Math.cos(angle) * radius;
+          const y = player.y + Math.sin(angle) * radius;
+          if (safeGroundAt(x, y, BODY_RADIUS)) candidates.push({ x, y, d: radius });
+        }
+        if (candidates.length) return candidates.sort((a, b) => a.d - b.d)[0];
+      }
+      const p = spawnPoint(team);
+      return safeGroundAt(p.x, p.y, BODY_RADIUS) ? { x: p.x, y: p.y, d: Infinity } : null;
+    }
+
+    function useUnstuck() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (unstuckCooldown > 0) {
+        addFeed(`脱离卡死冷却 ${Math.ceil(unstuckCooldown)} 秒`, '#ffd36d');
+        tone(170, .05, .035, 'square');
+        return;
+      }
+      const spot = findUnstuckSpot();
+      if (!spot) {
+        addFeed('附近没有找到安全位置', '#ff5b55');
+        tone(120, .08, .05, 'sawtooth');
+        return;
+      }
+      if (gameMode === 'core' && objective?.carrier === selfId()) {
+        dispatchObjectiveEvent('drop', { carrier: selfId(), x: player.x, y: player.y });
+      }
+      player.x = spot.x;
+      player.y = spot.y;
+      player.stance = 0;
+      vx = 0;
+      vy = 0;
+      jump = 0;
+      jumpV = 0;
+      climbHeight = 0;
+      climbTimer = 0;
+      climbTotal = 0;
+      climbStart = null;
+      climbEnd = null;
+      slideTimer = 0;
+      mobileLookId = null;
+      resetMobileMove();
+      unstuckCooldown = 12;
+      spawnProtect = Math.max(spawnProtect, 1.2);
+      lastNet = 0;
+      sendState(performance.now() + 1000);
+      addFeed('已脱离卡死，移动到附近安全位置', '#c8ff62');
+      tone(680, .06, .075, 'triangle');
+      setTimeout(() => tone(460, .07, .045, 'square'), 55);
+      updateHud();
     }
 
     function canMove(x, y, ignore, radius = BODY_RADIUS) {
@@ -2298,6 +2372,7 @@
       fragCooldown = Math.max(0, fragCooldown - dt);
       molotovCooldown = Math.max(0, molotovCooldown - dt);
       ammoCooldown = Math.max(0, ammoCooldown - dt);
+      unstuckCooldown = Math.max(0, unstuckCooldown - dt);
       emptyClickTimer = Math.max(0, emptyClickTimer - dt);
       if (recoilKick > 0) {
         const recover = Math.min(recoilKick, dt * .46);
@@ -3606,6 +3681,11 @@
       player.dead = 0;
       vx = 0;
       vy = 0;
+      jump = 0;
+      jumpV = 0;
+      climbHeight = 0;
+      climbTimer = 0;
+      slideTimer = 0;
       spawnProtect = 3;
       addFeed('出生保护 3 秒', '#c8ff62');
     }
@@ -3622,7 +3702,7 @@
       const chargeText = chargingBow ? ` · 蓄力 ${Math.round(bowCharge * 100)}%` : '';
       $('#weaponName').textContent = `${w.name}${reloadTimer > 0 ? ' · 换弹中' : ''}${chargeText}`;
       const action = w.melee ? '左键近战' : w.auto ? '自动' : w.charge ? '蓄力' : '半自动';
-      const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'}`;
+      const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'} · T脱卡 ${unstuckCooldown > 0 ? Math.ceil(unstuckCooldown) : '✓'}`;
       const scoreText = gameMode === 'core' ? `夺旗 ${matchStats.captures} · 击杀 ${matchStats.kills}` : `击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
       const damageText = w.pellets ? `${Math.round(w.damage)}×${w.pellets}` : Math.round(w.damage);
       $('#weaponInfo').textContent = `${w.cat} · 伤害 ${damageText} · ${action} · ${tools} · ${scoreText}`;
@@ -3847,6 +3927,7 @@
       if (action === 'reload') reload();
       if (action === 'swap') cycleWeapon();
       if (action === 'refill') refillAmmo();
+      if (action === 'unstuck') useUnstuck();
       if (action === 'frag' || action === 'smoke' || action === 'molotov') startThrowPrime(action);
     }
 
@@ -4038,6 +4119,7 @@
         startThrowPrime(kind);
       }
       if (state === 'play' && !event.repeat && event.key.toLowerCase() === 'f') refillAmmo();
+      if (state === 'play' && !event.repeat && event.key.toLowerCase() === 't') useUnstuck();
       if (event.key.toLowerCase() === 'r') reload();
       if (event.key === '1' || event.key === '2' || event.key === '3') {
         const index = parseInt(event.key, 10) - 1;
