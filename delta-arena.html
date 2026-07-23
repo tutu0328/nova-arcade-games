@@ -375,7 +375,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.3</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.4</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -913,15 +913,30 @@
       const vest = new THREE.MeshLambertMaterial({ color: 0x151d18 });
       const skin = new THREE.MeshLambertMaterial({ color: 0xc99c7f });
       const dark = new THREE.MeshLambertMaterial({ color: 0x080b09 });
-      const add = (geo, mat, x, y, z) => block(geo, mat, x, y, z, group);
+      const gunMat = new THREE.MeshLambertMaterial({ color: 0x0f1713 });
+      const gripMat = new THREE.MeshLambertMaterial({ color: 0x26312b });
+      const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
+        const mesh = block(geo, mat, x, y, z, group);
+        mesh.rotation.set(rx, ry, rz);
+        return mesh;
+      };
       add(new THREE.BoxGeometry(.42, .62, .24), teamMat, 0, 1.13, 0);
       add(new THREE.BoxGeometry(.36, .34, .32), skin, .02, 1.66, 0);
       add(new THREE.BoxGeometry(.48, .16, .34), vest, .02, 1.36, 0);
-      add(new THREE.BoxGeometry(.18, .55, .18), teamMat, -.31, 1.1, 0);
-      add(new THREE.BoxGeometry(.18, .55, .18), teamMat, .31, 1.1, 0);
+      add(new THREE.BoxGeometry(.18, .18, .52), teamMat, -.05, 1.28, 0);
+      add(new THREE.BoxGeometry(.48, .13, .13), teamMat, .32, 1.27, -.17, 0, .16, -.08);
+      add(new THREE.BoxGeometry(.5, .13, .13), teamMat, .32, 1.2, .17, 0, -.16, .08);
+      add(new THREE.BoxGeometry(.14, .14, .14), skin, .58, 1.25, -.08);
+      add(new THREE.BoxGeometry(.14, .14, .14), skin, .55, 1.19, .08);
       add(new THREE.BoxGeometry(.18, .68, .18), dark, -.14, .46, 0);
       add(new THREE.BoxGeometry(.18, .68, .18), dark, .14, .46, 0);
-      add(new THREE.BoxGeometry(.62, .11, .12), dark, .42, 1.25, 0);
+      add(new THREE.BoxGeometry(.72, .1, .12), gunMat, .58, 1.24, 0);
+      add(new THREE.BoxGeometry(.2, .08, .14), gripMat, .28, 1.18, 0);
+      add(new THREE.BoxGeometry(.18, .26, .1), gunMat, .38, 1.05, 0);
+      add(new THREE.BoxGeometry(.22, .1, .18), gunMat, .02, 1.24, 0);
+      add(new THREE.BoxGeometry(.52, .055, .075), dark, 1.08, 1.25, 0);
+      add(new THREE.BoxGeometry(.08, .16, .16), dark, 1.36, 1.25, 0);
+      add(new THREE.BoxGeometry(.18, .08, .1), dark, .58, 1.36, 0);
       group.scale.set(.92, .92, .92);
       return group;
     }
