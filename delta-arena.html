@@ -488,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.5</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.6</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -734,6 +734,8 @@
     let climbCooldown = 0;
     let climbStart = null;
     let climbEnd = null;
+    let ledgeDropGrace = 0;
+    let ledgeDropHeight = 0;
     let bob = 0;
     let moveBlend = 0;
     let vx = 0;
@@ -1724,6 +1726,8 @@
       climbCooldown = 0;
       climbStart = null;
       climbEnd = null;
+      ledgeDropGrace = 0;
+      ledgeDropHeight = 0;
       bob = 0;
       moveBlend = 0;
       vx = 0;
@@ -1893,6 +1897,25 @@
       return safeGroundAt(p.x, p.y, BODY_RADIUS) ? { x: p.x, y: p.y, d: Infinity } : null;
     }
 
+    function resolveGroundOverlap(maxRadius = 1.35) {
+      if (!player || !blockedAt(player.x, player.y, BODY_RADIUS, 0)) return false;
+      for (let radius = .12; radius <= maxRadius; radius += .08) {
+        const points = Math.max(10, Math.ceil(radius * 18));
+        for (let i = 0; i < points; i++) {
+          const angle = player.a + i * Math.PI * 2 / points;
+          const x = player.x + Math.cos(angle) * radius;
+          const y = player.y + Math.sin(angle) * radius;
+          if (!safeGroundAt(x, y, BODY_RADIUS)) continue;
+          player.x = x;
+          player.y = y;
+          vx = 0;
+          vy = 0;
+          return true;
+        }
+      }
+      return false;
+    }
+
     function useUnstuck() {
       if (!player || state !== 'play' || player.dead > 0) return;
       if (unstuckCooldown > 0) {
@@ -1921,6 +1944,8 @@
       climbTotal = 0;
       climbStart = null;
       climbEnd = null;
+      ledgeDropGrace = 0;
+      ledgeDropHeight = 0;
       slideTimer = 0;
       mobileLookId = null;
       resetMobileMove();
@@ -1936,7 +1961,8 @@
 
     function canMove(x, y, ignore, radius = BODY_RADIUS) {
       const elevation = ignore === player ? climbHeight : 0;
-      if (blockedAt(x, y, radius, elevation)) return false;
+      const effectiveElevation = ignore === player && ledgeDropGrace > 0 ? Math.max(elevation, ledgeDropHeight) : elevation;
+      if (blockedAt(x, y, radius, effectiveElevation)) return false;
       if (ignore !== player && player && Math.hypot(player.x - x, player.y - y) < radius * 1.9) return false;
       return true;
     }
@@ -1961,11 +1987,22 @@
 
     function surfaceHeightAt(x, y) {
       let height = 0;
-      const cell = map[Math.floor(y)]?.[Math.floor(x)] || 0;
-      if (cell === 3) height = Math.max(height, cellHeights[3]);
+      const supportRadius = BODY_RADIUS * .92;
+      const minX = Math.floor(x - supportRadius);
+      const maxX = Math.floor(x + supportRadius);
+      const minY = Math.floor(y - supportRadius);
+      const maxY = Math.floor(y + supportRadius);
+      for (let yy = minY; yy <= maxY; yy++) {
+        for (let xx = minX; xx <= maxX; xx++) {
+          const cell = map[yy]?.[xx] || 0;
+          if ((cell === 2 || cell === 3) && circleHitsRect(x, y, supportRadius, xx + .5, yy + .5, .5, .5)) {
+            height = Math.max(height, cellHeights[cell]);
+          }
+        }
+      }
       levelData?.props?.forEach(([kind, px, py]) => {
-        if (kind === 'crate' && circleHitsRect(x, y, .18, px, py, .5, .5)) height = Math.max(height, .9);
-        if (kind === 'tower' && circleHitsRect(x, y, .18, px, py, .72, .72)) height = Math.max(height, 1.45);
+        if (kind === 'crate' && circleHitsRect(x, y, supportRadius, px, py, .5, .5)) height = Math.max(height, .9);
+        if (kind === 'tower' && circleHitsRect(x, y, supportRadius, px, py, .72, .72)) height = Math.max(height, 1.45);
       });
       return height;
     }
@@ -2008,6 +2045,8 @@
       climbTotal = .34 + target.height * .12;
       climbTimer = climbTotal;
       climbCooldown = .32;
+      ledgeDropGrace = 0;
+      ledgeDropHeight = target.height;
       player.stance = 0;
       vx = 0;
       vy = 0;
@@ -2030,6 +2069,7 @@
         climbHeight = climbStart.h + (climbEnd.height - climbStart.h) * Math.sin(eased * Math.PI / 2);
         if (climbTimer <= 0) {
           climbHeight = climbEnd.height;
+          ledgeDropHeight = climbEnd.height;
           climbStart = null;
           climbEnd = null;
           tone(560, .045, .055, 'square');
@@ -2037,8 +2077,19 @@
         return true;
       }
       const support = surfaceHeightAt(player.x, player.y);
-      if (support > .05) climbHeight += (support - climbHeight) * (1 - Math.exp(-18 * dt));
-      else climbHeight = Math.max(0, climbHeight - dt * 5.2);
+      if (support > .05) {
+        ledgeDropGrace = .46;
+        ledgeDropHeight = support;
+        climbHeight += (support - climbHeight) * (1 - Math.exp(-18 * dt));
+      } else {
+        if (climbHeight > .08) ledgeDropGrace = Math.max(ledgeDropGrace, .32);
+        else ledgeDropGrace = Math.max(0, ledgeDropGrace - dt);
+        climbHeight = Math.max(0, climbHeight - dt * 5.2);
+        if (climbHeight <= 0) {
+          resolveGroundOverlap();
+          ledgeDropHeight = 0;
+        }
+      }
       return false;
     }
 
@@ -3686,6 +3737,8 @@
       jumpV = 0;
       climbHeight = 0;
       climbTimer = 0;
+      ledgeDropGrace = 0;
+      ledgeDropHeight = 0;
       slideTimer = 0;
       spawnProtect = 3;
       addFeed('出生保护 3 秒', '#c8ff62');
