@@ -391,7 +391,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.8</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.0</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -434,9 +434,9 @@
             <label>蓝队人数</label>
             <div class="counter"><button class="step" data-input="blueSlots" data-delta="-1">−</button><input id="blueSlots" type="number" min="1" max="8" value="5"><button class="step" data-input="blueSlots" data-delta="1">+</button></div>
           </div>
-          <div class="field"><label>对战模式</label><select id="mode"><option value="team">团队竞技</option><option value="sniper">狙击对决</option><option value="gun">枪械乱斗</option><option value="knife">刀战近身</option></select></div>
+          <div class="field"><label>对战模式</label><select id="mode"><option value="team">团队竞技</option><option value="core">战术夺旗</option><option value="sniper">狙击对决</option><option value="gun">枪械乱斗</option><option value="knife">刀战近身</option></select></div>
           <div class="field"><label>比赛时间</label><select id="matchTime"><option value="300">5 分钟</option><option value="600" selected>10 分钟</option><option value="1200">20 分钟</option></select></div>
-          <div class="field"><label>击杀目标</label><select id="killTarget"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select></div>
+          <div class="field"><label>击杀 / 夺旗目标</label><select id="killTarget"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select></div>
           <div class="field"><label>地图</label><select id="map"><option value="0">三角训练基地</option><option value="1">废弃工厂</option><option value="2">雪山基地</option><option value="3">城市街区</option></select></div>
           <div class="field wide"><label>主武器</label><select id="primary"></select></div>
           <div class="field wide"><label>副武器</label><select id="secondary"></select></div>
@@ -483,7 +483,7 @@
         <div class="rule"><b>Q / E</b>左右探头 Peek</div>
         <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃</div>
-        <div class="rule"><b>F / R / 1 / 2 / 3</b>补弹、换弹、主副武器与近战刀</div>
+        <div class="rule"><b>F / R / 1 / 2 / 3</b>补弹；夺旗抢核心；切枪</div>
       </div>
     </div>
   </section>
@@ -547,12 +547,13 @@
       frag: { name: '破片手雷', cat: '投掷物', damage: 92, color: '#6b715f', throwable: true },
       molotov: { name: '燃烧瓶', cat: '投掷物', damage: 9, color: '#ff8a2a', throwable: true },
       smoke: { name: '烟雾弹', cat: '投掷物', damage: 0, color: '#b8bfb0', throwable: true },
+      zone: { name: '安全区', cat: '环境', damage: 0, color: '#ff5b55', throwable: true },
       glock: { name: 'Glock 17', cat: '手枪', damage: 24, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
       deagle: { name: '沙漠之鹰', cat: '手枪', damage: 64, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
     };
 
     const mapNames = ['三角训练基地', '废弃工厂', '雪山基地', '城市街区'];
-    const modeNames = { team: '团队竞技', sniper: '狙击对决', gun: '枪械乱斗', knife: '刀战近身' };
+    const modeNames = { team: '团队竞技', core: '战术夺旗', sniper: '狙击对决', gun: '枪械乱斗', knife: '刀战近身' };
 
     Object.entries(weapons).forEach(([key, weapon]) => {
       if (weapon.melee || weapon.throwable) return;
@@ -615,6 +616,11 @@
     let footTimer = 0;
     let emptyClickTimer = 0;
     let recoilKick = 0;
+    let zoneDamageTick = 0;
+    let zoneWarned = false;
+    let supplyDrop = null;
+    let supplyEventSent = false;
+    let objective = null;
     let bowCharge = 0;
     let chargingBow = false;
     let audio = null;
@@ -634,8 +640,10 @@
     const seenExplosions = new Set();
     const seenFires = new Set();
     const seenProjectiles = new Set();
+    const seenObjectiveEvents = new Set();
+    const seenSupplyEvents = new Set();
     const seenDeaths = new Set();
-    const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0 };
+    const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0, captures: 0 };
     const BODY_RADIUS = .34;
 
     const renderer = new THREE.WebGLRenderer({ canvas: world, antialias: false, powerPreference: 'high-performance' });
@@ -876,8 +884,61 @@
       return new THREE.Mesh(new THREE.PlaneGeometry(1.85, .7), material);
     }
 
+    function coreBase(side) {
+      return side === 'red' ? { x: 2.8, y: 12 } : { x: 21.2, y: 12 };
+    }
+
+    function createCoreBase(side) {
+      const base = coreBase(side);
+      const color = side === 'red' ? 0xff5b55 : 0x4db8ff;
+      const pad = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.45, 1.45, .045, 12),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .32, depthWrite: false })
+      );
+      pad.position.set(base.x, .035, base.y);
+      pad.rotation.y = Math.PI / 12;
+      levelGroup.add(pad);
+      block(new THREE.BoxGeometry(.28, 1.35, .28), side === 'red' ? materials.red : materials.blue, base.x, .7, base.y, levelGroup, 0x050706);
+      const sign = makeSign(side === 'red' ? '赤队核心库' : '蓝队核心库', side);
+      sign.position.set(base.x, 1.95, side === 'red' ? base.y - 1.55 : base.y + 1.55);
+      sign.rotation.y = side === 'red' ? Math.PI : 0;
+      levelGroup.add(sign);
+    }
+
+    function createCoreObjective() {
+      createCoreBase('red');
+      createCoreBase('blue');
+      const group = new THREE.Group();
+      const mat = new THREE.MeshLambertMaterial({ color: 0xc8ff62, emissive: 0x24350d });
+      const dark = new THREE.MeshLambertMaterial({ color: 0x0a0f08 });
+      const cube = withEdges(new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), mat), 0x050706, .9);
+      cube.rotation.set(.45, .35, .12);
+      group.add(cube);
+      const bandX = withEdges(new THREE.Mesh(new THREE.BoxGeometry(.78, .1, .1), dark), 0x000000, .7);
+      const bandZ = withEdges(new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .78), dark), 0x000000, .7);
+      group.add(bandX, bandZ);
+      const light = new THREE.PointLight(0xc8ff62, 1.6, 5);
+      light.position.set(0, .6, 0);
+      group.add(light);
+      group.position.set(12, .78, 12);
+      levelGroup.add(group);
+      objective = {
+        x: 12,
+        y: 12,
+        homeX: 12,
+        homeY: 12,
+        carrier: null,
+        carrierTeam: null,
+        carrierName: '',
+        mesh: group
+      };
+    }
+
     function buildLevel() {
       scene.remove(levelGroup);
+      if (supplyDrop?.mesh) scene.remove(supplyDrop.mesh);
+      supplyDrop = null;
+      objective = null;
       levelGroup = new THREE.Group();
       levelData = makeLevel(mapKind);
       map = levelData.grid;
@@ -955,6 +1016,8 @@
         levelGroup.add(light);
         block(new THREE.BoxGeometry(.25, .25, .25), kind === 'red' ? materials.red : kind === 'blue' ? materials.blue : materials.lime, x, 2.04, z);
       });
+
+      if (gameMode === 'core') createCoreObjective();
 
       scene.add(levelGroup);
       makeGun3D(currentWeaponKey());
@@ -1077,6 +1140,14 @@
       return (fromCreate || fromJoin || 'PLAYER').slice(0, 12).toUpperCase();
     }
 
+    function selfId() {
+      return localId || 'LOCAL';
+    }
+
+    function selfName() {
+      return roomPlayers.get(localId)?.name || localName();
+    }
+
     function countTeam(side) {
       let count = 0;
       roomPlayers.forEach(p => { if (p.team === side) count++; });
@@ -1096,7 +1167,7 @@
       mapKind = parseInt($('#map').value, 10);
       gameMode = $('#mode').value;
       matchDuration = parseInt($('#matchTime').value, 10);
-      targetScore = parseInt($('#killTarget').value, 10);
+      targetScore = gameMode === 'core' ? 3 : parseInt($('#killTarget').value, 10);
     }
 
     function configPacket() {
@@ -1112,6 +1183,9 @@
       blueSlots = data.blueSlots ?? blueSlots;
       $('#redSlots').value = redSlots;
       $('#blueSlots').value = blueSlots;
+      $('#mode').value = gameMode;
+      $('#map').value = mapKind;
+      $('#matchTime').value = matchDuration;
     }
 
     function sendToHost(data) {
@@ -1262,6 +1336,21 @@
 
         if (data.type === 'fire') {
           spawnFire(data.x, data.y, data.id, data, false);
+          if (isHost) broadcast(data, conn);
+        }
+
+        if (data.type === 'objective') {
+          applyObjectiveEvent(data);
+          if (isHost) broadcast(data, conn);
+        }
+
+        if (data.type === 'supply') {
+          spawnSupplyDrop(data.x, data.y, data.id, false);
+          if (isHost) broadcast(data, conn);
+        }
+
+        if (data.type === 'supplyTaken') {
+          applySupplyTaken(data.id);
           if (isHost) broadcast(data, conn);
         }
       });
@@ -1416,10 +1505,15 @@
       footTimer = 0;
       emptyClickTimer = 0;
       recoilKick = 0;
+      zoneDamageTick = 0;
+      zoneWarned = false;
+      supplyEventSent = false;
       bowCharge = 0;
       chargingBow = false;
       seenDeaths.clear();
-      Object.assign(matchStats, { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0 });
+      seenObjectiveEvents.clear();
+      seenSupplyEvents.clear();
+      Object.assign(matchStats, { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0, captures: 0 });
       makeGun3D(currentWeaponKey());
       updateHud();
     }
@@ -1556,25 +1650,208 @@
       return cast(a.x, a.y, angle, dist + .1).dist > dist - .18;
     }
 
-    function nearAmmoStation(range = 1.45) {
-      if (!player || !levelData?.props) return null;
-      return levelData.props
-        .filter(([kind]) => kind === 'ammo')
-        .map(([, x, y]) => ({ x, y, d: Math.hypot(player.x - x, player.y - y) }))
-        .filter(item => item.d <= range)
-        .sort((a, b) => a.d - b.d)[0] || null;
+    function dispatchObjectiveEvent(action, payload = {}) {
+      if (gameMode !== 'core' || !objective) return;
+      const event = { type: 'objective', eventId: nowId(), action, ...payload };
+      applyObjectiveEvent(event);
+      if (isHost) broadcast(event);
+      else sendToHost(event);
     }
 
-    function refillAmmo() {
-      if (!player || state !== 'play' || player.dead > 0) return;
-      if (!nearAmmoStation()) {
-        addFeed('靠近绿色弹药箱后按 F 补给', '#aab4a5');
-        return;
+    function applyObjectiveEvent(data) {
+      if (gameMode !== 'core' || !objective || !data?.action) return;
+      const key = data.eventId || `${data.action}-${data.carrier || data.scorer || ''}-${Math.round((data.x || 0) * 10)}-${Math.round((data.y || 0) * 10)}`;
+      if (seenObjectiveEvents.has(key)) return;
+      seenObjectiveEvents.add(key);
+
+      if (data.action === 'pickup') {
+        if (objective.carrier) return;
+        objective.carrier = data.carrier;
+        objective.carrierTeam = data.carrierTeam;
+        objective.carrierName = data.carrierName || 'PLAYER';
+        addFeed(`${objective.carrierName} 拿起数据核心`, data.carrierTeam === 'red' ? '#ff5b55' : '#4db8ff');
+        tone(640, .08, .045, 'square');
       }
-      if (ammoCooldown > 0) {
-        addFeed(`补给冷却 ${Math.ceil(ammoCooldown)} 秒`, '#aab4a5');
-        return;
+
+      if (data.action === 'drop') {
+        if (data.carrier && objective.carrier && objective.carrier !== data.carrier) return;
+        objective.carrier = null;
+        objective.carrierTeam = null;
+        objective.carrierName = '';
+        objective.x = clamp(data.x ?? objective.x, 1.25, 22.75);
+        objective.y = clamp(data.y ?? objective.y, 1.25, 22.75);
+        addFeed('数据核心掉落', '#ffd36d');
+        tone(180, .08, .04, 'triangle');
       }
+
+      if (data.action === 'capture') {
+        redScore = data.redScore ?? redScore;
+        blueScore = data.blueScore ?? blueScore;
+        if (data.scorer === selfId()) matchStats.captures++;
+        objective.carrier = null;
+        objective.carrierTeam = null;
+        objective.carrierName = '';
+        objective.x = objective.homeX;
+        objective.y = objective.homeY;
+        addFeed(`${data.scorerName || 'PLAYER'} 带回数据核心`, data.scorerTeam === 'red' ? '#ff5b55' : '#4db8ff');
+        tone(760, .16, .08, 'square');
+        updateHud();
+      }
+    }
+
+    function dropCarriedObjective() {
+      if (gameMode !== 'core' || !objective || objective.carrier !== selfId() || !player) return;
+      dispatchObjectiveEvent('drop', {
+        carrier: selfId(),
+        carrierTeam: team,
+        carrierName: selfName(),
+        x: player.x,
+        y: player.y
+      });
+    }
+
+    function updateObjective(dt) {
+      if (gameMode !== 'core' || !objective) return;
+      const t = performance.now() * .004;
+      if (objective.carrier) {
+        const carrier = objective.carrier === selfId() ? player : remotePlayers.get(objective.carrier);
+        if (carrier) {
+          objective.mesh.visible = carrier.hp > 0;
+          objective.mesh.position.set(carrier.x, 1.35 + Math.sin(t) * .05, carrier.y);
+          objective.mesh.rotation.y += dt * 4;
+        }
+      } else {
+        objective.mesh.visible = true;
+        objective.mesh.position.set(objective.x, .78 + Math.sin(t) * .08, objective.y);
+        objective.mesh.rotation.y += dt * 2.4;
+      }
+
+      if (!player || player.dead > 0) return;
+      if (!objective.carrier && Math.hypot(player.x - objective.x, player.y - objective.y) < 1.05) {
+        dispatchObjectiveEvent('pickup', {
+          carrier: selfId(),
+          carrierTeam: team,
+          carrierName: selfName()
+        });
+      }
+      if (objective.carrier === selfId()) {
+        const base = coreBase(team);
+        if (Math.hypot(player.x - base.x, player.y - base.y) < 1.55) {
+          dispatchObjectiveEvent('capture', {
+            scorer: selfId(),
+            scorerTeam: team,
+            scorerName: selfName(),
+            redScore: redScore + (team === 'red' ? 1 : 0),
+            blueScore: blueScore + (team === 'blue' ? 1 : 0)
+          });
+        }
+      }
+    }
+
+    function createSupplyMesh(x, y) {
+      const group = new THREE.Group();
+      block(new THREE.BoxGeometry(.92, .42, .72), materials.metal, 0, .22, 0, group, 0x050706);
+      block(new THREE.BoxGeometry(.78, .18, .58), materials.ammo, 0, .52, 0, group, 0x050706);
+      block(new THREE.BoxGeometry(.54, .08, .1), materials.lime, 0, .68, -.1, group, 0x050706);
+      block(new THREE.BoxGeometry(.1, .08, .38), materials.lime, 0, .68, -.1, group, 0x050706);
+      const beacon = new THREE.PointLight(0xffd36d, 1.5, 5);
+      beacon.position.set(0, 1.2, 0);
+      group.add(beacon);
+      group.position.set(x, 0, y);
+      scene.add(group);
+      return group;
+    }
+
+    function randomOpenPoint() {
+      for (let i = 0; i < 90; i++) {
+        const x = 3.2 + Math.random() * 17.6;
+        const y = 3.2 + Math.random() * 17.6;
+        if (!blockedAt(x, y, .6) && Math.hypot(x - 12, y - 12) > 2.1) return { x, y };
+      }
+      return { x: 12, y: 16.8 };
+    }
+
+    function spawnSupplyDrop(x, y, id = nowId(), sync = false) {
+      const key = `spawn-${id}`;
+      if (seenSupplyEvents.has(key)) return;
+      seenSupplyEvents.add(key);
+      if (supplyDrop?.mesh) scene.remove(supplyDrop.mesh);
+      supplyDrop = { id, x, y, life: 55, mesh: createSupplyMesh(x, y) };
+      addFeed('随机事件：空投补给箱落地', '#ffd36d');
+      tone(470, .1, .05, 'triangle');
+      if (sync) {
+        const event = { type: 'supply', id, x, y };
+        if (isHost) broadcast(event);
+        else sendToHost(event);
+      }
+    }
+
+    function applySupplyTaken(id) {
+      const key = `taken-${id}`;
+      if (seenSupplyEvents.has(key)) return;
+      seenSupplyEvents.add(key);
+      if (supplyDrop?.id === id) {
+        scene.remove(supplyDrop.mesh);
+        supplyDrop = null;
+      }
+      addFeed('空投补给箱已被领取', '#ffd36d');
+    }
+
+    function takeSupplyDrop(id) {
+      applySupplyTaken(id);
+      const event = { type: 'supplyTaken', id };
+      if (isHost) broadcast(event);
+      else sendToHost(event);
+    }
+
+    function nearSupplyDrop(range = 1.65) {
+      if (!player || !supplyDrop) return null;
+      const d = Math.hypot(player.x - supplyDrop.x, player.y - supplyDrop.y);
+      return d <= range ? { ...supplyDrop, d } : null;
+    }
+
+    function updateSupplyDrop(dt) {
+      if (!supplyEventSent && matchDuration - timeLeft > 45 && timeLeft > 20 && (isHost || !peer?.open)) {
+        supplyEventSent = true;
+        const point = randomOpenPoint();
+        spawnSupplyDrop(point.x, point.y, nowId(), true);
+      }
+      if (!supplyDrop) return;
+      supplyDrop.life -= dt;
+      supplyDrop.mesh.rotation.y += dt * 1.3;
+      supplyDrop.mesh.position.y = Math.sin(performance.now() * .004) * .04;
+      if (supplyDrop.life <= 0) applySupplyTaken(supplyDrop.id);
+    }
+
+    function safeZoneRadius() {
+      return timeLeft > 10 ? 99 : 2.85 + timeLeft * .78;
+    }
+
+    function updateSafeZone(dt) {
+      if (timeLeft > 10) return;
+      if (!zoneWarned) {
+        zoneWarned = true;
+        addFeed('最后10秒：安全区正在收缩', '#ff5b55');
+      }
+      if (!player || player.dead > 0 || spawnProtect > 0) return;
+      zoneDamageTick -= dt;
+      const d = Math.hypot(player.x - 12, player.y - 12);
+      if (d > safeZoneRadius() && zoneDamageTick <= 0) {
+        zoneDamageTick = .85;
+        applyIncomingHit({
+          id: 'SAFEZONE',
+          damage: 12,
+          headshot: false,
+          weapon: 'zone',
+          shooterName: '安全区',
+          shooterTeam: 'zone',
+          sx: 12,
+          sy: 12
+        });
+      }
+    }
+
+    function fillLoadoutAmmo() {
       let changed = false;
       player.loadout.forEach((key, index) => {
         const w = weapons[key];
@@ -1587,6 +1864,42 @@
       shellReloading = false;
       chargingBow = false;
       bowCharge = 0;
+      return changed;
+    }
+
+    function nearAmmoStation(range = 1.45) {
+      if (!player || !levelData?.props) return null;
+      return levelData.props
+        .filter(([kind]) => kind === 'ammo')
+        .map(([, x, y]) => ({ x, y, d: Math.hypot(player.x - x, player.y - y) }))
+        .filter(item => item.d <= range)
+        .sort((a, b) => a.d - b.d)[0] || null;
+    }
+
+    function refillAmmo() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      const drop = nearSupplyDrop();
+      if (drop) {
+        const changed = fillLoadoutAmmo();
+        player.hp = Math.min(100, player.hp + 35);
+        smokeCooldown = 0;
+        fragCooldown = 0;
+        molotovCooldown = 0;
+        takeSupplyDrop(drop.id);
+        addFeed(changed ? '空投补给：弹药、医疗、投掷物刷新' : '空投补给：医疗与投掷物刷新', '#ffd36d');
+        tone(690, .12, .065, 'square');
+        updateHud();
+        return;
+      }
+      if (!nearAmmoStation()) {
+        addFeed('靠近绿色弹药箱或空投后按 F 补给', '#aab4a5');
+        return;
+      }
+      if (ammoCooldown > 0) {
+        addFeed(`补给冷却 ${Math.ceil(ammoCooldown)} 秒`, '#aab4a5');
+        return;
+      }
+      const changed = fillLoadoutAmmo();
       ammoCooldown = 8;
       addFeed(changed ? '弹药补给完成' : '弹药已经满了', '#c8ff62');
       tone(520, .08, .045, 'square');
@@ -1628,6 +1941,10 @@
       if (player.dead > 0) {
         player.dead -= dt;
         if (player.dead <= 0) respawnPlayer();
+        updateObjective(dt);
+        updateSupplyDrop(dt);
+        updateTracers(dt);
+        updateRemoteMeshes(dt);
         updateHud();
         return;
       }
@@ -1691,6 +2008,9 @@
         $('#charge').classList.add('hidden');
       }
 
+      updateObjective(dt);
+      updateSupplyDrop(dt);
+      updateSafeZone(dt);
       if (mouseDown && weapons[currentWeaponKey()].auto) shoot();
       updateTrajectoryPreview();
       updateTracers(dt);
@@ -1840,11 +2160,14 @@
         matchStats.streak = 0;
         throwPrime = null;
         hideTrajectoryDots();
+        dropCarriedObjective();
         const death = {
           type: 'death',
           id: nowId(),
           victim: localId,
           victimName: roomPlayers.get(localId)?.name || localName(),
+          victimX: player.x,
+          victimY: player.y,
           killer: data.id,
           killerName: data.shooterName || 'PLAYER',
           killerTeam: data.shooterTeam,
@@ -1860,8 +2183,21 @@
     function applyDeath(data) {
       if (seenDeaths.has(data.id)) return;
       seenDeaths.add(data.id);
-      if (data.killerTeam === 'red') redScore++;
-      if (data.killerTeam === 'blue') blueScore++;
+      if (gameMode === 'core' && objective?.carrier === data.victim) {
+        applyObjectiveEvent({
+          type: 'objective',
+          eventId: `${data.id}-core-drop`,
+          action: 'drop',
+          carrier: data.victim,
+          carrierName: data.victimName,
+          x: data.victimX ?? objective.x,
+          y: data.victimY ?? objective.y
+        });
+      }
+      if (gameMode !== 'core') {
+        if (data.killerTeam === 'red') redScore++;
+        if (data.killerTeam === 'blue') blueScore++;
+      }
       if (data.killer === localId) {
         matchStats.kills++;
         matchStats.streak++;
@@ -1870,7 +2206,8 @@
       }
       const weaponName = weapons[data.weapon]?.name || '武器';
       const head = data.headshot ? ' 爆头 ' : ' ';
-      addFeed(`${data.killerName}${head}${weaponName} 击倒 ${data.victimName}`, data.killerTeam === 'red' ? '#ff5b55' : '#4db8ff');
+      const color = data.killerTeam === 'red' ? '#ff5b55' : data.killerTeam === 'blue' ? '#4db8ff' : '#ffd36d';
+      addFeed(`${data.killerName}${head}${weaponName} 击倒 ${data.victimName}`, color);
       updateHud();
     }
 
@@ -2383,10 +2720,14 @@
       smokes.splice(0).forEach(item => scene.remove(item.mesh));
       fires.splice(0).forEach(item => scene.remove(item.mesh));
       trajectoryDots.splice(0).forEach(item => scene.remove(item));
+      if (supplyDrop?.mesh) scene.remove(supplyDrop.mesh);
+      supplyDrop = null;
       seenSmokes.clear();
       seenExplosions.clear();
       seenFires.clear();
       seenProjectiles.clear();
+      seenObjectiveEvents.clear();
+      seenSupplyEvents.clear();
     }
 
     function updateRemoteMeshes(dt) {
@@ -2525,6 +2866,54 @@
         ctx.stroke();
         ctx.restore();
       }
+      if (gameMode === 'core' && objective && state === 'play') {
+        const carrying = objective.carrier === selfId();
+        const nearCore = !objective.carrier && Math.hypot(player.x - objective.x, player.y - objective.y) < 1.6;
+        const label = carrying
+          ? '携带数据核心：返回己方发光基地得分'
+          : nearCore
+            ? '数据核心：靠近自动拾取'
+            : objective.carrierName
+              ? `${objective.carrierName} 正在携带数据核心`
+              : '战术夺旗：抢夺中路数据核心';
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '900 15px monospace';
+        ctx.fillStyle = 'rgba(5,8,7,.72)';
+        ctx.fillRect(W / 2 - 230, H * .2 - 18, 460, 34);
+        ctx.strokeStyle = carrying || nearCore ? 'rgba(200,255,98,.7)' : 'rgba(255,211,109,.42)';
+        ctx.strokeRect(W / 2 - 230, H * .2 - 18, 460, 34);
+        ctx.fillStyle = carrying || nearCore ? '#c8ff62' : '#ffd36d';
+        ctx.fillText(label, W / 2, H * .2 + 5);
+        ctx.restore();
+      }
+      if (timeLeft <= 10 && state === 'play') {
+        const radius = safeZoneRadius();
+        const outside = Math.hypot(player.x - 12, player.y - 12) > radius;
+        ctx.save();
+        if (outside) {
+          ctx.fillStyle = 'rgba(255,40,30,.16)';
+          ctx.fillRect(0, 0, W, H);
+        }
+        ctx.textAlign = 'center';
+        ctx.font = '900 18px monospace';
+        ctx.fillStyle = outside ? '#ff5b55' : '#ffd36d';
+        ctx.fillText(outside ? '离开安全区：持续掉血' : `安全区收缩 ${Math.ceil(timeLeft)} 秒`, W / 2, H * .28);
+        ctx.restore();
+      }
+      const supplyStation = state === 'play' && player.dead <= 0 ? nearSupplyDrop() : null;
+      if (supplyStation) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '900 16px monospace';
+        ctx.fillStyle = 'rgba(5,8,7,.78)';
+        ctx.fillRect(W / 2 - 180, H * .68 - 18, 360, 38);
+        ctx.strokeStyle = 'rgba(255,211,109,.65)';
+        ctx.strokeRect(W / 2 - 180, H * .68 - 18, 360, 38);
+        ctx.fillStyle = '#ffd36d';
+        ctx.fillText('按 F 领取空投：弹药 + 医疗 + 投掷物', W / 2, H * .68 + 6);
+        ctx.restore();
+      }
       const ammoStation = state === 'play' && player.dead <= 0 ? nearAmmoStation() : null;
       if (ammoStation) {
         ctx.save();
@@ -2568,9 +2957,33 @@
         radarCtx.fillStyle = color;
         radarCtx.fillRect(x * scale - r, y * scale - r, r * 2, r * 2);
       };
+      if (timeLeft <= 10) {
+        radarCtx.strokeStyle = 'rgba(255,91,85,.8)';
+        radarCtx.lineWidth = 2;
+        radarCtx.beginPath();
+        radarCtx.arc(12 * scale, 12 * scale, safeZoneRadius() * scale, 0, Math.PI * 2);
+        radarCtx.stroke();
+      }
+      if (gameMode === 'core' && objective) {
+        const redBase = coreBase('red');
+        const blueBase = coreBase('blue');
+        dot(redBase.x, redBase.y, 'rgba(255,91,85,.95)', 5);
+        dot(blueBase.x, blueBase.y, 'rgba(77,184,255,.95)', 5);
+        let coreX = objective.x;
+        let coreY = objective.y;
+        if (objective.carrier) {
+          const carrier = objective.carrier === selfId() ? player : remotePlayers.get(objective.carrier);
+          if (carrier) {
+            coreX = carrier.x;
+            coreY = carrier.y;
+          }
+        }
+        dot(coreX, coreY, objective.carrier ? '#ffd36d' : '#c8ff62', objective.carrier ? 5 : 4);
+      }
       levelData?.props?.forEach(([kind, x, y]) => {
         if (kind === 'ammo') dot(x, y, '#c8ff62', 3);
       });
+      if (supplyDrop) dot(supplyDrop.x, supplyDrop.y, '#ffd36d', 5);
       smokes.forEach(s => dot(s.mesh.position.x, s.mesh.position.z, 'rgba(190,205,185,.75)', 4));
       fires.forEach(f => dot(f.mesh.position.x, f.mesh.position.z, 'rgba(255,130,32,.85)', 4));
       projectiles.forEach(p => dot(p.x, p.z, '#ffd36d', 2));
@@ -2685,7 +3098,8 @@
       $('#weaponName').textContent = `${w.name}${reloadTimer > 0 ? ' · 换弹中' : ''}${chargeText}`;
       const action = w.melee ? '左键近战' : w.auto ? '自动' : w.charge ? '蓄力' : '半自动';
       const tools = `4烟 ${smokeCooldown > 0 ? Math.ceil(smokeCooldown) : '✓'} · 5雷 ${fragCooldown > 0 ? Math.ceil(fragCooldown) : '✓'} · 6火 ${molotovCooldown > 0 ? Math.ceil(molotovCooldown) : '✓'}`;
-      $('#weaponInfo').textContent = `${w.cat} · ${action} · ${tools} · 击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
+      const scoreText = gameMode === 'core' ? `夺旗 ${matchStats.captures} · 击杀 ${matchStats.kills}` : `击杀 ${matchStats.kills} / 爆头 ${matchStats.headshots}`;
+      $('#weaponInfo').textContent = `${w.cat} · ${action} · ${tools} · ${scoreText}`;
       $('#ammo').textContent = w.melee ? '刀' : player.ammo[player.weapon];
       $('#reserve').textContent = w.melee ? '近战' : player.reserve[player.weapon];
     }
@@ -2710,7 +3124,10 @@
       const main = weapons[player.loadout[0]].name;
       const second = weapons[player.loadout[1]].name;
       const kit = gameMode === 'knife' ? '战术刀专场' : `${main} / ${second} / 战术刀`;
-      $('#briefText').textContent = `${mapNames[mapKind]} · ${team === 'red' ? '赤队' : '蓝队'} · ${modeNames[gameMode]} · ${kit} · ${roomPlayers.size || 1} 名真人玩家。`;
+      const modeTip = gameMode === 'core'
+        ? '抢中路数据核心，带回己方发光基地得分；死亡会掉落核心。'
+        : '击倒敌人拿分，最后10秒安全区会向中路收缩。';
+      $('#briefText').textContent = `${mapNames[mapKind]} · ${team === 'red' ? '赤队' : '蓝队'} · ${modeNames[gameMode]} · ${kit} · ${roomPlayers.size || 1} 名真人玩家。${modeTip}`;
       state = 'brief';
     }
 
@@ -2739,11 +3156,32 @@
       $('#finalScore').textContent = `${redScore} — ${blueScore}`;
       const winner = redScore === blueScore ? '平局' : redScore > blueScore ? '赤队获胜' : '蓝队获胜';
       const accuracy = matchStats.shots ? Math.round(matchStats.hits / matchStats.shots * 100) : 0;
-      const oldBest = parseInt(localStorage.getItem('deltaArenaBestKills') || '0', 10);
-      const bestKills = Math.max(oldBest, matchStats.kills);
-      localStorage.setItem('deltaArenaBestKills', String(bestKills));
+      let bestKills = matchStats.kills;
+      let boardText = '';
+      try {
+        const oldBest = parseInt(localStorage.getItem('deltaArenaBestKills') || '0', 10);
+        bestKills = Math.max(oldBest, matchStats.kills);
+        localStorage.setItem('deltaArenaBestKills', String(bestKills));
+        const board = JSON.parse(localStorage.getItem('deltaArenaBoard') || '[]').filter(Boolean);
+        const rating = matchStats.kills * 100 + matchStats.captures * 320 + accuracy * 4 + matchStats.bestStreak * 45 - matchStats.deaths * 30;
+        board.push({
+          name: selfName(),
+          mode: modeNames[gameMode],
+          kills: matchStats.kills,
+          deaths: matchStats.deaths,
+          captures: matchStats.captures,
+          accuracy,
+          rating
+        });
+        board.sort((a, b) => b.rating - a.rating);
+        const top = board.slice(0, 5);
+        localStorage.setItem('deltaArenaBoard', JSON.stringify(top));
+        boardText = top.slice(0, 3).map((row, index) => `${index + 1}.${row.name} ${row.kills}/${row.deaths} 核心${row.captures}`).join(' · ');
+      } catch (error) {
+        boardText = '';
+      }
       $('#resultTitle').textContent = winner;
-      $('#resultText').textContent = `${mapNames[mapKind]} · K/D ${matchStats.kills}/${matchStats.deaths} · 射击 ${matchStats.shots} · 命中 ${matchStats.hits} · 爆头 ${matchStats.headshots} · 准确率 ${accuracy}% · 最佳连杀 ${matchStats.bestStreak} · 本机最高击杀 ${bestKills}`;
+      $('#resultText').textContent = `${mapNames[mapKind]} · K/D ${matchStats.kills}/${matchStats.deaths} · 夺旗 ${matchStats.captures} · 射击 ${matchStats.shots} · 命中 ${matchStats.hits} · 爆头 ${matchStats.headshots} · 准确率 ${accuracy}% · 最佳连杀 ${matchStats.bestStreak} · 本机最高击杀 ${bestKills}${boardText ? ` · 本机排行榜 ${boardText}` : ''}`;
     }
 
     function loop(time) {
