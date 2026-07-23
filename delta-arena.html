@@ -184,7 +184,14 @@
     }
     .cross::before { left: 11px; top: 1px; width: 2px; height: 22px; }
     .cross::after { left: 1px; top: 11px; width: 22px; height: 2px; }
-    .cross.ads { width: 8px; height: 8px; border: 2px solid var(--lime); }
+    .cross.ads {
+      width: 5px;
+      height: 5px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 0 2px #050706, 0 0 12px rgba(200,255,98,.85);
+    }
     .cross.ads::before, .cross.ads::after { display: none; }
     .cross.hit { transform: translate(-50%, -50%) scale(1.55); filter: drop-shadow(0 0 10px var(--lime)); }
     .cross.head { filter: drop-shadow(0 0 12px var(--red)); }
@@ -391,7 +398,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.0</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.1</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -594,6 +601,9 @@
     let lookPitch = 0;
     let fireTimer = 0;
     let reloadTimer = 0;
+    let reloadTotal = 0;
+    let reloadInsertCue = false;
+    let reloadWeaponKey = '';
     let shellReloading = false;
     let spawnProtect = 0;
     let jump = 0;
@@ -635,6 +645,7 @@
     const smokes = [];
     const fires = [];
     const projectiles = [];
+    const droppedMags = [];
     const trajectoryDots = [];
     const seenSmokes = new Set();
     const seenExplosions = new Set();
@@ -685,20 +696,87 @@
     addEventListener('resize', resize);
     resize();
 
-    function tone(freq = 180, duration = .06, volume = .04, type = 'square') {
+    function ensureAudio() {
       try {
         audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        if (audio.state === 'suspended') audio.resume?.();
+        return audio;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function tone(freq = 180, duration = .06, volume = .04, type = 'square') {
+      try {
+        const ctxAudio = ensureAudio();
+        if (!ctxAudio) return;
         const osc = audio.createOscillator();
         const gain = audio.createGain();
-        const t = audio.currentTime;
+        const t = audio.currentTime + .005;
         osc.type = type;
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(volume, t);
         gain.gain.exponentialRampToValueAtTime(.001, t + duration);
         osc.connect(gain).connect(audio.destination);
-        osc.start();
+        osc.start(t);
         osc.stop(t + duration);
       } catch (error) {}
+    }
+
+    function noiseBurst(duration = .08, volume = .08, filterFreq = 900, type = 'lowpass') {
+      try {
+        const ctxAudio = ensureAudio();
+        if (!ctxAudio) return;
+        const length = Math.max(1, Math.floor(ctxAudio.sampleRate * duration));
+        const buffer = ctxAudio.createBuffer(1, length, ctxAudio.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+        const source = ctxAudio.createBufferSource();
+        const filter = ctxAudio.createBiquadFilter();
+        const gain = ctxAudio.createGain();
+        const t = ctxAudio.currentTime + .005;
+        source.buffer = buffer;
+        filter.type = type;
+        filter.frequency.value = filterFreq;
+        gain.gain.setValueAtTime(volume, t);
+        gain.gain.exponentialRampToValueAtTime(.001, t + duration);
+        source.connect(filter).connect(gain).connect(ctxAudio.destination);
+        source.start(t);
+      } catch (error) {}
+    }
+
+    function playGunshot(w, charge = 1) {
+      if (!w) return;
+      if (w.charge || w.cat === '弓箭') {
+        tone(260 + charge * 260, .08, .055, 'triangle');
+        noiseBurst(.05, .035, 2200, 'highpass');
+        return;
+      }
+      const loud = w.cat === '狙击枪' ? .21 : w.cat === '霰弹枪' ? .2 : w.cat === '手枪' ? .13 : .155;
+      const body = w.cat === '狙击枪' ? 58 : w.cat === '霰弹枪' ? 52 : w.cat === '冲锋枪' ? 128 : w.cat === '手枪' ? 150 : 92;
+      tone(body, .09, loud, 'sawtooth');
+      tone(body * 1.9, .045, loud * .42, 'square');
+      noiseBurst(w.cat === '狙击枪' || w.cat === '霰弹枪' ? .12 : .075, loud * .9, w.cat === '手枪' ? 1800 : 1250, 'lowpass');
+      setTimeout(() => tone(body * .62, .075, loud * .28, 'sine'), 42);
+    }
+
+    function playReloadSound(stage, w = currentWeapon()) {
+      if (stage === 'start') {
+        tone(250, .045, .08, 'square');
+        setTimeout(() => tone(185, .04, .06, 'square'), 75);
+      } else if (stage === 'drop') {
+        tone(155, .055, .055, 'triangle');
+        noiseBurst(.045, .035, 900, 'highpass');
+      } else if (stage === 'insert') {
+        tone(w?.cat === '狙击枪' ? 310 : 360, .055, .085, 'square');
+        setTimeout(() => tone(460, .045, .06, 'square'), 70);
+      } else if (stage === 'finish') {
+        tone(520, .05, .07, 'square');
+      } else if (stage === 'shell') {
+        tone(420, .04, .06, 'triangle');
+      } else if (stage === 'bow') {
+        tone(330, .06, .045, 'triangle');
+      }
     }
 
     function pixelTexture(base, dark, light, grid = 64) {
@@ -1108,7 +1186,10 @@
         add(new THREE.BoxGeometry(.2, .11, .52), accent, .02, .11, -.72);
         add(new THREE.BoxGeometry(.12, .12, barrelLen), dark, .02, .06, -1.23);
         add(new THREE.BoxGeometry(.17, .12, .16), dark, .02, .05, -1.61);
-        add(new THREE.BoxGeometry(.16, .38, .16), dark, .03, -.2, -.56);
+        const magazine = add(new THREE.BoxGeometry(.16, .38, .16), dark, .03, -.2, -.56);
+        gun.userData.magazine = magazine;
+        gun.userData.magHome = magazine.position.clone();
+        gun.userData.magRot = magazine.rotation.clone();
         add(new THREE.BoxGeometry(.24, .13, .34), accent, .02, -.18, -.9);
         add(new THREE.BoxGeometry(.33, .17, .32), dark, .02, .02, -.28);
         add(new THREE.BoxGeometry(.58, .13, .2), dark, .02, -.02, .02);
@@ -1486,6 +1567,9 @@
       spawnProtect = 3;
       fireTimer = 0;
       reloadTimer = 0;
+      reloadTotal = 0;
+      reloadInsertCue = false;
+      reloadWeaponKey = '';
       shellReloading = false;
       jump = 0;
       jumpV = 0;
@@ -1861,10 +1945,44 @@
         player.reserve[index] = w.reserve;
       });
       reloadTimer = 0;
+      reloadTotal = 0;
+      reloadInsertCue = false;
+      reloadWeaponKey = '';
       shellReloading = false;
       chargingBow = false;
       bowCharge = 0;
       return changed;
+    }
+
+    function spawnDroppedMagazine(w) {
+      if (!player || !w || w.shellReload || w.charge || w.melee) return;
+      const pistol = w.cat === '手枪';
+      const mag = withEdges(
+        new THREE.Mesh(
+          new THREE.BoxGeometry(pistol ? .12 : .16, pistol ? .25 : .38, pistol ? .09 : .13),
+          new THREE.MeshLambertMaterial({ color: 0x121a15 })
+        ),
+        0x000000,
+        .82
+      );
+      const side = player.a + Math.PI / 2;
+      mag.position.set(
+        player.x + Math.cos(player.a) * .42 + Math.cos(side) * .22,
+        eyeHeight() + jump - .55,
+        player.y + Math.sin(player.a) * .42 + Math.sin(side) * .22
+      );
+      mag.rotation.set(Math.random() * .8, player.a + Math.PI / 2, Math.random() * .8);
+      scene.add(mag);
+      droppedMags.push({
+        mesh: mag,
+        vx: Math.cos(player.a) * .26 + Math.cos(side) * .75,
+        vy: .72,
+        vz: Math.sin(player.a) * .26 + Math.sin(side) * .75,
+        sx: 8 + Math.random() * 5,
+        sy: 5 + Math.random() * 5,
+        sz: 7 + Math.random() * 5,
+        life: 5.2
+      });
     }
 
     function nearAmmoStation(range = 1.45) {
@@ -1934,6 +2052,12 @@
       if (muzzle) muzzle.intensity = fireTimer > 0 && fireTimer < .08 ? 4.2 : 0;
 
       if (reloadTimer > 0) {
+        const reloadWeapon = weapons[reloadWeaponKey] || currentWeapon();
+        const progress = reloadTotal > 0 ? 1 - reloadTimer / reloadTotal : 1;
+        if (!reloadInsertCue && progress > (reloadWeapon.shellReload ? .46 : reloadWeapon.charge ? .52 : .58)) {
+          reloadInsertCue = true;
+          playReloadSound(reloadWeapon.shellReload ? 'shell' : reloadWeapon.charge ? 'bow' : 'insert', reloadWeapon);
+        }
         reloadTimer -= dt;
         if (reloadTimer <= 0) finishReload();
       }
@@ -2134,8 +2258,7 @@
       const lift = recoil * (w.cat === '狙击枪' ? .95 : w.cat === '霰弹枪' ? .82 : .55);
       lookPitch = clamp(lookPitch + lift, -1.18, .82);
       recoilKick = Math.min(.18, recoilKick + lift);
-      if (w.quiet) tone(210 + charge * 180, .05, .025, 'triangle');
-      else tone(w.cat === '狙击枪' ? 72 : w.cat === '霰弹枪' ? 58 : w.cat === '手枪' ? 145 : 108, .07, w.cat === '狙击枪' || w.cat === '霰弹枪' ? .09 : .055, 'sawtooth');
+      playGunshot(w, charge);
       if (w.charge) setTimeout(reload, 160);
       updateHud();
     }
@@ -2659,6 +2782,30 @@
           particles.splice(i, 1);
         }
       }
+      for (let i = droppedMags.length - 1; i >= 0; i--) {
+        const m = droppedMags[i];
+        m.life -= dt;
+        m.mesh.position.x += m.vx * dt;
+        m.mesh.position.y += m.vy * dt;
+        m.mesh.position.z += m.vz * dt;
+        m.vy -= 4.6 * dt;
+        m.mesh.rotation.x += m.sx * dt;
+        m.mesh.rotation.y += m.sy * dt;
+        m.mesh.rotation.z += m.sz * dt;
+        if (m.mesh.position.y <= .055) {
+          m.mesh.position.y = .055;
+          m.vx *= .64;
+          m.vz *= .64;
+          m.vy = Math.abs(m.vy) > .75 ? Math.abs(m.vy) * .18 : 0;
+          m.sx *= .55;
+          m.sy *= .55;
+          m.sz *= .55;
+        }
+        if (m.life <= 0) {
+          scene.remove(m.mesh);
+          droppedMags.splice(i, 1);
+        }
+      }
       for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
         p.age += dt;
@@ -2717,6 +2864,7 @@
       tracers.splice(0).forEach(item => scene.remove(item.mesh));
       particles.splice(0).forEach(item => scene.remove(item.mesh));
       projectiles.splice(0).forEach(item => scene.remove(item.mesh));
+      droppedMags.splice(0).forEach(item => scene.remove(item.mesh));
       smokes.splice(0).forEach(item => scene.remove(item.mesh));
       fires.splice(0).forEach(item => scene.remove(item.mesh));
       trajectoryDots.splice(0).forEach(item => scene.remove(item));
@@ -2786,13 +2934,38 @@
       camera.rotation.z = -lean * .09;
       camera.fov = scoped ? 18 : ads ? 46 : 72;
       camera.updateProjectionMatrix();
-      gun.visible = !scoped;
+      const opticOnly = ads && !scoped && !w?.melee;
+      gun.visible = !scoped && !opticOnly;
+      gun.scale.setScalar(opticOnly ? .72 : 1);
       const slash = knifeSlash > 0 ? Math.sin((1 - knifeSlash / .22) * Math.PI) : 0;
-      gun.position.x = ads ? 0 : (w?.melee ? .45 : .34);
-      gun.position.y = ads ? -.18 : (w?.melee ? -.34 : -.3) + Math.abs(Math.cos(bob)) * .012 * moveBlend - slash * .08;
-      gun.position.z = ads ? -.5 : (w?.melee ? -.48 : -.55) - slash * .16;
-      gun.rotation.x = -lookPitch * .18 - slash * .48;
+      const reloadProgress = reloadTotal > 0 && reloadTimer > 0 ? clamp(1 - reloadTimer / reloadTotal, 0, 1) : 0;
+      const reloadDip = reloadTimer > 0 ? Math.sin(reloadProgress * Math.PI) * .12 : 0;
+      gun.position.x = w?.melee ? .45 : .34;
+      gun.position.y = (w?.melee ? -.34 : -.3) - reloadDip + Math.abs(Math.cos(bob)) * .012 * moveBlend - slash * .08;
+      gun.position.z = (w?.melee ? -.48 : -.55) - slash * .16;
+      gun.rotation.x = -lookPitch * .12 - slash * .48 + reloadDip * .34;
       gun.rotation.z = w?.melee ? -.25 - slash * .75 : 0;
+      const mag = gun.userData.magazine;
+      const magHome = gun.userData.magHome;
+      const magRot = gun.userData.magRot;
+      if (mag && magHome && magRot) {
+        const magReloading = reloadTimer > 0 && reloadWeaponKey === currentWeaponKey() && !w.shellReload && !w.charge;
+        if (magReloading) {
+          const p = reloadProgress;
+          if (p < .36) {
+            mag.visible = false;
+          } else {
+            const insert = clamp((p - .36) / .42, 0, 1);
+            mag.visible = true;
+            mag.position.set(magHome.x, magHome.y - .48 + insert * .48, magHome.z + .08 * (1 - insert));
+            mag.rotation.set(magRot.x + (1 - insert) * .28, magRot.y, magRot.z);
+          }
+        } else {
+          mag.visible = true;
+          mag.position.copy(magHome);
+          mag.rotation.copy(magRot);
+        }
+      }
       renderer.render(scene, camera);
     }
 
@@ -2850,6 +3023,43 @@
         ctx.font = '900 13px monospace';
         ctx.textAlign = 'left';
         ctx.fillText('8X SCOPE', cx - radius + 34, cy + radius - 34);
+        ctx.restore();
+      }
+      if (ads && !isSniperScoped() && state === 'play' && currentWeapon()?.cat !== '近战') {
+        const cx = W / 2;
+        const cy = H / 2;
+        const ring = currentWeapon()?.cat === '弓箭' ? 42 : 36;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,.14)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = 'rgba(2,5,4,.92)';
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ring + 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(200,255,98,.92)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(200,255,98,.48)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - ring - 22, cy);
+        ctx.lineTo(cx - ring + 8, cy);
+        ctx.moveTo(cx + ring - 8, cy);
+        ctx.lineTo(cx + ring + 22, cy);
+        ctx.moveTo(cx, cy - ring - 22);
+        ctx.lineTo(cx, cy - ring + 8);
+        ctx.moveTo(cx, cy + ring - 8);
+        ctx.lineTo(cx, cy + ring + 22);
+        ctx.stroke();
+        ctx.fillStyle = currentWeapon()?.cat === '弓箭' ? '#ffd36d' : '#c8ff62';
+        ctx.fillRect(cx - 2, cy - 2, 4, 4);
+        ctx.font = '900 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(200,255,98,.72)';
+        ctx.fillText(currentWeapon()?.cat === '弓箭' ? 'PIN SIGHT' : 'HOLO SIGHT', cx, cy + ring + 25);
         ctx.restore();
       }
       if (knifeSlash > 0) {
@@ -3031,11 +3241,24 @@
     function reload() {
       if (!player || reloadTimer > 0) return;
       const index = player.weapon;
-      const w = weapons[player.loadout[index]];
+      const key = player.loadout[index];
+      const w = weapons[key];
       if (w.melee) return;
       if (player.ammo[index] >= w.mag || player.reserve[index] <= 0) return;
       reloadTimer = w.reload;
+      reloadTotal = w.reload;
+      reloadInsertCue = false;
+      reloadWeaponKey = key;
       shellReloading = !!w.shellReload;
+      if (w.shellReload) {
+        playReloadSound('shell', w);
+      } else if (w.charge) {
+        playReloadSound('bow', w);
+      } else {
+        playReloadSound('start', w);
+        setTimeout(() => playReloadSound('drop', w), 130);
+        spawnDroppedMagazine(w);
+      }
       addFeed(w.shellReload ? '逐发装填中' : '正在换弹', '#c8ff62');
     }
 
@@ -3049,6 +3272,9 @@
         }
         if (player.ammo[index] < w.mag && player.reserve[index] > 0 && mouseDown === false) {
           reloadTimer = w.reload;
+          reloadTotal = w.reload;
+          reloadInsertCue = false;
+          reloadWeaponKey = player.loadout[index];
           return;
         }
       } else {
@@ -3058,6 +3284,10 @@
         player.reserve[index] -= take;
       }
       shellReloading = false;
+      reloadTotal = 0;
+      reloadInsertCue = false;
+      reloadWeaponKey = '';
+      playReloadSound('finish', w);
       updateHud();
     }
 
@@ -3133,6 +3363,7 @@
 
     function deploy() {
       if (!player) resetMatch();
+      ensureAudio();
       state = 'play';
       $('#brief').classList.add('hidden');
       $('#hud').classList.remove('hidden');
@@ -3304,6 +3535,9 @@
         if (!player.loadout[index]) return;
         player.weapon = index;
         reloadTimer = 0;
+        reloadTotal = 0;
+        reloadInsertCue = false;
+        reloadWeaponKey = '';
         shellReloading = false;
         chargingBow = false;
         bowCharge = 0;
