@@ -391,7 +391,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.7</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.8</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -483,7 +483,7 @@
         <div class="rule"><b>Q / E</b>左右探头 Peek</div>
         <div class="rule"><b>C / 4 / 5 / 6</b>滑铲；按住预瞄，松开投掷</div>
         <div class="rule"><b>Ctrl / Z / Space</b>蹲下、趴下、跳跃</div>
-        <div class="rule"><b>R / 1 / 2 / 3</b>换弹、主副武器与近战刀</div>
+        <div class="rule"><b>F / R / 1 / 2 / 3</b>补弹、换弹、主副武器与近战刀</div>
       </div>
     </div>
   </section>
@@ -610,6 +610,7 @@
     let smokeCooldown = 0;
     let fragCooldown = 0;
     let molotovCooldown = 0;
+    let ammoCooldown = 0;
     let throwPrime = null;
     let footTimer = 0;
     let emptyClickTimer = 0;
@@ -746,6 +747,7 @@
         blue: new THREE.MeshLambertMaterial({ color: 0x2b72a6 }),
         black: new THREE.MeshLambertMaterial({ color: 0x070907 }),
         lime: new THREE.MeshLambertMaterial({ color: 0xc8ff62 }),
+        ammo: new THREE.MeshLambertMaterial({ color: 0x9fbd50 }),
         glass: new THREE.MeshLambertMaterial({ color: 0x161d1a })
       };
     }
@@ -805,7 +807,7 @@
         wall(3, 11, 3, 2, 3);
         wall(18, 11, 3, 2, 4);
         wall(11, 10, 2, 2, 3);
-        props.push(['tower', 12, 6.15], ['pipe', 18.5, 8.5], ['pipe', 5.5, 15.5], ['crate', 7.5, 12], ['crate', 16.5, 12]);
+        props.push(['tower', 12, 6.15], ['pipe', 18.5, 8.5], ['pipe', 5.5, 15.5], ['crate', 7.5, 12], ['crate', 16.5, 12], ['ammo', 3.2, 10.2], ['ammo', 20.8, 13.8], ['ammo', 12, 17.6]);
         signs.push(['中仓', 12, 7.03, Math.PI], ['A区', 5.3, 4.85, Math.PI / 2], ['B区', 18.8, 19.15, -Math.PI / 2], ['赤队', 2.2, 12, Math.PI / 2, 'red'], ['蓝队', 21.8, 12, -Math.PI / 2, 'blue']);
         lights.push(['red', 2.8, 12], ['blue', 21.2, 12], ['white', 12, 11.5]);
       } else if (kind === 1) {
@@ -817,7 +819,7 @@
         wall(10, 4, 4, 4, 3);
         wall(4, 15, 3, 4, 4);
         wall(18, 15, 3, 4, 4);
-        props.push(['crate', 12, 12], ['crate', 8, 17], ['pipe', 16, 6]);
+        props.push(['crate', 12, 12], ['crate', 8, 17], ['pipe', 16, 6], ['ammo', 4.2, 12.5], ['ammo', 19.8, 11.5], ['ammo', 12, 16.5]);
         signs.push(['A厂', 6, 8, Math.PI], ['B厂', 17, 14, 0], ['中线', 12, 3.2, Math.PI]);
         lights.push(['red', 3, 12], ['blue', 21, 12], ['white', 12, 12]);
       } else if (kind === 2) {
@@ -827,7 +829,7 @@
         wall(3, 18, 5, 2, 1);
         wall(16, 18, 5, 2, 1);
         for (let i = 4; i < 21; i += 4) set(i, 11, 4);
-        props.push(['tower', 6.5, 6.5], ['tower', 17.5, 6.5], ['crate', 12, 19]);
+        props.push(['tower', 6.5, 6.5], ['tower', 17.5, 6.5], ['crate', 12, 19], ['ammo', 3.4, 20.4], ['ammo', 20.6, 20.4], ['ammo', 12, 12.6]);
         signs.push(['远距', 12, 14, Math.PI], ['狙击台', 6, 5, Math.PI / 2], ['蓝台', 18, 5, -Math.PI / 2]);
         lights.push(['red', 2.8, 20], ['blue', 21.2, 20], ['white', 12, 10]);
       } else {
@@ -837,7 +839,7 @@
         wall(13, 12, 3, 8, 1);
         wall(19, 10, 2, 10, 4);
         wall(9, 9, 3, 3, 3);
-        props.push(['crate', 11, 14], ['pipe', 7, 11], ['crate', 18, 7]);
+        props.push(['crate', 11, 14], ['pipe', 7, 11], ['crate', 18, 7], ['ammo', 3.2, 10.5], ['ammo', 20.8, 13.5], ['ammo', 8.4, 20.8]);
         signs.push(['街区A', 5, 3, Math.PI], ['街区B', 16, 12, -Math.PI / 2], ['中路', 11, 9, Math.PI]);
         lights.push(['red', 2.8, 12], ['blue', 21.2, 12], ['white', 12, 8]);
       }
@@ -912,6 +914,15 @@
         const [kind, x, z] = prop;
         if (kind === 'crate') {
           block(new THREE.BoxGeometry(.9, .9, .9), materials.wood, x, .45, z);
+        }
+        if (kind === 'ammo') {
+          block(new THREE.BoxGeometry(.9, .32, .66), materials.metal, x, .16, z, levelGroup, 0x11160f);
+          block(new THREE.BoxGeometry(.78, .16, .58), materials.ammo, x, .42, z, levelGroup, 0x11160f);
+          block(new THREE.BoxGeometry(.5, .07, .08), materials.lime, x, .54, z - .08, levelGroup, 0x0a0d08);
+          block(new THREE.BoxGeometry(.09, .07, .34), materials.lime, x, .54, z - .08, levelGroup, 0x0a0d08);
+          const lamp = new THREE.PointLight(0xc8ff62, .75, 3.2);
+          lamp.position.set(x, .86, z);
+          levelGroup.add(lamp);
         }
         if (kind === 'pipe') {
           const pipe = withEdges(new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, 1.8, 8), materials.metal), 0x0a0d0b);
@@ -1400,6 +1411,7 @@
       smokeCooldown = 0;
       fragCooldown = 0;
       molotovCooldown = 0;
+      ammoCooldown = 0;
       throwPrime = null;
       footTimer = 0;
       emptyClickTimer = 0;
@@ -1509,6 +1521,7 @@
       return levelData?.props?.some(([kind, px, py]) => {
         if (kind === 'pipe') return circleHitsRect(x, y, radius, px, py, .98, .48);
         if (kind === 'tower') return circleHitsRect(x, y, radius, px, py, .72, .72);
+        if (kind === 'ammo') return circleHitsRect(x, y, radius, px, py, .52, .42);
         return circleHitsRect(x, y, radius, px, py, .5, .5);
       }) || false;
     }
@@ -1543,6 +1556,43 @@
       return cast(a.x, a.y, angle, dist + .1).dist > dist - .18;
     }
 
+    function nearAmmoStation(range = 1.45) {
+      if (!player || !levelData?.props) return null;
+      return levelData.props
+        .filter(([kind]) => kind === 'ammo')
+        .map(([, x, y]) => ({ x, y, d: Math.hypot(player.x - x, player.y - y) }))
+        .filter(item => item.d <= range)
+        .sort((a, b) => a.d - b.d)[0] || null;
+    }
+
+    function refillAmmo() {
+      if (!player || state !== 'play' || player.dead > 0) return;
+      if (!nearAmmoStation()) {
+        addFeed('靠近绿色弹药箱后按 F 补给', '#aab4a5');
+        return;
+      }
+      if (ammoCooldown > 0) {
+        addFeed(`补给冷却 ${Math.ceil(ammoCooldown)} 秒`, '#aab4a5');
+        return;
+      }
+      let changed = false;
+      player.loadout.forEach((key, index) => {
+        const w = weapons[key];
+        if (!w || w.melee) return;
+        if (player.ammo[index] < w.mag || player.reserve[index] < w.reserve) changed = true;
+        player.ammo[index] = w.mag;
+        player.reserve[index] = w.reserve;
+      });
+      reloadTimer = 0;
+      shellReloading = false;
+      chargingBow = false;
+      bowCharge = 0;
+      ammoCooldown = 8;
+      addFeed(changed ? '弹药补给完成' : '弹药已经满了', '#c8ff62');
+      tone(520, .08, .045, 'square');
+      updateHud();
+    }
+
     function update(dt) {
       if (state !== 'play' || !player) return;
       spawnProtect = Math.max(0, spawnProtect - dt);
@@ -1557,6 +1607,7 @@
       smokeCooldown = Math.max(0, smokeCooldown - dt);
       fragCooldown = Math.max(0, fragCooldown - dt);
       molotovCooldown = Math.max(0, molotovCooldown - dt);
+      ammoCooldown = Math.max(0, ammoCooldown - dt);
       emptyClickTimer = Math.max(0, emptyClickTimer - dt);
       if (recoilKick > 0) {
         const recover = Math.min(recoilKick, dt * .46);
@@ -2474,6 +2525,19 @@
         ctx.stroke();
         ctx.restore();
       }
+      const ammoStation = state === 'play' && player.dead <= 0 ? nearAmmoStation() : null;
+      if (ammoStation) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = '900 16px monospace';
+        ctx.fillStyle = 'rgba(5,8,7,.78)';
+        ctx.fillRect(W / 2 - 170, H * .62 - 18, 340, 38);
+        ctx.strokeStyle = 'rgba(200,255,98,.55)';
+        ctx.strokeRect(W / 2 - 170, H * .62 - 18, 340, 38);
+        ctx.fillStyle = ammoCooldown > 0 ? '#ffd36d' : '#c8ff62';
+        ctx.fillText(ammoCooldown > 0 ? `弹药箱冷却 ${Math.ceil(ammoCooldown)} 秒` : '按 F 补充弹药', W / 2, H * .62 + 6);
+        ctx.restore();
+      }
       if (player.dead > 0) {
         ctx.fillStyle = 'rgba(120,0,0,.38)';
         ctx.fillRect(0, 0, W, H);
@@ -2504,6 +2568,9 @@
         radarCtx.fillStyle = color;
         radarCtx.fillRect(x * scale - r, y * scale - r, r * 2, r * 2);
       };
+      levelData?.props?.forEach(([kind, x, y]) => {
+        if (kind === 'ammo') dot(x, y, '#c8ff62', 3);
+      });
       smokes.forEach(s => dot(s.mesh.position.x, s.mesh.position.z, 'rgba(190,205,185,.75)', 4));
       fires.forEach(f => dot(f.mesh.position.x, f.mesh.position.z, 'rgba(255,130,32,.85)', 4));
       projectiles.forEach(p => dot(p.x, p.z, '#ffd36d', 2));
@@ -2792,6 +2859,7 @@
         const kind = event.key === '4' ? 'smoke' : event.key === '5' ? 'frag' : 'molotov';
         startThrowPrime(kind);
       }
+      if (state === 'play' && !event.repeat && event.key.toLowerCase() === 'f') refillAmmo();
       if (event.key.toLowerCase() === 'r') reload();
       if (event.key === '1' || event.key === '2' || event.key === '3') {
         const index = parseInt(event.key, 10) - 1;
