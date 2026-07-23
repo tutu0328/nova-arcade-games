@@ -375,7 +375,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.2</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.3</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -565,6 +565,7 @@
     let keys = {};
     let mouseDown = false;
     let ads = false;
+    let lookPitch = 0;
     let fireTimer = 0;
     let reloadTimer = 0;
     let shellReloading = false;
@@ -1301,6 +1302,7 @@
       vx = 0;
       vy = 0;
       slideTimer = 0;
+      lookPitch = 0;
       bowCharge = 0;
       chargingBow = false;
       seenDeaths.clear();
@@ -1311,6 +1313,19 @@
 
     function currentWeaponKey() {
       return player?.loadout?.[player.weapon] || 'm4';
+    }
+
+    function currentWeapon() {
+      return weapons[currentWeaponKey()];
+    }
+
+    function eyeHeight() {
+      if (!player) return 1.62;
+      return player.stance === 2 ? .68 : player.stance === 1 ? 1.12 : 1.62;
+    }
+
+    function isSniperScoped() {
+      return state === 'play' && ads && currentWeapon()?.cat === '狙击枪';
     }
 
     function cast(x, y, angle, max = 60) {
@@ -1345,6 +1360,33 @@
         if (Math.hypot(mx - x, my - y) > max) break;
       }
       return { dist: Math.abs(dist), side, mx, my, type };
+    }
+
+    function castShot(angle, pitch, max = 60) {
+      const horizontal = Math.max(.08, Math.cos(pitch));
+      const vertical = Math.sin(pitch);
+      const horizontalLimit = max * horizontal;
+      const wallRay = cast(player.x, player.y, angle, horizontalLimit);
+      const wallFullDist = wallRay.type && wallRay.dist <= horizontalLimit ? wallRay.dist / horizontal : Infinity;
+      const wallHitHeight = eyeHeight() + jump - .04 + vertical * wallFullDist;
+      const wallHeights = { 1: 2.8, 2: 1.55, 3: 1.25, 4: 2.25 };
+      const hasWall = wallRay.type && wallHitHeight >= .06 && wallHitHeight <= (wallHeights[wallRay.type] || 2.8);
+      let best = hasWall
+        ? { ...wallRay, kind: 'wall', dist: wallFullDist, horizontalDist: wallRay.dist }
+        : { ...wallRay, kind: vertical > .02 ? 'sky' : 'range', dist: max, horizontalDist: horizontalLimit, type: 0 };
+
+      if (vertical < -.015) {
+        const groundFullDist = (eyeHeight() + jump - .04) / -vertical;
+        const groundHorizontal = groundFullDist * horizontal;
+        if (groundFullDist > .35 && groundFullDist <= max && groundFullDist < best.dist && !blockedAt(player.x + Math.cos(angle) * groundHorizontal, player.y + Math.sin(angle) * groundHorizontal, .08)) {
+          best = { kind: 'ground', dist: groundFullDist, horizontalDist: groundHorizontal, side: 2, mx: Math.floor(player.x + Math.cos(angle) * groundHorizontal), my: Math.floor(player.y + Math.sin(angle) * groundHorizontal), type: 0 };
+        }
+      }
+
+      best.pitch = pitch;
+      best.horizontal = horizontal;
+      best.vertical = vertical;
+      return best;
     }
 
     function circleHitsRect(x, y, radius, cx, cy, halfX, halfY) {
@@ -1486,7 +1528,7 @@
     function weaponSpread(w, charge = 1) {
       const moving = Math.min(1, Math.hypot(vx, vy) / 3.5);
       let value = w.spread + moving * w.move;
-      if (ads) value *= .42;
+      if (ads) value *= w.cat === '狙击枪' ? .16 : .42;
       if (w.needsAds && !ads) value += .11;
       if (player.stance === 1) value *= .78;
       if (player.stance === 2) value *= .55;
@@ -1513,20 +1555,25 @@
       for (let pellet = 0; pellet < pellets; pellet++) {
         const spread = weaponSpread(w, charge);
         const angle = player.a + (Math.random() - .5) * spread;
-        const wallRay = cast(player.x, player.y, angle, w.falloff || 60);
+        const shotPitch = clamp(lookPitch + (Math.random() - .5) * spread * .55, -1.25, .9);
+        const wallRay = castShot(angle, shotPitch, w.falloff || 60);
         addShotFX(angle, wallRay, key);
         const hit = [...remotePlayers.values()]
           .filter(target => target.team !== team && target.hp > 0)
           .map(target => {
             const d = Math.hypot(target.x - player.x, target.y - player.y);
             const da = Math.abs(norm(Math.atan2(target.y - player.y, target.x - player.x) - angle));
-            return { target, d, da };
+            const targetY = target.stance === 2 ? .74 : target.stance === 1 ? 1.12 : 1.38;
+            const targetPitch = Math.atan2(targetY - (eyeHeight() + jump - .04), d);
+            const dp = Math.abs(targetPitch - shotPitch);
+            const error = Math.hypot(da, dp);
+            return { target, d, da, dp, error };
           })
-          .filter(item => item.d < wallRay.dist && item.da < .05 / Math.max(.8, item.d) + .012 && lineOfSight(player, item.target))
-          .sort((a, b) => a.da - b.da)[0];
+          .filter(item => item.d < wallRay.horizontalDist && item.error < .062 / Math.max(.8, item.d) + .015 && lineOfSight(player, item.target))
+          .sort((a, b) => a.error - b.error)[0];
 
         if (hit) {
-          const tight = hit.da < .014 / Math.max(1, hit.d) + .004;
+          const tight = hit.error < .018 / Math.max(1, hit.d) + .006;
           const headshot = tight && (ads || w.cat === '狙击枪' || w.cat === '弓箭' || w.cat === '手枪') && Math.random() < (w.cat === '狙击枪' || w.cat === '弓箭' ? .7 : .34);
           const falloff = w.pellets ? clamp(1 - hit.d / 13, .25, 1) : clamp(1 - hit.d / (w.falloff * 1.8), .64, 1);
           const damage = w.damage * falloff * (headshot ? 1.75 : 1) * (w.charge ? clamp(.35 + charge * .85, .35, 1.2) : 1);
@@ -1608,9 +1655,8 @@
 
     function addShotFX(angle, ray, key) {
       matchStats.shots++;
-      const eye = player.stance === 2 ? .68 : player.stance === 1 ? 1.12 : 1.62;
-      const start = new THREE.Vector3(player.x, eye + jump - .04, player.y);
-      const dir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+      const start = new THREE.Vector3(player.x, eyeHeight() + jump - .04, player.y);
+      const dir = new THREE.Vector3(Math.cos(angle) * ray.horizontal, ray.vertical, Math.sin(angle) * ray.horizontal).normalize();
       const end = start.clone().addScaledVector(dir, ray.dist);
       const tracerMaterial = new THREE.LineBasicMaterial({
         color: weapons[key].quiet ? 0xb7ff7b : 0xffe29b,
@@ -1621,14 +1667,21 @@
       scene.add(line);
       tracers.push({ mesh: line, life: .18 });
 
+      if (ray.kind === 'sky' || ray.kind === 'range') return;
+
       const holeSize = ray.type === 4 ? .075 : ray.type === 3 ? .12 : .105;
       const hole = new THREE.Mesh(
         new THREE.CircleGeometry(holeSize + Math.random() * .025, 8),
         new THREE.MeshBasicMaterial({ color: ray.type === 3 ? 0x1b0d05 : 0x030302, transparent: true, opacity: .98, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8 })
       );
       hole.position.copy(end).addScaledVector(dir, -.01);
-      hole.position.y += Math.random() * .045 - .022;
-      if (ray.side === 0) hole.rotation.y = Math.PI / 2;
+      if (ray.kind === 'ground') {
+        hole.position.y = .012;
+        hole.rotation.x = -Math.PI / 2;
+      } else {
+        hole.position.y += Math.random() * .045 - .022;
+        if (ray.side === 0) hole.rotation.y = Math.PI / 2;
+      }
       hole.rotation.z = Math.random() * Math.PI;
       scene.add(hole);
       bulletHoles.push(hole);
@@ -1707,17 +1760,20 @@
         renderer.render(scene, camera);
         return;
       }
-      const eye = player.stance === 2 ? .68 : player.stance === 1 ? 1.12 : 1.62;
+      const scoped = isSniperScoped();
+      const eye = eyeHeight();
       const cameraBob = Math.sin(bob) * .022 * moveBlend;
       camera.position.set(player.x, eye + jump + cameraBob, player.y);
       camera.rotation.order = 'YXZ';
       camera.rotation.y = -player.a - Math.PI / 2;
-      camera.rotation.x = 0;
-      camera.fov = ads ? 48 : 72;
+      camera.rotation.x = lookPitch;
+      camera.fov = scoped ? 18 : ads ? 46 : 72;
       camera.updateProjectionMatrix();
+      gun.visible = !scoped;
       gun.position.x = ads ? 0 : .34;
       gun.position.y = ads ? -.18 : -.3 + Math.abs(Math.cos(bob)) * .012 * moveBlend;
       gun.position.z = ads ? -.5 : -.55;
+      gun.rotation.x = -lookPitch * .18;
       renderer.render(scene, camera);
     }
 
@@ -1731,6 +1787,51 @@
         ctx.textAlign = 'center';
         ctx.font = '900 18px monospace';
         ctx.fillText(`出生保护 ${Math.ceil(spawnProtect)}`, W / 2, H * .58);
+      }
+      if (isSniperScoped()) {
+        const cx = W / 2;
+        const cy = H / 2;
+        const radius = Math.min(W, H) * .43;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,.82)';
+        ctx.beginPath();
+        ctx.rect(0, 0, W, H);
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2, true);
+        ctx.fill('evenodd');
+        ctx.strokeStyle = '#050706';
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(200,255,98,.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+        ctx.moveTo(cx - radius + 34, cy);
+        ctx.lineTo(cx + radius - 34, cy);
+        ctx.moveTo(cx, cy - radius + 34);
+        ctx.lineTo(cx, cy + radius - 34);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(200,255,98,.55)';
+        for (let i = 1; i <= 5; i++) {
+          const gap = i * 34;
+          ctx.beginPath();
+          ctx.moveTo(cx - 8, cy + gap);
+          ctx.lineTo(cx + 8, cy + gap);
+          ctx.moveTo(cx - 8, cy - gap);
+          ctx.lineTo(cx + 8, cy - gap);
+          ctx.moveTo(cx + gap, cy - 8);
+          ctx.lineTo(cx + gap, cy + 8);
+          ctx.moveTo(cx - gap, cy - 8);
+          ctx.lineTo(cx - gap, cy + 8);
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#c8ff62';
+        ctx.font = '900 13px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('8X SCOPE', cx - radius + 34, cy + radius - 34);
+        ctx.restore();
       }
       if (player.dead > 0) {
         ctx.fillStyle = 'rgba(120,0,0,.38)';
@@ -2006,7 +2107,10 @@
 
     addEventListener('mousemove', event => {
       if (state === 'play' && document.pointerLockElement === canvas) {
-        player.a += event.movementX * .0022 * (ads ? .55 : 1);
+        const scoped = isSniperScoped();
+        const sensitivity = scoped ? .22 : ads ? .55 : 1;
+        player.a += event.movementX * .0022 * sensitivity;
+        lookPitch = clamp(lookPitch - event.movementY * .0022 * sensitivity, -1.18, .82);
       }
     });
 
