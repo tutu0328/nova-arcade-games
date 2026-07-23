@@ -488,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.6</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.7</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -736,6 +736,7 @@
     let climbEnd = null;
     let ledgeDropGrace = 0;
     let ledgeDropHeight = 0;
+    let activePlatform = null;
     let bob = 0;
     let moveBlend = 0;
     let vx = 0;
@@ -1728,6 +1729,7 @@
       climbEnd = null;
       ledgeDropGrace = 0;
       ledgeDropHeight = 0;
+      activePlatform = null;
       bob = 0;
       moveBlend = 0;
       vx = 0;
@@ -1846,7 +1848,31 @@
       return (x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2;
     }
 
-    function blockedAt(x, y, radius = BODY_RADIUS, elevation = 0) {
+    function samePlatformProp(platform, kind, px, py) {
+      return platform?.platform === 'prop'
+        && platform.kind === kind
+        && Math.abs(platform.x - px) < .02
+        && Math.abs(platform.y - py) < .02;
+    }
+
+    function platformOverlapAt(x, y, radius = BODY_RADIUS, platform = activePlatform) {
+      if (!platform) return false;
+      if (platform.platform === 'cell') {
+        return circleHitsRect(x, y, radius, platform.cellX + .5, platform.cellY + .5, .5, .5);
+      }
+      if (platform.platform === 'prop') {
+        return circleHitsRect(x, y, radius, platform.x, platform.y, platform.halfX, platform.halfY);
+      }
+      return false;
+    }
+
+    function updateActivePlatformState() {
+      if (!activePlatform || !player) return;
+      const stillOnOrNear = platformOverlapAt(player.x, player.y, BODY_RADIUS + .18, activePlatform);
+      if (climbHeight <= .02 && ledgeDropGrace <= 0 && !stillOnOrNear) activePlatform = null;
+    }
+
+    function blockedAt(x, y, radius = BODY_RADIUS, elevation = 0, ignoredPlatform = null, ignoreClimbablePlatforms = false) {
       const minX = Math.floor(x - radius);
       const maxX = Math.floor(x + radius);
       const minY = Math.floor(y - radius);
@@ -1854,10 +1880,14 @@
       for (let yy = minY; yy <= maxY; yy++) {
         for (let xx = minX; xx <= maxX; xx++) {
           const type = map[yy]?.[xx] || 0;
+          if (ignoredPlatform?.platform === 'cell' && ignoredPlatform.cellX === xx && ignoredPlatform.cellY === yy) continue;
+          if (ignoreClimbablePlatforms && (type === 2 || type === 3)) continue;
           if (type && elevation < (cellHeights[type] || 2.8) - .18) return true;
         }
       }
       return levelData?.props?.some(([kind, px, py]) => {
+        if (samePlatformProp(ignoredPlatform, kind, px, py)) return false;
+        if (ignoreClimbablePlatforms && (kind === 'tower' || kind === 'crate')) return false;
         const propHeight = kind === 'tower' ? 1.45 : kind === 'crate' ? .9 : kind === 'ammo' ? .58 : .62;
         if ((kind === 'tower' || kind === 'crate') && elevation >= propHeight - .08) return false;
         if (elevation > propHeight + .16) return false;
@@ -1946,6 +1976,7 @@
       climbEnd = null;
       ledgeDropGrace = 0;
       ledgeDropHeight = 0;
+      activePlatform = null;
       slideTimer = 0;
       mobileLookId = null;
       resetMobileMove();
@@ -1962,7 +1993,9 @@
     function canMove(x, y, ignore, radius = BODY_RADIUS) {
       const elevation = ignore === player ? climbHeight : 0;
       const effectiveElevation = ignore === player && ledgeDropGrace > 0 ? Math.max(elevation, ledgeDropHeight) : elevation;
-      if (blockedAt(x, y, radius, effectiveElevation)) return false;
+      const ignoredPlatform = ignore === player && activePlatform ? activePlatform : null;
+      const ignoreClimbablePlatforms = ignore === player && (climbHeight > .02 || ledgeDropGrace > 0 || !!activePlatform);
+      if (blockedAt(x, y, radius, effectiveElevation, ignoredPlatform, ignoreClimbablePlatforms)) return false;
       if (ignore !== player && player && Math.hypot(player.x - x, player.y - y) < radius * 1.9) return false;
       return true;
     }
@@ -2019,7 +2052,17 @@
         const dot = (dx * forward.x + dy * forward.y) / Math.max(dist, .001);
         const height = kind === 'tower' ? 1.45 : .9;
         if (dist < (kind === 'tower' ? 1.45 : 1.25) && dot > .35 && !blockedAt(px, py, .3, height + .24)) {
-          candidates.push({ x: px, y: py, height, d: dist, label: kind === 'tower' ? '高台' : '箱子' });
+          candidates.push({
+            platform: 'prop',
+            kind,
+            x: px,
+            y: py,
+            halfX: kind === 'tower' ? .72 : .5,
+            halfY: kind === 'tower' ? .72 : .5,
+            height,
+            d: dist,
+            label: kind === 'tower' ? '高台' : '箱子'
+          });
         }
       });
       for (let step = .55; step <= 1.25; step += .18) {
@@ -2030,7 +2073,7 @@
         const type = map[cy]?.[cx] || 0;
         const height = cellHeights[type] || 0;
         if ((type === 2 || type === 3) && height <= 1.65 && !blockedAt(cx + .5, cy + .5, .3, height + .24)) {
-          candidates.push({ x: cx + .5, y: cy + .5, height, d: step, label: type === 2 ? '集装箱' : '木掩体' });
+          candidates.push({ platform: 'cell', cellX: cx, cellY: cy, x: cx + .5, y: cy + .5, height, d: step, label: type === 2 ? '集装箱' : '木掩体' });
           break;
         }
       }
@@ -2047,6 +2090,7 @@
       climbCooldown = .32;
       ledgeDropGrace = 0;
       ledgeDropHeight = target.height;
+      activePlatform = target;
       player.stance = 0;
       vx = 0;
       vy = 0;
@@ -2070,6 +2114,7 @@
         if (climbTimer <= 0) {
           climbHeight = climbEnd.height;
           ledgeDropHeight = climbEnd.height;
+          activePlatform = climbEnd;
           climbStart = null;
           climbEnd = null;
           tone(560, .045, .055, 'square');
@@ -2090,6 +2135,7 @@
           ledgeDropHeight = 0;
         }
       }
+      updateActivePlatformState();
       return false;
     }
 
@@ -3739,6 +3785,7 @@
       climbTimer = 0;
       ledgeDropGrace = 0;
       ledgeDropHeight = 0;
+      activePlatform = null;
       slideTimer = 0;
       spawnProtect = 3;
       addFeed('出生保护 3 秒', '#c8ff62');
