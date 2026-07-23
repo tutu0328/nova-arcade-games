@@ -375,7 +375,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.4</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V2.5</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -928,8 +928,10 @@
       add(new THREE.BoxGeometry(.5, .13, .13), teamMat, .32, 1.2, .17, 0, -.16, .08);
       add(new THREE.BoxGeometry(.14, .14, .14), skin, .58, 1.25, -.08);
       add(new THREE.BoxGeometry(.14, .14, .14), skin, .55, 1.19, .08);
-      add(new THREE.BoxGeometry(.18, .68, .18), dark, -.14, .46, 0);
-      add(new THREE.BoxGeometry(.18, .68, .18), dark, .14, .46, 0);
+      const leftLeg = add(new THREE.BoxGeometry(.16, .7, .16), dark, -.03, .46, -.12);
+      const rightLeg = add(new THREE.BoxGeometry(.16, .7, .16), dark, .03, .46, .12);
+      const leftFoot = add(new THREE.BoxGeometry(.28, .1, .18), dark, .08, .1, -.12);
+      const rightFoot = add(new THREE.BoxGeometry(.28, .1, .18), dark, .08, .1, .12);
       add(new THREE.BoxGeometry(.72, .1, .12), gunMat, .58, 1.24, 0);
       add(new THREE.BoxGeometry(.2, .08, .14), gripMat, .28, 1.18, 0);
       add(new THREE.BoxGeometry(.18, .26, .1), gunMat, .38, 1.05, 0);
@@ -937,6 +939,13 @@
       add(new THREE.BoxGeometry(.52, .055, .075), dark, 1.08, 1.25, 0);
       add(new THREE.BoxGeometry(.08, .16, .16), dark, 1.36, 1.25, 0);
       add(new THREE.BoxGeometry(.18, .08, .1), dark, .58, 1.36, 0);
+      group.userData.leftLeg = leftLeg;
+      group.userData.rightLeg = rightLeg;
+      group.userData.leftFoot = leftFoot;
+      group.userData.rightFoot = rightFoot;
+      group.userData.walk = 0;
+      group.userData.lastX = 0;
+      group.userData.lastY = 0;
       group.scale.set(.92, .92, .92);
       return group;
     }
@@ -1691,8 +1700,10 @@
       );
       hole.position.copy(end).addScaledVector(dir, -.01);
       if (ray.kind === 'ground') {
-        hole.position.y = .012;
+        hole.position.y = .045;
         hole.rotation.x = -Math.PI / 2;
+        hole.material.depthTest = false;
+        hole.renderOrder = 22;
       } else {
         hole.position.y += Math.random() * .045 - .022;
         if (ray.side === 0) hole.rotation.y = Math.PI / 2;
@@ -1753,8 +1764,20 @@
           mesh = createPlayerMesh(p.team);
           scene.add(mesh);
           remoteMeshes.set(id, mesh);
+          mesh.userData.lastX = p.x;
+          mesh.userData.lastY = p.y;
         }
-        mesh.position.set(p.x, 0, p.y);
+        const travel = Math.hypot(p.x - mesh.userData.lastX, p.y - mesh.userData.lastY);
+        mesh.userData.walk += Math.min(.22, travel) * 24;
+        mesh.userData.lastX = p.x;
+        mesh.userData.lastY = p.y;
+        const swing = Math.sin(mesh.userData.walk) * clamp(travel * 18, 0, .42);
+        mesh.userData.leftLeg.rotation.z = swing;
+        mesh.userData.rightLeg.rotation.z = -swing;
+        mesh.userData.leftFoot.rotation.z = -swing * .45;
+        mesh.userData.rightFoot.rotation.z = swing * .45;
+        const stepLift = Math.abs(Math.sin(mesh.userData.walk * 2)) * clamp(travel * 3.2, 0, .045);
+        mesh.position.set(p.x, stepLift, p.y);
         mesh.rotation.y = -p.a;
         mesh.visible = p.hp > 0;
         p.flash = Math.max(0, (p.flash || 0) - dt);
@@ -2121,11 +2144,13 @@
     });
 
     addEventListener('mousemove', event => {
-      if (state === 'play' && document.pointerLockElement === canvas) {
+      if (state === 'play') {
         const scoped = isSniperScoped();
         const sensitivity = scoped ? .22 : ads ? .55 : 1;
-        player.a += event.movementX * .0022 * sensitivity;
-        lookPitch = clamp(lookPitch - event.movementY * .0022 * sensitivity, -1.18, .82);
+        const moveX = event.movementX || 0;
+        const moveY = event.movementY || 0;
+        player.a += moveX * .0022 * sensitivity;
+        lookPitch = clamp(lookPitch - moveY * .0022 * sensitivity, -1.18, .82);
       }
     });
 
