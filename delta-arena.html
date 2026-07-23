@@ -488,7 +488,7 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.4</b></div>
+    <div class="brand panel"><small>PIXEL TACTICAL BASE · WEBGL</small><b>DELTA ARENA · V3.5</b></div>
     <div class="score panel">
       <div class="r"><small>赤队</small><b id="redScore">0</b></div>
       <div><small>目标 / 时间</small><b><span id="targetScore">50</span> · <span id="timer">10:00</span></b></div>
@@ -1855,6 +1855,7 @@
       }
       return levelData?.props?.some(([kind, px, py]) => {
         const propHeight = kind === 'tower' ? 1.45 : kind === 'crate' ? .9 : kind === 'ammo' ? .58 : .62;
+        if ((kind === 'tower' || kind === 'crate') && elevation >= propHeight - .08) return false;
         if (elevation > propHeight + .16) return false;
         if (kind === 'pipe') return circleHitsRect(x, y, radius, px, py, .98, .48);
         if (kind === 'tower') return circleHitsRect(x, y, radius, px, py, .72, .72);
