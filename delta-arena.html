@@ -725,6 +725,7 @@
       m4: { name: 'M4A1', cat: '步枪', damage: 35, rate: 9.5, mag: 30, reserve: 120, reload: 1.65, recoil: .024, spread: .012, move: .018, color: '#d7e3d9', auto: true, falloff: 38 },
       ak: { name: 'AK-47', cat: '步枪', damage: 49, rate: 7.2, mag: 30, reserve: 120, reload: 2.05, recoil: .044, spread: .017, move: .027, color: '#b77a46', auto: true, falloff: 36 },
       scar: { name: 'SCAR-H', cat: '步枪', damage: 56, rate: 6.2, mag: 20, reserve: 100, reload: 2.15, recoil: .049, spread: .014, move: .02, color: '#bfa56c', auto: true, falloff: 42 },
+      qbz: { name: 'QBZ-95', cat: '步枪', damage: 40, rate: 8.6, mag: 30, reserve: 120, reload: 1.9, recoil: .03, spread: .013, move: .018, color: '#80966f', auto: true, falloff: 39, model: 'bullpup', reloadStyle: 'bullpup' },
       mp5: { name: 'MP5', cat: '冲锋枪', damage: 26, rate: 12.8, mag: 30, reserve: 150, reload: 1.45, recoil: .018, spread: .023, move: .009, color: '#b9c4bd', auto: true, falloff: 19 },
       vector: { name: 'Vector', cat: '冲锋枪', damage: 23, rate: 16.5, mag: 25, reserve: 150, reload: 1.55, recoil: .023, spread: .026, move: .011, color: '#d2dad4', auto: true, falloff: 17 },
       awm: { name: 'AWM', cat: '狙击枪', damage: 180, rate: .92, mag: 5, reserve: 25, reload: 2.85, recoil: .095, spread: .002, move: .035, color: '#91a087', auto: false, falloff: 80, needsAds: true },
@@ -737,6 +738,7 @@
       smoke: { name: '烟雾弹', cat: '投掷物', damage: 0, color: '#b8bfb0', throwable: true },
       zone: { name: '安全区', cat: '环境', damage: 0, color: '#ff5b55', throwable: true },
       glock: { name: 'Glock 17', cat: '手枪', damage: 28, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
+      usp: { name: 'USP .45', cat: '手枪', damage: 42, rate: 4.8, mag: 12, reserve: 60, reload: 1.4, recoil: .034, spread: .015, move: .016, color: '#9aa7ad', auto: false, falloff: 29, model: 'tactical-pistol', reloadStyle: 'pistol-slap' },
       deagle: { name: '沙漠之鹰', cat: '手枪', damage: 95, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
     };
 
@@ -987,6 +989,12 @@
         tone(420, .04, .06, 'triangle');
       } else if (stage === 'bow') {
         tone(330, .06, .045, 'triangle');
+      } else if (stage === 'bullpup') {
+        tone(190, .055, .07, 'square');
+        setTimeout(() => tone(390, .05, .075, 'square'), 120);
+      } else if (stage === 'pistol-slap') {
+        tone(470, .035, .07, 'triangle');
+        setTimeout(() => tone(620, .04, .065, 'square'), 85);
       }
     }
 
@@ -1129,6 +1137,15 @@
         props.push(['tower', 6.5, 6.5], ['tower', 17.5, 6.5], ['crate', 12, 19], ['ammo', 3.4, 20.4], ['ammo', 20.6, 20.4], ['ammo', 12, 12.6]);
         signs.push(['远距', 12, 14, Math.PI], ['狙击台', 6, 5, Math.PI / 2], ['蓝台', 18, 5, -Math.PI / 2]);
         lights.push(['red', 2.8, 20], ['blue', 21.2, 20], ['white', 12, 10]);
+      } else if (w.model === 'tactical-pistol') {
+        add(new THREE.BoxGeometry(.2, .18, .62), accent, .02, .05, -.82);
+        add(new THREE.BoxGeometry(.16, .12, .34), dark, .02, .02, -1.28);
+        add(new THREE.BoxGeometry(.22, .3, .2), dark, .02, -.18, -.62);
+        const magazine = add(new THREE.BoxGeometry(.13, .3, .13), accent, .02, -.28, -.62);
+        gun.userData.magazine = magazine;
+        gun.userData.magHome = magazine.position.clone();
+        gun.userData.magRot = magazine.rotation.clone();
+        add(new THREE.BoxGeometry(.06, .08, .12), dark, .02, .18, -.72);
       } else {
         wall(4, 3, 4, 7, 1);
         wall(12, 3, 8, 4, 1);
@@ -1438,6 +1455,11 @@
           add(new THREE.BoxGeometry(.2, .18, .08), dark, .02, .28, -.57);
         }
         if (w.cat === '霰弹枪') add(new THREE.BoxGeometry(.15, .13, .55), accent, .02, -.05, -1.18);
+        if (w.model === 'bullpup') {
+          add(new THREE.BoxGeometry(.28, .24, .42), accent, .02, -.04, -.34);
+          add(new THREE.BoxGeometry(.32, .09, .5), dark, .02, .27, -.72);
+          add(new THREE.BoxGeometry(.16, .15, .18), accent, .02, .25, -1.02);
+        }
       }
 
       add(new THREE.BoxGeometry(.16, .42, .16), hand, -.16, -.38, -.54);
@@ -1806,8 +1828,10 @@
       clearShotFX();
       buildLevel();
       const p = spawnPoint(team);
-      const primary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
-      const secondary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
+      const selectedPrimary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
+      const selectedSecondary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
+      const primary = weapons[selectedPrimary] ? selectedPrimary : 'm4';
+      const secondary = weapons[selectedSecondary] ? selectedSecondary : 'glock';
       player = {
         x: p.x,
         y: p.y,
@@ -4082,6 +4106,7 @@
       const w = weapons[key];
       if (w.melee) return;
       if (player.ammo[index] >= w.mag || player.reserve[index] <= 0) return;
+      const reloadStyle = w.reloadStyle || 'magazine';
       reloadTimer = w.reload;
       reloadTotal = w.reload;
       reloadInsertCue = false;
@@ -4091,6 +4116,8 @@
         playReloadSound('shell', w);
       } else if (w.charge) {
         playReloadSound('bow', w);
+      } else if (reloadStyle !== 'magazine') {
+        playReloadSound(reloadStyle, w);
       } else {
         playReloadSound('start', w);
         setTimeout(() => playReloadSound('drop', w), 130);
