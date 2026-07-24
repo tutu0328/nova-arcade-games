@@ -913,6 +913,7 @@
     const seenObjectiveEvents = new Set();
     const seenSupplyEvents = new Set();
     const seenDeaths = new Set();
+    let deathInfo = null;
     const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0, captures: 0 };
     const BODY_RADIUS = .34;
     const renderer = new THREE.WebGLRenderer({ canvas: world, antialias: false, powerPreference: 'high-performance' });
@@ -3049,6 +3050,15 @@
       addFeed(`${data.headshot ? '受到爆头' : '受到攻击'} -${amount} HP · ${weaponName}`, '#ff5b55');
       tone(90, .09, .06, 'sawtooth');
       if (player.hp <= 0) {
+        deathInfo = {
+          killerName: data.shooterName || '未知攻击者',
+          weaponName: weapons[data.weapon]?.name || '未知伤害',
+          headshot: !!data.headshot
+        };
+        if (Number.isFinite(data.sx) && Number.isFinite(data.sy)) {
+          player.a = Math.atan2(data.sy - player.y, data.sx - player.x);
+          lookPitch = 0;
+        }
         player.dead = 1.5;
         matchStats.deaths++;
         matchStats.streak = 0;
@@ -4053,8 +4063,14 @@
         ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
+        ctx.font = '900 32px monospace';
+        ctx.fillText(deathInfo ? `击杀者：${deathInfo.killerName}` : '你已阵亡', W / 2, H * .3);
+        ctx.font = '900 16px monospace';
+        ctx.fillStyle = deathInfo?.headshot ? '#ffd36d' : '#e7eee8';
+        ctx.fillText(deathInfo ? `${deathInfo.headshot ? '爆头 · ' : ''}${deathInfo.weaponName}` : '', W / 2, H * .34);
+        ctx.fillStyle = '#fff';
         ctx.font = '900 30px monospace';
-        ctx.fillText(`重生倒计时 ${Math.ceil(player.dead)}`, W / 2, H * .38);
+        ctx.fillText(`重生倒计时 ${Math.ceil(player.dead)}`, W / 2, H * .4);
       }
     }
 
@@ -4226,6 +4242,7 @@
       player.x = p.x;
       player.y = p.y;
       player.a = team === 'blue' ? Math.PI : 0;
+      deathInfo = null;
       player.hp = 100;
       player.dead = 0;
       vx = 0;

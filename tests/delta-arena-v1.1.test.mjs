@@ -102,3 +102,15 @@ test('选枪属性：主副武器选择栏必须显示并实时更新完整属�
   assert.match(html, /\$\('#primary'\)\.onchange/);
   assert.match(html, /\$\('#secondary'\)\.onchange/);
 });
+
+test('死亡提示：必须显示击杀者和武器，并在复活后清空', () => {
+  assert.match(html, /let deathInfo = null/);
+  assert.match(html, /deathInfo = \{[\s\S]*?killerName:[\s\S]*?weaponName:[\s\S]*?headshot:/);
+  assert.match(html, /击杀者：\$\{deathInfo\.killerName\}/);
+  assert.match(html, /deathInfo = null;[\s\S]*?player\.hp = 100/);
+});
+
+test('死亡视角：被击杀后必须转向伤害来源', () => {
+  assert.match(html, /player\.a = Math\.atan2\(data\.sy - player\.y, data\.sx - player\.x\)/);
+  assert.match(html, /lookPitch = 0/);
+});
