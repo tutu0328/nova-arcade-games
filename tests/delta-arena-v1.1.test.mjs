@@ -87,3 +87,14 @@ test('换弹边界：现有玩法中的弹匣、逐发装填和弓箭装填路�
   assert.match(html, /w\.charge/);
   assert.match(html, /playReloadSound\('start', w\)/);
 });
+
+test('选枪属性：主副武器选择栏必须显示并实时更新完整属性', () => {
+  assert.match(html, /id="primaryStats"/);
+  assert.match(html, /id="secondaryStats"/);
+  assert.match(html, /function updateWeaponStats\(selectId, statsId\)/);
+  for (const field of ['damage', 'rate', 'mag', 'reserve', 'reload', 'recoil', 'spread', 'falloff']) {
+    assert.match(html, new RegExp(`weapon\\.${field}`), `属性面板缺少 ${field}`);
+  }
+  assert.match(html, /\$\('#primary'\)\.onchange/);
+  assert.match(html, /\$\('#secondary'\)\.onchange/);
+});

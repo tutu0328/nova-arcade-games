@@ -423,6 +423,22 @@
       padding: 8px;
       outline: 0;
     }
+    .weapon-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 3px;
+    }
+    .weapon-stats span {
+      padding: 7px 8px;
+      border: 1px solid rgba(200,255,98,.2);
+      border-radius: 3px;
+      background: rgba(5,8,6,.7);
+      color: #9dac9f;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+    .weapon-stats b { display: block; color: #f3fff0; font-size: 12px; }
     .wide { grid-column: span 2; }
     .counter { display: grid; grid-template-columns: 44px 1fr 44px; gap: 6px; }
     .counter input { text-align: center; color: var(--lime); font-size: 18px; font-weight: 900; }
@@ -623,8 +639,8 @@
           <div class="field"><label>比赛时间</label><select id="matchTime"><option value="300">5 分钟</option><option value="600" selected>10 分钟</option><option value="1200">20 分钟</option></select></div>
           <div class="field"><label>击杀 / 夺旗目标</label><select id="killTarget"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select></div>
           <div class="field"><label>地图</label><select id="map"><option value="0">三角训练基地</option><option value="1">废弃工厂</option><option value="2">雪山基地</option><option value="3">城市街区</option></select></div>
-          <div class="field wide"><label>主武器</label><select id="primary"></select></div>
-          <div class="field wide"><label>副武器</label><select id="secondary"></select></div>
+          <div class="field wide"><label>主武器</label><select id="primary"></select><div class="weapon-stats" id="primaryStats"></div></div>
+          <div class="field wide"><label>副武器</label><select id="secondary"></select><div class="weapon-stats" id="secondaryStats"></div></div>
         </div>
         <div class="actions">
           <button class="btn primary" id="createRoom">生成邀请码</button>
@@ -755,6 +771,28 @@
     });
     $('#primary').value = 'm4';
     $('#secondary').value = 'glock';
+    function updateWeaponStats(selectId, statsId) {
+      const weapon = weapons[$(`#${selectId}`).value];
+      if (!weapon) {
+        $(`#${statsId}`).textContent = '暂无可用属性';
+        return;
+      }
+      const items = [
+        ['伤害', weapon.damage],
+        ['射速', `${weapon.rate}/秒`],
+        ['弹匣', `${weapon.mag} 发`],
+        ['备弹', `${weapon.reserve} 发`],
+        ['换弹', `${weapon.reload.toFixed(2)} 秒`],
+        ['后坐力', `${Math.round(weapon.recoil * 1000)}`],
+        ['散布', `${Math.round(weapon.spread * 1000)}`],
+        ['有效距离', `${weapon.falloff} 米`]
+      ];
+      $(`#${statsId}`).innerHTML = items.map(([label, value]) => `<span>${label}<b>${value}</b></span>`).join('');
+    }
+    $('#primary').onchange = () => updateWeaponStats('primary', 'primaryStats');
+    $('#secondary').onchange = () => updateWeaponStats('secondary', 'secondaryStats');
+    updateWeaponStats('primary', 'primaryStats');
+    updateWeaponStats('secondary', 'secondaryStats');
 
     let W = innerWidth;
     let H = innerHeight;
