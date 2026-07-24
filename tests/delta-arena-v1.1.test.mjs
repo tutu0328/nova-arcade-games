@@ -25,6 +25,10 @@ test('正常情况：点击枪械选择栏时，v1.1 应看到比 v1.0 更多的
   );
 });
 
+test('v1.1 枪械选择栏必须精确提供 30 把可选枪', () => {
+  assert.equal(selectable.length, 30, `当前有 ${selectable.length} 把可选枪，应为 30 把`);
+});
+
 test('选择栏至少保留 v1.0 的主武器和副武器，不会破坏现有玩法', () => {
   assert.ok(primary.length >= V1_COUNTS.primary);
   assert.ok(secondary.length >= V1_COUNTS.secondary);
