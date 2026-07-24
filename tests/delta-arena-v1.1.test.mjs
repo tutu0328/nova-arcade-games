@@ -67,3 +67,23 @@ test('边界检查：每把可选枪都有可用的弹药、射速和伤害数�
     assert.ok(Number.isFinite(weapon.falloff) && weapon.falloff > 0, `${key} 的有效距离必须大于 0`);
   }
 });
+
+test('外观检查：枪械模型必须读取每把枪自己的外观配置', () => {
+  assert.ok(
+    /function makeGun3D\(key\)[\s\S]*?w\.(?:model|visual|shape)/.test(html),
+    '当前模型只按枪械大类和颜色绘制，尚未读取每把枪独立的外观配置',
+  );
+});
+
+test('换弹检查：装弹流程必须读取每把枪自己的换弹方式', () => {
+  assert.ok(
+    /function reload\(\)[\s\S]*?w\.reloadStyle/.test(html),
+    '当前装弹流程尚未读取每把枪独立的换弹方式',
+  );
+});
+
+test('换弹边界：现有玩法中的弹匣、逐发装填和弓箭装填路径必须保留', () => {
+  assert.match(html, /w\.shellReload/);
+  assert.match(html, /w\.charge/);
+  assert.match(html, /playReloadSound\('start', w\)/);
+});
