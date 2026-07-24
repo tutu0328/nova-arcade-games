@@ -423,6 +423,22 @@
       padding: 8px;
       outline: 0;
     }
+    .weapon-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 3px;
+    }
+    .weapon-stats span {
+      padding: 7px 8px;
+      border: 1px solid rgba(200,255,98,.2);
+      border-radius: 3px;
+      background: rgba(5,8,6,.7);
+      color: #9dac9f;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+    .weapon-stats b { display: block; color: #f3fff0; font-size: 12px; }
     .wide { grid-column: span 2; }
     .counter { display: grid; grid-template-columns: 44px 1fr 44px; gap: 6px; }
     .counter input { text-align: center; color: var(--lime); font-size: 18px; font-weight: 900; }
@@ -623,8 +639,8 @@
           <div class="field"><label>比赛时间</label><select id="matchTime"><option value="300">5 分钟</option><option value="600" selected>10 分钟</option><option value="1200">20 分钟</option></select></div>
           <div class="field"><label>击杀 / 夺旗目标</label><select id="killTarget"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select></div>
           <div class="field"><label>地图</label><select id="map"><option value="0">三角训练基地</option><option value="1">废弃工厂</option><option value="2">雪山基地</option><option value="3">城市街区</option></select></div>
-          <div class="field wide"><label>主武器</label><select id="primary"></select></div>
-          <div class="field wide"><label>副武器</label><select id="secondary"></select></div>
+          <div class="field wide"><label>主武器</label><select id="primary"></select><div class="weapon-stats" id="primaryStats"></div></div>
+          <div class="field wide"><label>副武器</label><select id="secondary"></select><div class="weapon-stats" id="secondaryStats"></div></div>
         </div>
         <div class="actions">
           <button class="btn primary" id="createRoom">生成邀请码</button>
@@ -725,11 +741,27 @@
       m4: { name: 'M4A1', cat: '步枪', damage: 35, rate: 9.5, mag: 30, reserve: 120, reload: 1.65, recoil: .024, spread: .012, move: .018, color: '#d7e3d9', auto: true, falloff: 38 },
       ak: { name: 'AK-47', cat: '步枪', damage: 49, rate: 7.2, mag: 30, reserve: 120, reload: 2.05, recoil: .044, spread: .017, move: .027, color: '#b77a46', auto: true, falloff: 36 },
       scar: { name: 'SCAR-H', cat: '步枪', damage: 56, rate: 6.2, mag: 20, reserve: 100, reload: 2.15, recoil: .049, spread: .014, move: .02, color: '#bfa56c', auto: true, falloff: 42 },
+      qbz: { name: 'QBZ-95', cat: '步枪', damage: 40, rate: 8.6, mag: 30, reserve: 120, reload: 1.9, recoil: .03, spread: .013, move: .018, color: '#80966f', auto: true, falloff: 39, model: 'bullpup', reloadStyle: 'bullpup' },
+      aug: { name: 'AUG A3', cat: '步枪', damage: 38, rate: 8.1, mag: 30, reserve: 120, reload: 2.0, recoil: .028, spread: .012, move: .017, color: '#879a78', auto: true, falloff: 41, model: 'bullpup', reloadStyle: 'bullpup' },
+      famas: { name: 'FAMAS', cat: '步枪', damage: 32, rate: 11.2, mag: 25, reserve: 125, reload: 2.25, recoil: .033, spread: .016, move: .019, color: '#66756b', auto: true, falloff: 35, model: 'bullpup', reloadStyle: 'bullpup' },
+      g36: { name: 'G36C', cat: '步枪', damage: 37, rate: 8.8, mag: 30, reserve: 120, reload: 1.8, recoil: .027, spread: .014, move: .016, color: '#58646a', auto: true, falloff: 37, model: 'carbine', reloadStyle: 'magazine' },
+      galil: { name: 'Galil ACE', cat: '步枪', damage: 45, rate: 7.6, mag: 35, reserve: 105, reload: 2.2, recoil: .04, spread: .017, move: .023, color: '#8a7358', auto: true, falloff: 38, model: 'heavy-rifle', reloadStyle: 'magazine' },
+      hk416: { name: 'HK416', cat: '步枪', damage: 39, rate: 9.1, mag: 30, reserve: 120, reload: 1.75, recoil: .026, spread: .011, move: .016, color: '#78827d', auto: true, falloff: 43, model: 'carbine', reloadStyle: 'magazine' },
+      an94: { name: 'AN-94', cat: '步枪', damage: 43, rate: 10.2, mag: 30, reserve: 120, reload: 2.3, recoil: .035, spread: .013, move: .021, color: '#6f6659', auto: true, falloff: 40, model: 'offset-rifle', reloadStyle: 'magazine' },
       mp5: { name: 'MP5', cat: '冲锋枪', damage: 26, rate: 12.8, mag: 30, reserve: 150, reload: 1.45, recoil: .018, spread: .023, move: .009, color: '#b9c4bd', auto: true, falloff: 19 },
       vector: { name: 'Vector', cat: '冲锋枪', damage: 23, rate: 16.5, mag: 25, reserve: 150, reload: 1.55, recoil: .023, spread: .026, move: .011, color: '#d2dad4', auto: true, falloff: 17 },
+      ump45: { name: 'UMP45', cat: '冲锋枪', damage: 35, rate: 9.4, mag: 25, reserve: 125, reload: 1.7, recoil: .025, spread: .021, move: .011, color: '#68756f', auto: true, falloff: 23, model: 'compact', reloadStyle: 'magazine' },
+      p90: { name: 'P90', cat: '冲锋枪', damage: 22, rate: 14.6, mag: 50, reserve: 150, reload: 2.35, recoil: .016, spread: .024, move: .008, color: '#89938d', auto: true, falloff: 18, model: 'top-mag', reloadStyle: 'bullpup' },
+      uzi: { name: 'Micro UZI', cat: '冲锋枪', damage: 20, rate: 17.2, mag: 32, reserve: 160, reload: 1.35, recoil: .026, spread: .032, move: .007, color: '#505b60', auto: true, falloff: 14, model: 'micro', reloadStyle: 'magazine' },
+      bizon: { name: 'PP-19 Bizon', cat: '冲锋枪', damage: 25, rate: 11.4, mag: 64, reserve: 128, reload: 2.55, recoil: .02, spread: .025, move: .012, color: '#756f61', auto: true, falloff: 21, model: 'helical', reloadStyle: 'magazine' },
       awm: { name: 'AWM', cat: '狙击枪', damage: 180, rate: .92, mag: 5, reserve: 25, reload: 2.85, recoil: .095, spread: .002, move: .035, color: '#91a087', auto: false, falloff: 80, needsAds: true },
       m200: { name: 'M200', cat: '狙击枪', damage: 195, rate: .72, mag: 5, reserve: 20, reload: 3.15, recoil: .11, spread: .0015, move: .04, color: '#bca67c', auto: false, falloff: 90, needsAds: true },
+      svd: { name: 'SVD', cat: '狙击枪', damage: 118, rate: 1.8, mag: 10, reserve: 40, reload: 2.6, recoil: .072, spread: .004, move: .03, color: '#9a704e', auto: false, falloff: 72, needsAds: true, model: 'marksman', reloadStyle: 'magazine' },
+      barrett: { name: 'Barrett M82', cat: '狙击枪', damage: 220, rate: .55, mag: 10, reserve: 20, reload: 3.8, recoil: .14, spread: .001, move: .052, color: '#59615a', auto: false, falloff: 105, needsAds: true, model: 'anti-materiel', reloadStyle: 'magazine' },
+      kar98: { name: 'Kar98k', cat: '狙击枪', damage: 165, rate: .82, mag: 5, reserve: 30, reload: 2.7, recoil: .09, spread: .0025, move: .034, color: '#8d6847', auto: false, falloff: 78, needsAds: true, model: 'wood-bolt', reloadStyle: 'magazine' },
       shotgun: { name: 'M870', cat: '霰弹枪', damage: 22, pellets: 10, rate: .95, mag: 8, reserve: 40, reload: .42, recoil: .12, spread: .09, move: .035, color: '#ba8757', auto: false, falloff: 11, shellReload: true },
+      spas12: { name: 'SPAS-12', cat: '霰弹枪', damage: 20, pellets: 12, rate: 1.15, mag: 8, reserve: 40, reload: .48, recoil: .105, spread: .082, move: .032, color: '#66716c', auto: false, falloff: 12, shellReload: true, model: 'folding-stock', reloadStyle: 'shell' },
+      aa12: { name: 'AA-12', cat: '霰弹枪', damage: 14, pellets: 8, rate: 5.2, mag: 20, reserve: 60, reload: 2.9, recoil: .07, spread: .1, move: .04, color: '#4f5d57', auto: true, falloff: 9, model: 'drum-shotgun', reloadStyle: 'magazine' },
       bow: { name: '复合弓', cat: '弓箭', damage: 125, rate: 1.05, mag: 1, reserve: 24, reload: .75, recoil: .01, spread: .007, move: .01, color: '#91b88a', auto: false, falloff: 58, charge: true, quiet: true },
       knife: { name: '战术刀', cat: '近战', damage: 100, rate: 1.7, mag: 1, reserve: 0, reload: 0, recoil: 0, spread: 0, move: 0, color: '#d8e0d2', auto: false, falloff: 1.75, melee: true, quiet: true },
       frag: { name: '破片手雷', cat: '投掷物', damage: 130, color: '#6b715f', throwable: true },
@@ -737,6 +769,9 @@
       smoke: { name: '烟雾弹', cat: '投掷物', damage: 0, color: '#b8bfb0', throwable: true },
       zone: { name: '安全区', cat: '环境', damage: 0, color: '#ff5b55', throwable: true },
       glock: { name: 'Glock 17', cat: '手枪', damage: 28, rate: 6.4, mag: 17, reserve: 68, reload: 1.25, recoil: .024, spread: .019, move: .015, color: '#7e8a84', auto: false, falloff: 25 },
+      usp: { name: 'USP .45', cat: '手枪', damage: 42, rate: 4.8, mag: 12, reserve: 60, reload: 1.4, recoil: .034, spread: .015, move: .016, color: '#9aa7ad', auto: false, falloff: 29, model: 'tactical-pistol', reloadStyle: 'pistol-slap' },
+      p226: { name: 'P226', cat: '手枪', damage: 36, rate: 5.6, mag: 15, reserve: 60, reload: 1.3, recoil: .029, spread: .017, move: .014, color: '#69757c', auto: false, falloff: 27, model: 'tactical-pistol', reloadStyle: 'pistol-slap' },
+      five7: { name: 'Five-seveN', cat: '手枪', damage: 31, rate: 6.8, mag: 20, reserve: 80, reload: 1.2, recoil: .021, spread: .014, move: .012, color: '#87918c', auto: false, falloff: 32, model: 'tactical-pistol', reloadStyle: 'pistol-slap' },
       deagle: { name: '沙漠之鹰', cat: '手枪', damage: 95, rate: 2.4, mag: 7, reserve: 35, reload: 1.55, recoil: .075, spread: .012, move: .02, color: '#d1c7a8', auto: false, falloff: 34 }
     };
 
@@ -753,6 +788,28 @@
     });
     $('#primary').value = 'm4';
     $('#secondary').value = 'glock';
+    function updateWeaponStats(selectId, statsId) {
+      const weapon = weapons[$(`#${selectId}`).value];
+      if (!weapon) {
+        $(`#${statsId}`).textContent = '暂无可用属性';
+        return;
+      }
+      const items = [
+        ['伤害', weapon.damage],
+        ['射速', `${weapon.rate}/秒`],
+        ['弹匣', `${weapon.mag} 发`],
+        ['备弹', `${weapon.reserve} 发`],
+        ['换弹', `${weapon.reload.toFixed(2)} 秒`],
+        ['后坐力', `${Math.round(weapon.recoil * 1000)}`],
+        ['散布', `${Math.round(weapon.spread * 1000)}`],
+        ['有效距离', `${weapon.falloff} 米`]
+      ];
+      $(`#${statsId}`).innerHTML = items.map(([label, value]) => `<span>${label}<b>${value}</b></span>`).join('');
+    }
+    $('#primary').onchange = () => updateWeaponStats('primary', 'primaryStats');
+    $('#secondary').onchange = () => updateWeaponStats('secondary', 'secondaryStats');
+    updateWeaponStats('primary', 'primaryStats');
+    updateWeaponStats('secondary', 'secondaryStats');
 
     let W = innerWidth;
     let H = innerHeight;
@@ -856,6 +913,7 @@
     const seenObjectiveEvents = new Set();
     const seenSupplyEvents = new Set();
     const seenDeaths = new Set();
+    let deathInfo = null;
     const matchStats = { shots: 0, hits: 0, kills: 0, deaths: 0, headshots: 0, streak: 0, bestStreak: 0, captures: 0 };
     const BODY_RADIUS = .34;
     const renderer = new THREE.WebGLRenderer({ canvas: world, antialias: false, powerPreference: 'high-performance' });
@@ -987,6 +1045,12 @@
         tone(420, .04, .06, 'triangle');
       } else if (stage === 'bow') {
         tone(330, .06, .045, 'triangle');
+      } else if (stage === 'bullpup') {
+        tone(190, .055, .07, 'square');
+        setTimeout(() => tone(390, .05, .075, 'square'), 120);
+      } else if (stage === 'pistol-slap') {
+        tone(470, .035, .07, 'triangle');
+        setTimeout(() => tone(620, .04, .065, 'square'), 85);
       }
     }
 
@@ -1129,6 +1193,15 @@
         props.push(['tower', 6.5, 6.5], ['tower', 17.5, 6.5], ['crate', 12, 19], ['ammo', 3.4, 20.4], ['ammo', 20.6, 20.4], ['ammo', 12, 12.6]);
         signs.push(['远距', 12, 14, Math.PI], ['狙击台', 6, 5, Math.PI / 2], ['蓝台', 18, 5, -Math.PI / 2]);
         lights.push(['red', 2.8, 20], ['blue', 21.2, 20], ['white', 12, 10]);
+      } else if (w.model === 'tactical-pistol') {
+        add(new THREE.BoxGeometry(.2, .18, .62), accent, .02, .05, -.82);
+        add(new THREE.BoxGeometry(.16, .12, .34), dark, .02, .02, -1.28);
+        add(new THREE.BoxGeometry(.22, .3, .2), dark, .02, -.18, -.62);
+        const magazine = add(new THREE.BoxGeometry(.13, .3, .13), accent, .02, -.28, -.62);
+        gun.userData.magazine = magazine;
+        gun.userData.magHome = magazine.position.clone();
+        gun.userData.magRot = magazine.rotation.clone();
+        add(new THREE.BoxGeometry(.06, .08, .12), dark, .02, .18, -.72);
       } else {
         wall(4, 3, 4, 7, 1);
         wall(12, 3, 8, 4, 1);
@@ -1438,6 +1511,11 @@
           add(new THREE.BoxGeometry(.2, .18, .08), dark, .02, .28, -.57);
         }
         if (w.cat === '霰弹枪') add(new THREE.BoxGeometry(.15, .13, .55), accent, .02, -.05, -1.18);
+        if (w.model === 'bullpup') {
+          add(new THREE.BoxGeometry(.28, .24, .42), accent, .02, -.04, -.34);
+          add(new THREE.BoxGeometry(.32, .09, .5), dark, .02, .27, -.72);
+          add(new THREE.BoxGeometry(.16, .15, .18), accent, .02, .25, -1.02);
+        }
       }
 
       add(new THREE.BoxGeometry(.16, .42, .16), hand, -.16, -.38, -.54);
@@ -1806,8 +1884,10 @@
       clearShotFX();
       buildLevel();
       const p = spawnPoint(team);
-      const primary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
-      const secondary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
+      const selectedPrimary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'awm' : gameMode === 'gun' ? 'glock' : $('#primary').value;
+      const selectedSecondary = gameMode === 'knife' ? 'knife' : gameMode === 'sniper' ? 'deagle' : $('#secondary').value;
+      const primary = weapons[selectedPrimary] ? selectedPrimary : 'm4';
+      const secondary = weapons[selectedSecondary] ? selectedSecondary : 'glock';
       player = {
         x: p.x,
         y: p.y,
@@ -2970,6 +3050,15 @@
       addFeed(`${data.headshot ? '受到爆头' : '受到攻击'} -${amount} HP · ${weaponName}`, '#ff5b55');
       tone(90, .09, .06, 'sawtooth');
       if (player.hp <= 0) {
+        deathInfo = {
+          killerName: data.shooterName || '未知攻击者',
+          weaponName: weapons[data.weapon]?.name || '未知伤害',
+          headshot: !!data.headshot
+        };
+        if (Number.isFinite(data.sx) && Number.isFinite(data.sy)) {
+          player.a = Math.atan2(data.sy - player.y, data.sx - player.x);
+          lookPitch = 0;
+        }
         player.dead = 1.5;
         matchStats.deaths++;
         matchStats.streak = 0;
@@ -3974,8 +4063,14 @@
         ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
+        ctx.font = '900 32px monospace';
+        ctx.fillText(deathInfo ? `击杀者：${deathInfo.killerName}` : '你已阵亡', W / 2, H * .3);
+        ctx.font = '900 16px monospace';
+        ctx.fillStyle = deathInfo?.headshot ? '#ffd36d' : '#e7eee8';
+        ctx.fillText(deathInfo ? `${deathInfo.headshot ? '爆头 · ' : ''}${deathInfo.weaponName}` : '', W / 2, H * .34);
+        ctx.fillStyle = '#fff';
         ctx.font = '900 30px monospace';
-        ctx.fillText(`重生倒计时 ${Math.ceil(player.dead)}`, W / 2, H * .38);
+        ctx.fillText(`重生倒计时 ${Math.ceil(player.dead)}`, W / 2, H * .4);
       }
     }
 
@@ -4082,6 +4177,7 @@
       const w = weapons[key];
       if (w.melee) return;
       if (player.ammo[index] >= w.mag || player.reserve[index] <= 0) return;
+      const reloadStyle = w.reloadStyle || 'magazine';
       reloadTimer = w.reload;
       reloadTotal = w.reload;
       reloadInsertCue = false;
@@ -4091,6 +4187,8 @@
         playReloadSound('shell', w);
       } else if (w.charge) {
         playReloadSound('bow', w);
+      } else if (reloadStyle !== 'magazine') {
+        playReloadSound(reloadStyle, w);
       } else {
         playReloadSound('start', w);
         setTimeout(() => playReloadSound('drop', w), 130);
@@ -4144,6 +4242,7 @@
       player.x = p.x;
       player.y = p.y;
       player.a = team === 'blue' ? Math.PI : 0;
+      deathInfo = null;
       player.hp = 100;
       player.dead = 0;
       vx = 0;
