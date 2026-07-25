@@ -38,6 +38,11 @@ test("酒水数量扩充到至少 150 种搭配", () => {
   }
 });
 
+test("只给观察线索，不直接公布正确配方", () => {
+  assert.match(game, /观察笔记/);
+  assert.doesNotMatch(game, /推荐配方|正确配方|配方答案/);
+});
+
 test("选择缺失时不能端杯，错误配方也能继续故事", () => {
   assert.match(game, /Object\.values\(selected\)\.some\(v=>!v\)/);
   assert.match(game, /result==="bad"/);
