@@ -56,7 +56,7 @@
     .section-title h2{font-size:20px}.section-title small{color:var(--muted)}
     .recipe{display:grid;gap:15px}
     .ingredient-row h3{font-size:11px;letter-spacing:.13em;color:var(--muted);margin:0 0 8px}
-    .choices{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+    .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px}
     .ingredient{min-height:72px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.035);color:var(--ink);cursor:pointer;padding:9px 5px;transition:.18s}
     .ingredient:hover{transform:translateY(-2px);border-color:rgba(98,233,255,.5)}
     .ingredient.selected{border-color:var(--cyan);background:rgba(98,233,255,.12);box-shadow:0 0 18px rgba(98,233,255,.12)}
@@ -129,7 +129,7 @@
       </section>
 
       <section class="panel bar-panel">
-        <div class="section-title"><h2>调制今晚的一杯</h2><small>每栏选一种</small></div>
+        <div class="section-title"><h2>调制今晚的一杯</h2><small id="combinationCount">150 种搭配</small></div>
         <div class="recipe" id="ingredientRows"></div>
         <div class="glass-zone">
           <div class="glass"><div class="liquid" id="liquid"></div></div>
@@ -194,18 +194,22 @@
         {id:"ember",name:"余烬威士忌",icon:"🥃",tags:["warm","bold"],color:"#f08a58"},
         {id:"lunar",name:"月海琴酒",icon:"🫧",tags:["calm","clear"],color:"#66dced"},
         {id:"tea",name:"静默茶",icon:"🍵",tags:["gentle","memory"],color:"#9fc86c"},
-        {id:"water",name:"纯净水",icon:"💧",tags:["honest","plain"],color:"#83cfff"}
+        {id:"water",name:"纯净水",icon:"💧",tags:["honest","plain"],color:"#83cfff"},
+        {id:"beer",name:"等离子啤酒",icon:"🍺",tags:["warm","hope"],color:"#f4b84e"},
+        {id:"wine",name:"星云葡萄酒",icon:"🍷",tags:["sweet","memory"],color:"#c85a94"}
       ],
       flavor: [
         {id:"spark",name:"星火糖浆",icon:"✨",tags:["hope","sweet"]},
         {id:"salt",name:"故乡海盐",icon:"◈",tags:["memory","honest"]},
         {id:"bitter",name:"暗面苦精",icon:"🌑",tags:["truth","bold"]},
-        {id:"milk",name:"云雾奶",icon:"☁️",tags:["gentle","calm"]}
+        {id:"milk",name:"云雾奶",icon:"☁️",tags:["gentle","calm"]},
+        {id:"citrus",name:"彗星柑橘",icon:"🍊",tags:["clear","hope"]}
       ],
       garnish: [
         {id:"cherry",name:"霓虹樱桃",icon:"🍒",tags:["hope","sweet"]},
         {id:"mint",name:"氧气薄荷",icon:"🌿",tags:["clear","calm"]},
         {id:"anise",name:"旧日八角",icon:"✦",tags:["memory","warm"]},
+        {id:"lemon",name:"环星柠檬",icon:"🍋",tags:["clear","truth"]},
         {id:"none",name:"什么也不放",icon:"○",tags:["plain","honest"]}
       ]
     };
@@ -336,7 +340,10 @@
       if(!selected.base||!selected.flavor||!selected.garnish)return"尚未完成";
       const names={
         "ember-salt-anise":"旧航线","tea-milk-anise":"安静故乡","lunar-spark-cherry":"新星",
-        "water-bitter-none":"真空回声","tea-spark-cherry":"明日来信","lunar-bitter-mint":"清醒梦"
+        "water-bitter-none":"真空回声","tea-spark-cherry":"明日来信","lunar-bitter-mint":"清醒梦",
+        "beer-salt-anise":"老船坞","beer-citrus-lemon":"日出航班","wine-spark-cherry":"粉色星云",
+        "wine-salt-anise":"远方来信","wine-bitter-none":"无名星","ember-citrus-lemon":"燃烧彗尾",
+        "lunar-citrus-mint":"零重力花园","tea-citrus-lemon":"清晨之前","water-spark-cherry":"透明愿望"
       };
       const key=`${selected.base}-${selected.flavor}-${selected.garnish}`;
       return names[key]||`${findItem("flavor",selected.flavor).name.slice(0,2)}·${findItem("base",selected.base).name}`;
@@ -408,7 +415,9 @@
       $("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;
     }
 
-    renderIngredients();refreshIntro();
+    renderIngredients();
+    $("combinationCount").textContent=`${ingredients.base.length*ingredients.flavor.length*ingredients.garnish.length} 种搭配`;
+    refreshIntro();
     $("ingredientRows").addEventListener("click",e=>{const btn=e.target.closest(".ingredient");if(btn)selectIngredient(btn)});
     $("serveBtn").addEventListener("click",serve);
     $("storyChoices").addEventListener("click",e=>{const btn=e.target.closest("[data-choice]");if(btn)choose(Number(btn.dataset.choice))});
