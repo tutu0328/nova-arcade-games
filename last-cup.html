@@ -129,13 +129,13 @@
       </section>
 
       <section class="panel bar-panel">
-        <div class="section-title"><h2>调制今晚的一杯</h2><small id="combinationCount">150 种搭配</small></div>
+        <div class="section-title"><h2>调制今晚的一杯</h2><small id="combinationCount">自由选料</small></div>
         <div class="recipe" id="ingredientRows"></div>
         <div class="glass-zone">
           <div class="glass"><div class="liquid" id="liquid"></div></div>
           <div>
             <div class="mix-name" id="drinkName">尚未完成</div>
-            <div class="mix-list" id="mixList">倾听客人的故事，再决定放进杯里的东西。</div>
+            <div class="mix-list" id="mixList">可以只放一种，也可以混合多种材料。</div>
           </div>
         </div>
         <button class="serve" id="serveBtn" disabled>端上这杯饮料</button>
@@ -294,7 +294,7 @@
 
     const defaultState = () => ({index:0,credits:0,empathy:0,edge:0,happy:0,trust:{},history:[],sound:true});
     let state = defaultState();
-    let selected = {base:null,flavor:null,garnish:null};
+    let selected = {base:[],flavor:[],garnish:[]};
     let audioContext;
     const $ = id => document.getElementById(id);
 
@@ -326,18 +326,19 @@
     function currentGuest(){return guests[Math.min(state.index,guests.length-1)]}
     function renderGuest(){
       const guest=currentGuest();
-      selected={base:null,flavor:null,garnish:null};
+      selected={base:[],flavor:[],garnish:[]};
       document.querySelectorAll(".ingredient").forEach(btn=>{btn.classList.remove("selected");btn.setAttribute("aria-pressed","false")});
       $("portrait").textContent=guest.icon;$("guestName").textContent=guest.name;$("guestRole").textContent=guest.role;
       $("dialogue").textContent=guest.story;$("hint").textContent=guest.hint;
       const trust=state.trust[guest.id]??50;$("trustText").textContent=trust;$("trustBar").style.width=`${trust}%`;
       $("nightHud").textContent=`${state.index+1} / ${guests.length}`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
-      $("drinkName").textContent="尚未完成";$("mixList").textContent="倾听客人的故事，再决定放进杯里的东西。";
+      $("drinkName").textContent="尚未完成";$("mixList").textContent="可以只放一种，也可以混合多种材料。";
       $("liquid").style.height="12%";$("serveBtn").disabled=true;$("notice").textContent="";
     }
     function findItem(group,id){return ingredients[group].find(item=>item.id===id)}
     function drinkName(){
-      if(!selected.base||!selected.flavor||!selected.garnish)return"尚未完成";
+      const total=Object.values(selected).reduce((sum,ids)=>sum+ids.length,0);
+      if(total===0)return"尚未完成";
       const names={
         "ember-salt-anise":"旧航线","tea-milk-anise":"安静故乡","lunar-spark-cherry":"新星",
         "water-bitter-none":"真空回声","tea-spark-cherry":"明日来信","lunar-bitter-mint":"清醒梦",
@@ -345,30 +346,37 @@
         "wine-salt-anise":"远方来信","wine-bitter-none":"无名星","ember-citrus-lemon":"燃烧彗尾",
         "lunar-citrus-mint":"零重力花园","tea-citrus-lemon":"清晨之前","water-spark-cherry":"透明愿望"
       };
-      const key=`${selected.base}-${selected.flavor}-${selected.garnish}`;
-      return names[key]||`${findItem("flavor",selected.flavor).name.slice(0,2)}·${findItem("base",selected.base).name}`;
+      if(selected.base.length===1&&selected.flavor.length===1&&selected.garnish.length===1){
+        const key=`${selected.base[0]}-${selected.flavor[0]}-${selected.garnish[0]}`;
+        if(names[key])return names[key];
+      }
+      const firstGroup=Object.entries(selected).find(([,ids])=>ids.length);
+      const first=findItem(firstGroup[0],firstGroup[1][0]);
+      return total===1?`纯粹·${first.name}`:`自由调制·${total}重奏`;
     }
     function updateMix(){
-      const picked=Object.entries(selected).filter(([,id])=>id).map(([group,id])=>findItem(group,id));
-      $("mixList").textContent=picked.length?picked.map(item=>item.name).join(" ＋ "):"倾听客人的故事，再决定放进杯里的东西。";
+      const picked=Object.entries(selected).flatMap(([group,ids])=>ids.map(id=>findItem(group,id)));
+      $("mixList").textContent=picked.length?picked.map(item=>item.name).join(" ＋ "):"可以只放一种，也可以混合多种材料。";
       $("drinkName").textContent=drinkName();
-      $("liquid").style.height=`${12+picked.length*25}%`;
-      if(selected.base)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base).color},#59355f)`;
-      $("serveBtn").disabled=picked.length!==3;
+      $("liquid").style.height=`${Math.min(92,12+picked.length*16)}%`;
+      if(selected.base.length)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base[0]).color},#59355f)`;
+      $("serveBtn").disabled=picked.length===0;
     }
     function selectIngredient(btn){
-      const {group,id}=btn.dataset; selected[group]=id;tone(360+Object.keys(ingredients).indexOf(group)*90);
-      document.querySelectorAll(`[data-group="${group}"]`).forEach(node=>{const on=node===btn;node.classList.toggle("selected",on);node.setAttribute("aria-pressed",String(on))});
+      const {group,id}=btn.dataset, list=selected[group], existing=list.indexOf(id);
+      if(existing>=0)list.splice(existing,1);else list.push(id);
+      const on=existing<0;tone(on?360+Object.keys(ingredients).indexOf(group)*90:240);
+      btn.classList.toggle("selected",on);btn.setAttribute("aria-pressed",String(on));
       $("notice").textContent="";updateMix();
     }
     function evaluateDrink(){
       const guest=currentGuest(), tags=[];
-      Object.entries(selected).forEach(([group,id])=>tags.push(...findItem(group,id).tags));
+      Object.entries(selected).forEach(([group,ids])=>ids.forEach(id=>tags.push(...findItem(group,id).tags)));
       const matched=new Set(guest.wants.filter(tag=>tags.includes(tag))).size;
       return matched>=2?"good":matched===1?"okay":"bad";
     }
     function serve(){
-      if(Object.values(selected).some(v=>!v)){$("notice").textContent="请从三个栏目各选择一种。";return}
+      if(Object.values(selected).every(ids=>ids.length===0)){$("notice").textContent="至少选择一种材料。";return}
       const guest=currentGuest(), result=evaluateDrink();
       const delta=result==="good"?25:result==="okay"?8:-12;
       state.trust[guest.id]=Math.max(0,Math.min(100,(state.trust[guest.id]??50)+delta));
@@ -416,7 +424,7 @@
     }
 
     renderIngredients();
-    $("combinationCount").textContent=`${ingredients.base.length*ingredients.flavor.length*ingredients.garnish.length} 种搭配`;
+    $("combinationCount").textContent=`${ingredients.base.length+ingredients.flavor.length+ingredients.garnish.length} 种材料 · 自由选料`;
     refreshIntro();
     $("ingredientRows").addEventListener("click",e=>{const btn=e.target.closest(".ingredient");if(btn)selectIngredient(btn)});
     $("serveBtn").addEventListener("click",serve);
