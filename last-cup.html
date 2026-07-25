@@ -536,6 +536,23 @@
       else if(shakeGrade==="fair"&&result==="good")result="okay";
       return result;
     }
+    function buildCritique(result){
+      if(result==="good")return"";
+      const guest=currentGuest(),tags=[];
+      Object.entries(selected).forEach(([group,ids])=>ids.forEach(id=>tags.push(...findItem(group,id).tags)));
+      const total=Object.values(selected).reduce((sum,ids)=>sum+ids.length,0);
+      const tagNames={warm:"温暖",memory:"怀旧",gentle:"柔和",clear:"清爽",hope:"有希望",bold:"强烈",truth:"苦涩真实",honest:"坦率",plain:"朴素",sweet:"甜",calm:"平静",bitter:"苦"};
+      const issues=[];
+      if(total>activeTaste.maxIngredients)issues.push(`你放了 ${total} 种材料，我最多只能接受 ${activeTaste.maxIngredients} 种`);
+      if(activeTaste.noAlcohol&&selected.base.some(id=>["ember","lunar","beer","wine"].includes(id)))issues.push("我明确说过不能喝含酒精的基底");
+      const disliked=[...new Set(activeTaste.dislikes.filter(tag=>tags.includes(tag)))];
+      if(disliked.length)issues.push(`杯里出现了我不喜欢的${disliked.map(tag=>tagNames[tag]).join("、")}味道`);
+      if(shakeGrade==="poor")issues.push(shakeDuration<requiredShake()?"摇得太短，材料没有融合":"摇得太久，原本的风味被破坏了");
+      const matched=activeTaste.wants.filter(tag=>tags.includes(tag));
+      if(matched.length===0)issues.push("这杯完全没有碰到我今天想要的风味方向");
+      if(!issues.length&&result!=="good")issues.push("方向接近，但风味之间还不够协调");
+      return`\n\n${guest.name}指出问题：${issues.join("；")}。`;
+    }
     function serve(){
       if(Object.values(selected).every(ids=>ids.length===0)){$("notice").textContent="至少选择一种材料。";return}
       if(!shakeGrade){$("notice").textContent="需要先长按摇酒，再松开停止。";return}
@@ -550,7 +567,7 @@
       save();tone(result==="bad"?180:result==="good"?620:440,.14);
       const labels={good:["✦","你听懂了客人"],okay:["◌","味道留下了余地"],bad:["×","这杯没有说中"],complaint:["!","客人正式投诉"]};
       $("reactionIcon").textContent=labels[result][0];$("reactionTitle").textContent=`${labels[result][1]} · ${drinkName()}`;
-      $("reactionCopy").textContent=guest.reactions[result]||"客人拒绝了这杯混乱的饮料：材料太多，或者放进了他明确不喜欢的味道。信用点已被扣除。";
+      $("reactionCopy").textContent=(guest.reactions[result]||"客人拒绝了这杯混乱的饮料。")+buildCritique(result);
       $("storyChoices").innerHTML=guest.choices.map((choice,i)=>`<button class="story-choice" data-choice="${i}">${choice.text}</button>`).join("");
       $("reactionOverlay").classList.remove("hidden");
     }
