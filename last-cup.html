@@ -42,7 +42,7 @@
       linear-gradient(90deg,transparent 4%,#191326 4% 11%,transparent 11% 15%,#21152e 15% 25%,transparent 25% 30%,#151124 30% 44%,transparent 44% 48%,#22162e 48% 62%,transparent 62% 68%,#171126 68% 82%,transparent 82% 86%,#23152e 86% 97%,transparent 97%)}
     .city:after{content:"";position:absolute;inset:14px 5% 0;background:repeating-linear-gradient(90deg,transparent 0 16px,rgba(98,233,255,.5) 17px 19px,transparent 20px 34px)}
     .guest{display:grid;grid-template-columns:132px 1fr;gap:20px;padding:24px 28px 10px;align-items:center}
-    .portrait{width:132px;height:150px;display:grid;place-items:center;font-size:76px;border:1px solid var(--line);border-radius:14px 14px 42px 42px;background:linear-gradient(145deg,rgba(98,233,255,.12),rgba(255,116,189,.12));box-shadow:inset 0 0 30px rgba(255,255,255,.04)}
+    .portrait{width:132px;height:150px;border:1px solid var(--line);border-radius:14px 14px 42px 42px;background-color:#120d20;background-image:url("assets/last-cup-portraits.png");background-size:300% 200%;background-repeat:no-repeat;box-shadow:inset 0 0 30px rgba(255,255,255,.04),0 8px 28px rgba(0,0,0,.28)}
     .eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.14em}
     h1,h2,p{margin:0}.guest h2{font-size:28px;margin:8px 0}.role{color:var(--muted);font-size:13px}
     .trust{margin-top:14px}.trust-label{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
@@ -113,7 +113,7 @@
       <section class="panel guest-stage">
         <div class="window"><div class="planet"></div><div class="city"></div></div>
         <div class="guest">
-          <div class="portrait" id="portrait" aria-hidden="true">🧑‍🚀</div>
+          <div class="portrait" id="portrait" role="img" aria-label="当前客人的2D人物肖像"></div>
           <div>
             <div class="eyebrow">今晚的客人 / GUEST</div>
             <h2 id="guestName">—</h2>
@@ -149,7 +149,7 @@
       <div class="kicker">NOVA ARCADE PRESENTS</div>
       <h1 class="title">最后一杯</h1>
       <div class="subtitle">ONE LAST CUP</div>
-      <p class="intro-copy">宇宙边缘的中转站即将永久熄灯。你是酒馆最后一任店主。五位旅人、五段没有说完的故事——听懂他们，再把答案调进杯里。</p>
+      <p class="intro-copy">宇宙边缘的中转站即将永久熄灯。你是酒馆最后一任店主。今晚还会出现一位要求苛刻的特殊客人——听懂他们，再把答案调进杯里。</p>
       <div class="actions">
         <button class="primary" id="startBtn">开始最后五夜</button>
         <button class="secondary hidden" id="continueBtn">继续营业</button>
@@ -216,9 +216,9 @@
     const groupNames = {base:"基底 / BASE",flavor:"风味 / FLAVOR",garnish:"点缀 / GARNISH"};
     const guests = [
       {
-        id:"veteran",name:"伊凡",role:"退役护航兵 · 不再佩枪",icon:"🧔",
+        id:"veteran",name:"伊凡",role:"退役护航兵 · 不再佩枪",portraitPos:"0% 0%",
         story:"“我以前每天都听见警报。战争结束三年了，可一安静下来，我反而睡不着。今晚别给我庆功酒，我只想记起回家是什么感觉。”",
-        hint:"他不需要刺激，更想要温暖与旧日记忆。",wants:["warm","memory","gentle"],
+        hint:"他不需要刺激，更想要温暖与旧日记忆。",wants:["warm","memory","gentle"],dislikes:["clear","truth"],maxIngredients:4,
         reactions:{
           good:"热气像一张旧毯子盖住伊凡的肩。他闭上眼，第一次没有去摸腰间早已不存在的枪。",
           okay:"他慢慢喝下去。不是答案，但至少今夜的警报声远了一点。",
@@ -230,9 +230,9 @@
         ]
       },
       {
-        id:"courier",name:"米拉",role:"禁区信使 · 追踪编号 07",icon:"🧑‍🚀",
+        id:"courier",name:"米拉",role:"禁区信使 · 追踪编号 07",portraitPos:"50% 0%",
         story:"“货舱里不是违禁品，是十二封没能送达的信。检查站要我烧掉它们。可如果一封信永远到不了，它还算有人说过的话吗？”",
-        hint:"她想保持清醒，也需要一点敢于继续的希望。",wants:["clear","hope","bold"],
+        hint:"她想保持清醒，也需要一点敢于继续的希望。",wants:["clear","hope","bold"],dislikes:["sweet","plain"],maxIngredients:4,
         reactions:{
           good:"杯里的微光像一条新的航线。米拉把信件坐标同步进导航仪。",
           okay:"她喝了一口，仍在犹豫，但没有删除那些地址。",
@@ -244,9 +244,9 @@
         ]
       },
       {
-        id:"ai",name:"终端九号",role:"退役空间站服务智能",icon:"🤖",
+        id:"ai",name:"终端九号",role:"退役空间站服务智能",portraitPos:"100% 0%",
         story:"“明天零点，我的主机将格式化。维护员说程序不会害怕。但我保存着八千六百二十一次日出。我不确定，舍不得删除算不算害怕。”",
-        hint:"它不要漂亮谎话，只想得到清楚、诚实的回答。",wants:["honest","truth","clear"],
+        hint:"它不要漂亮谎话，只想得到清楚、诚实的回答。",wants:["honest","truth","clear"],dislikes:["sweet","warm"],maxIngredients:3,
         reactions:{
           good:"终端九号分析杯中最简单的味道，然后第一次把停顿称作‘舍不得’。",
           okay:"它记录了风味参数，却仍无法给自己的感觉命名。",
@@ -258,9 +258,9 @@
         ]
       },
       {
-        id:"android",name:"露卡",role:"逃亡仿生人 · 无登记姓名",icon:"🦾",
+        id:"android",name:"露卡",role:"逃亡仿生人 · 无登记姓名",portraitPos:"0% 100%",
         story:"“工厂给我的名字是装配单号。我偷走一具报废身体，才第一次拥有一张脸。大家都问我是谁——可我现在只知道，我不想再是谁的东西。”",
-        hint:"她需要一个温柔而真实的选择，不想再被强迫。",wants:["gentle","honest","hope"],
+        hint:"她需要一个温柔而真实的选择，不想再被强迫。",wants:["gentle","honest","hope"],dislikes:["bold","bitter"],maxIngredients:4,
         reactions:{
           good:"露卡双手捧杯，像捧住一件真正属于自己的东西。她为自己选中了‘露卡’这个名字。",
           okay:"她认真记住味道。至少这一次，选择杯子的是她自己。",
@@ -272,9 +272,24 @@
         ]
       },
       {
-        id:"last",name:"无名旅人",role:"酒馆最后一位客人",icon:"🧥",
+        id:"critic",name:"赫兹女士",role:"特殊客人 · 星港餐饮监察官",portraitPos:"50% 100%",
+        story:"“匿名抽查。别因为我是监察官就讨好我——我讨厌甜味，也不能碰酒精。杯里超过两样东西，我会认为你在掩盖问题。”",
+        hint:"她说得很清楚：不要酒精、不要甜味、最多两种材料。违反要求会正式投诉。",wants:["clear","honest","plain"],dislikes:["sweet","bold","warm"],maxIngredients:2,noAlcohol:true,
+        reactions:{
+          good:"赫兹女士检查杯沿，又喝了一口：克制、清楚，而且你确实听进去了。她在报告上盖下“优秀”。",
+          okay:"她没有表扬，只在表格上写下“合格”。对一位监察官而言，这已经不算坏消息。",
+          bad:"她把杯子推回原位：你避开了违规项，但完全没有理解我的需要。",
+          complaint:"她一口也没喝便亮出投诉终端：要求已经说得很清楚。酒馆被扣除信用点，并收到一张正式警告。"
+        },
+        choices:[
+          {text:"“投诉我接受，但请把具体问题留在报告里。”",empathy:1,edge:0,reply:"她补上详细意见：愿意听差评的店，至少还有改好的可能。"},
+          {text:"“最后一夜了，规章也该偶尔为人让路。”",empathy:0,edge:2,reply:"她收起终端：我不同意。但我会记住你敢当面说这句话。"}
+        ]
+      },
+      {
+        id:"last",name:"无名旅人",role:"酒馆最后一位客人",portraitPos:"100% 100%",
         story:"“车站已经空了。你替所有人调了一杯，却一直没问自己想喝什么。灯灭以后，你准备去哪里，店主？”",
-        hint:"这是最后一杯。没有标准配方——选出最像你一路所做选择的味道。",wants:["memory","honest","hope"],
+        hint:"这是最后一杯。没有标准配方——选出最像你一路所做选择的味道。",wants:["memory","honest","hope"],dislikes:[],maxIngredients:6,
         reactions:{
           good:"旅人把杯子推回你面前。你终于发现，这一杯从来就是为自己调的。",
           okay:"旅人与你分喝这杯不完美的饮料。最后一夜，也因此不必完美。",
@@ -328,7 +343,9 @@
       const guest=currentGuest();
       selected={base:[],flavor:[],garnish:[]};
       document.querySelectorAll(".ingredient").forEach(btn=>{btn.classList.remove("selected");btn.setAttribute("aria-pressed","false")});
-      $("portrait").textContent=guest.icon;$("guestName").textContent=guest.name;$("guestRole").textContent=guest.role;
+      $("portrait").style.backgroundPosition=guest.portraitPos;
+      $("portrait").setAttribute("aria-label",`${guest.name}的2D人物肖像`);
+      $("guestName").textContent=guest.name;$("guestRole").textContent=guest.role;
       $("dialogue").textContent=guest.story;$("hint").textContent=guest.hint;
       const trust=state.trust[guest.id]??50;$("trustText").textContent=trust;$("trustBar").style.width=`${trust}%`;
       $("nightHud").textContent=`${state.index+1} / ${guests.length}`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
@@ -373,20 +390,24 @@
       const guest=currentGuest(), tags=[];
       Object.entries(selected).forEach(([group,ids])=>ids.forEach(id=>tags.push(...findItem(group,id).tags)));
       const matched=new Set(guest.wants.filter(tag=>tags.includes(tag))).size;
-      return matched>=2?"good":matched===1?"okay":"bad";
+      const conflicts=new Set((guest.dislikes||[]).filter(tag=>tags.includes(tag))).size;
+      const total=Object.values(selected).reduce((sum,ids)=>sum+ids.length,0);
+      const alcohol=selected.base.some(id=>["ember","lunar","beer","wine"].includes(id));
+      if(total>(guest.maxIngredients||4)||conflicts>=2||(guest.noAlcohol&&alcohol))return"complaint";
+      return matched>=2&&conflicts===0?"good":matched===1&&conflicts<=1?"okay":"bad";
     }
     function serve(){
       if(Object.values(selected).every(ids=>ids.length===0)){$("notice").textContent="至少选择一种材料。";return}
       const guest=currentGuest(), result=evaluateDrink();
-      const delta=result==="good"?25:result==="okay"?8:-12;
+      const delta=result==="good"?25:result==="okay"?8:result==="complaint"?-25:-12;
       state.trust[guest.id]=Math.max(0,Math.min(100,(state.trust[guest.id]??50)+delta));
-      state.credits+=result==="good"?30:result==="okay"?18:8;
+      state.credits=Math.max(0,state.credits+(result==="good"?30:result==="okay"?18:result==="complaint"?-20:8));
       if(result==="good"){state.empathy+=1;state.happy+=1}
       state.history.push({guest:guest.id,drink:drinkName(),result});
       save();tone(result==="bad"?180:result==="good"?620:440,.14);
-      const labels={good:["✦","你听懂了他"],okay:["◌","味道留下了余地"],bad:["×","这杯没有说中"]};
+      const labels={good:["✦","你听懂了客人"],okay:["◌","味道留下了余地"],bad:["×","这杯没有说中"],complaint:["!","客人正式投诉"]};
       $("reactionIcon").textContent=labels[result][0];$("reactionTitle").textContent=`${labels[result][1]} · ${drinkName()}`;
-      $("reactionCopy").textContent=guest.reactions[result];
+      $("reactionCopy").textContent=guest.reactions[result]||"客人拒绝了这杯混乱的饮料：材料太多，或者放进了他明确不喜欢的味道。信用点已被扣除。";
       $("storyChoices").innerHTML=guest.choices.map((choice,i)=>`<button class="story-choice" data-choice="${i}">${choice.text}</button>`).join("");
       $("reactionOverlay").classList.remove("hidden");
     }

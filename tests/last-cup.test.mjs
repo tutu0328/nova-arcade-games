@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {existsSync, readFileSync, statSync} from "node:fs";
 import {test} from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -15,9 +15,9 @@ test("游戏脚本语法有效", () => {
   assert.doesNotThrow(() => new Function(script));
 });
 
-test("核心循环包含五位客人和三段调制", () => {
+test("核心循环包含普通、特殊客人和三类材料", () => {
   assert.match(game, /const guests = \[/);
-  for (const id of ["veteran", "courier", "ai", "android", "last"]) {
+  for (const id of ["veteran", "courier", "ai", "android", "critic", "last"]) {
     assert.match(game, new RegExp(`id:"${id}"`));
   }
   for (const group of ["base", "flavor", "garnish"]) {
@@ -25,6 +25,30 @@ test("核心循环包含五位客人和三段调制", () => {
   }
   assert.match(game, /function serve\(\)/);
   assert.match(game, /function choose\(index\)/);
+});
+
+test("特殊客人会因违背要求投诉并扣除信用点", () => {
+  assert.match(game, /id:"critic"/);
+  assert.match(game, /noAlcohol:true/);
+  assert.match(game, /maxIngredients:2/);
+  assert.match(game, /return"complaint"/);
+  assert.match(game, /客人正式投诉/);
+  assert.match(game, /result==="complaint"\?-20/);
+});
+
+test("六位客人使用真实2D人物图片而不是表情符号", () => {
+  const portraits = new URL("assets/last-cup-portraits.png", root);
+  assert.ok(existsSync(portraits));
+  assert.ok(statSync(portraits).size > 100_000);
+  assert.match(game, /background-image:url\("assets\/last-cup-portraits\.png"\)/);
+  assert.equal((game.match(/portraitPos:"/g) ?? []).length, 6);
+  assert.doesNotMatch(game, /guest\.icon/);
+});
+
+test("乱加材料不能保证客人满意", () => {
+  assert.match(game, /guest\.dislikes/);
+  assert.match(game, /total>\(guest\.maxIngredients/);
+  assert.match(game, /conflicts>=2/);
 });
 
 test("酒水材料扩充且能产生至少 150 种基础搭配", () => {
