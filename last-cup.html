@@ -51,6 +51,7 @@
     .dialogue:before{content:"客人的故事";display:block;color:var(--pink);font-size:11px;letter-spacing:.12em;margin-bottom:8px}
     .hint{margin:auto 28px 24px;padding:13px 16px;border:1px dashed rgba(255,197,110,.35);color:#e8cfa5;font-size:12px;line-height:1.65;border-radius:10px}
     .hint b{color:var(--gold)}
+    .ask{margin-top:10px;border:1px solid rgba(255,197,110,.4);border-radius:8px;background:transparent;color:var(--gold);padding:8px 11px;cursor:pointer}
     .bar-panel{padding:24px}
     .section-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
     .section-title h2{font-size:20px}.section-title small{color:var(--muted)}
@@ -68,6 +69,10 @@
     .mix-name{font-size:18px;font-weight:800}.mix-list{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.7}
     .serve{width:100%;margin-top:15px;padding:14px;border:0;border-radius:10px;color:#170b18;background:linear-gradient(90deg,var(--pink),var(--gold));font-weight:900;cursor:pointer;box-shadow:0 10px 30px rgba(255,116,189,.18)}
     .serve:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
+    .shake{width:100%;margin-top:15px;padding:14px;border:1px solid var(--cyan);border-radius:10px;color:var(--cyan);background:rgba(98,233,255,.07);font-weight:900;cursor:pointer;touch-action:none;user-select:none}
+    .shake:disabled{opacity:.35;cursor:not-allowed}.shake.active{animation:shaker .11s infinite alternate;background:rgba(98,233,255,.2)}
+    .shake-status{text-align:center;color:var(--muted);font-size:11px;min-height:18px;margin-top:8px}
+    @keyframes shaker{from{transform:translateX(-5px) rotate(-1deg)}to{transform:translateX(5px) rotate(1deg)}}
     .notice{height:20px;margin-top:9px;text-align:center;color:var(--red);font-size:11px}
     .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:rgba(5,4,10,.82);backdrop-filter:blur(15px)}
     .card{width:min(680px,100%);border:1px solid var(--line);border-radius:22px;background:#171023;box-shadow:var(--shadow);padding:clamp(28px,6vw,58px);text-align:center;position:relative;overflow:hidden}
@@ -101,9 +106,10 @@
     <a class="back" href="index.html">← 游戏库</a>
     <div class="brand">ONE LAST <span>CUP</span></div>
     <div class="hud">
-      <div>夜次<b id="nightHud">1 / 5</b></div>
+      <div>营业日<b id="nightHud">第 1 天</b></div>
       <div class="optional">信用点<b id="creditHud">0</b></div>
       <div>共鸣<b id="empathyHud">0</b></div>
+      <div>口碑<b id="reputationHud">70</b></div>
     </div>
     <button class="sound" id="soundBtn" aria-label="切换声音">声音：开</button>
   </header>
@@ -125,7 +131,7 @@
           </div>
         </div>
         <p class="dialogue" id="dialogue"></p>
-        <div class="hint"><b>观察笔记：</b><span id="hint"></span></div>
+        <div class="hint"><b>观察笔记：</b><span id="hint"></span><br><button class="ask" id="askBtn">追问一点口味</button></div>
       </section>
 
       <section class="panel bar-panel">
@@ -138,6 +144,8 @@
             <div class="mix-list" id="mixList">可以只放一种，也可以混合多种材料。</div>
           </div>
         </div>
+        <button class="shake" id="shakeBtn" disabled>按住摇酒 · 松开停止</button>
+        <div class="shake-status" id="shakeStatus">选好材料后才能摇制</div>
         <button class="serve" id="serveBtn" disabled>端上这杯饮料</button>
         <div class="notice" id="notice" aria-live="polite"></div>
       </section>
@@ -149,9 +157,9 @@
       <div class="kicker">NOVA ARCADE PRESENTS</div>
       <h1 class="title">最后一杯</h1>
       <div class="subtitle">ONE LAST CUP</div>
-      <p class="intro-copy">宇宙边缘的中转站即将永久熄灯。你是酒馆最后一任店主。今晚还会出现一位要求苛刻的特殊客人——听懂他们，再把答案调进杯里。</p>
+      <p class="intro-copy">宇宙边缘的中转站不会入睡。40 位旅人会带着不同故事、口味和禁忌推门而入。酒馆可以无限营业，但口碑一旦降到 0，一切就结束了。</p>
       <div class="actions">
-        <button class="primary" id="startBtn">开始最后五夜</button>
+        <button class="primary" id="startBtn">开始无限营业</button>
         <button class="secondary hidden" id="continueBtn">继续营业</button>
         <button class="secondary hidden" id="resetBtn">清除记录</button>
       </div>
@@ -196,25 +204,41 @@
         {id:"tea",name:"静默茶",icon:"🍵",tags:["gentle","memory"],color:"#9fc86c"},
         {id:"water",name:"纯净水",icon:"💧",tags:["honest","plain"],color:"#83cfff"},
         {id:"beer",name:"等离子啤酒",icon:"🍺",tags:["warm","hope"],color:"#f4b84e"},
-        {id:"wine",name:"星云葡萄酒",icon:"🍷",tags:["sweet","memory"],color:"#c85a94"}
+        {id:"wine",name:"星云葡萄酒",icon:"🍷",tags:["sweet","memory"],color:"#c85a94"},
+        {id:"rum",name:"太阳帆朗姆",icon:"🟠",tags:["warm","sweet"],color:"#d7783d"},
+        {id:"sake",name:"月桂清酒",icon:"🍶",tags:["clear","memory"],color:"#d7e9ef"},
+        {id:"coffee",name:"黑洞咖啡",icon:"☕",tags:["bold","bitter"],color:"#5c3b32"},
+        {id:"soda",name:"离子苏打",icon:"🥤",tags:["clear","hope"],color:"#5ce4e6"},
+        {id:"cocoa",name:"舱室可可",icon:"🟤",tags:["warm","gentle"],color:"#8d573d"},
+        {id:"nectar",name:"星花蜜露",icon:"🌸",tags:["sweet","gentle"],color:"#e879bd"}
       ],
       flavor: [
         {id:"spark",name:"星火糖浆",icon:"✨",tags:["hope","sweet"]},
         {id:"salt",name:"故乡海盐",icon:"◈",tags:["memory","honest"]},
         {id:"bitter",name:"暗面苦精",icon:"🌑",tags:["truth","bold"]},
         {id:"milk",name:"云雾奶",icon:"☁️",tags:["gentle","calm"]},
-        {id:"citrus",name:"彗星柑橘",icon:"🍊",tags:["clear","hope"]}
+        {id:"citrus",name:"彗星柑橘",icon:"🍊",tags:["clear","hope"]},
+        {id:"pepper",name:"火星胡椒",icon:"🌶️",tags:["bold","warm"]},
+        {id:"vanilla",name:"真空香草",icon:"🌼",tags:["sweet","gentle"]},
+        {id:"herb",name:"舷窗香草",icon:"🌱",tags:["clear","honest"]},
+        {id:"smoke",name:"陨石烟熏",icon:"🌫️",tags:["memory","bitter"]},
+        {id:"plum",name:"暗星酸梅",icon:"🫐",tags:["truth","memory"]}
       ],
       garnish: [
         {id:"cherry",name:"霓虹樱桃",icon:"🍒",tags:["hope","sweet"]},
         {id:"mint",name:"氧气薄荷",icon:"🌿",tags:["clear","calm"]},
         {id:"anise",name:"旧日八角",icon:"✦",tags:["memory","warm"]},
         {id:"lemon",name:"环星柠檬",icon:"🍋",tags:["clear","truth"]},
-        {id:"none",name:"什么也不放",icon:"○",tags:["plain","honest"]}
+        {id:"none",name:"什么也不放",icon:"○",tags:["plain","honest"]},
+        {id:"ice",name:"彗尾碎冰",icon:"🧊",tags:["clear","plain"]},
+        {id:"pearl",name:"月光珍珠",icon:"⚪",tags:["sweet","hope"]},
+        {id:"flower",name:"星兰花瓣",icon:"🌺",tags:["gentle","hope"]},
+        {id:"cinnamon",name:"太阳肉桂",icon:"🪵",tags:["warm","bold"]},
+        {id:"crystal",name:"盐晶薄片",icon:"🔹",tags:["honest","memory"]}
       ]
     };
     const groupNames = {base:"基底 / BASE",flavor:"风味 / FLAVOR",garnish:"点缀 / GARNISH"};
-    const guests = [
+    const coreGuests = [
       {
         id:"veteran",name:"伊凡",role:"退役护航兵 · 不再佩枪",portraitPos:"0% 0%",
         story:"“我以前每天都听见警报。战争结束三年了，可一安静下来，我反而睡不着。今晚别给我庆功酒，我只想记起回家是什么感觉。”",
@@ -301,15 +325,73 @@
         ]
       }
     ];
+    const extraGuestSpecs = [
+      ["diver","澜","深海信号潜水员",2,0,"“海底的信号一直喊我的名字。队里说那只是声呐回波，可回波不会知道我小时候的昵称。”","她刚离开高压舱，需要安静、清醒的味道。",["calm","clear","honest"],["bold","sweet"],3],
+      ["racer","凯恩","霓虹漂移赛车手",2,1,"“我赢了今晚的比赛，却发现终点没有人在等。速度能甩掉对手，甩不掉空座位。”","他外表张扬，此刻却不想再被强烈味道推着走。",["calm","gentle","memory"],["bold","truth"],4],
+      ["botanist","阿瑟婆婆","轨道植物学家",2,2,"“最后一株地球薄荷开花了。我该把种子卖给富人，还是撒进没人拥有的风里？”","她偏爱自然、清新与带着希望的味道。",["clear","hope","gentle"],["bitter","bold"],3],
+      ["musician","罗谟","记忆走私者兼电台乐手",2,3,"“这段旋律属于一个已经被删除的人。公司说播放它就是盗窃，我觉得遗忘才是。”","他想要旧日回声，但讨厌粉饰过的甜蜜。",["memory","truth","warm"],["sweet","plain"],4],
+      ["miner","塔莎","小行星矿工",3,0,"“矿脉塌了，我是唯一出来的人。大家叫我幸运，可幸运为什么这么沉？”","她需要直接、温暖的味道，不能太复杂。",["warm","honest","bold"],["sweet","clear"],3],
+      ["chef","诺亚","月面餐厅学徒厨师",3,1,"“我能记住三百道菜，却在监察官面前尝不出盐。也许我根本不配掌勺。”","他的味觉疲惫，喜欢清楚而克制的组合。",["clear","plain","gentle"],["bold","sweet"],2],
+      ["diplomat","萨伊拉","外星联合体外交官",3,2,"“我的翻译器能说四千种语言，却翻不出一句真诚的道歉。”","她厌恶虚假的甜，重视坦率与分寸。",["truth","honest","calm"],["sweet","bold"],3],
+      ["medic","周医生","空间站急救医生",3,3,"“我救下所有轮班工人，却忘了自己的手已经抖了三天。”","他不能再受刺激，需要平静和温和。",["calm","gentle","plain"],["bold","bitter"],3],
+      ["artist","琉璃","全息涂鸦艺术家",3,4,"“我把天空画在公司外墙上。他们说那叫破坏，我说没有窗的城市才是。”","她要明亮、敢越界的味道，不喜欢平淡。",["hope","bold","clear"],["plain","memory"],4],
+      ["funeral","沈砚","星际葬礼领航员",3,5,"“今天我送走第九百艘船。每个人都有告别词，只有领航员不能回头。”","他偏爱安静、旧日和不加掩饰的滋味。",["memory","calm","honest"],["sweet","bold"],3],
+      ["captain","薇拉","远洋货运船长",4,0,"“全船投票要返航，只有我知道返航意味着公司会没收他们的一切。”","她需要清醒和勇气，不接受软弱的甜味。",["clear","bold","truth"],["sweet","gentle"],4],
+      ["clockmaker","欧文","机械钟修复师",4,1,"“我修得好所有停摆的钟，却修不好孙女留给我的最后一分钟录音。”","旧物和温度能让他放松，刺激会令他不适。",["memory","warm","gentle"],["bold","clear"],3],
+      ["geologist","七濑","冰月地质学家",4,2,"“冰层下有一片会呼吸的海。公布它会带来科学家，也会带来钻机。”","她想保持清醒，也希望自己的决定诚实。",["clear","honest","hope"],["sweet","warm"],3],
+      ["judge","玛尔塔","轨道法庭法官",4,3,"“法律要求我驱逐一船难民。判决没有错，可我一整夜都不敢签名。”","她只接受克制、真实、不讨好的饮料。",["truth","plain","honest"],["sweet","hope"],2],
+      ["linguist","伊洛","异星语言学家",4,4,"“他们的语言没有‘拥有’，我们却用合同买下了他们的月亮。”","他喜欢清楚和反思，讨厌侵略性的烈味。",["clear","truth","calm"],["bold","warm"],3],
+      ["dancer","星子","零重力舞者",4,5,"“观众说我飞得像没有重量。没人知道，我的骨骼正在慢慢碎掉。”","她渴望柔和的希望，但不能接受苦味。",["gentle","hope","sweet"],["bitter","bold"],4],
+      ["keeper","老费恩","导航卫星守灯人",4,6,"“自动系统明天接管灯塔。我守了四十年，机器不需要我向迷航者说晚安。”","温暖与熟悉最适合他，冰冷的清醒会刺痛他。",["warm","memory","gentle"],["clear","truth"],3],
+      ["mechanic","小满","无人机维修师",4,7,"“我偷偷修好了一台被判废弃的陪伴机。它每天都问主人什么时候回来。”","她喜欢有希望又简单的味道。",["hope","honest","plain"],["bitter","bold"],3],
+      ["teacher","阿迪","流亡学校教师",4,8,"“教室只剩七个孩子。明天撤离船有六个位置，我得决定谁留下。”","他需要清醒的诚实，甜蜜安慰会让他生气。",["truth","honest","clear"],["sweet","warm"],2],
+      ["gambler","维奥拉","量子赌徒",4,9,"“我看过自己赢下整座城的概率，也看过输掉名字的概率。可我还是下注了。”","她喜欢大胆和未知，不耐烦平淡。",["bold","hope","truth"],["plain","gentle"],4],
+      ["cook","梅婶","退役舰队炊事员",4,10,"“战争时我每天做一千份饭。和平以后，却没人再记得那锅汤的味道。”","她喜欢朴素、温暖和回忆，讨厌花哨。",["warm","memory","plain"],["clear","bold"],3],
+      ["weather","陆青","穹顶天气技师",4,11,"“城里的人投票要永远晴天。我偷偷保留了一场雨，因为有人需要在雨里哭。”","他偏爱清澈、温柔和一点诚实。",["clear","gentle","honest"],["bold","sweet"],3],
+      ["archivist","白榆","禁书档案员",4,12,"“数据库命令我删除一万本危险的书。我先读了第一本，然后再也按不下确认。”","她要真相与记忆，不需要甜蜜掩饰。",["truth","memory","honest"],["sweet","plain"],3],
+      ["executive","顾沉","前企业董事",4,13,"“我签过裁撤这座站的文件。现在公司也裁掉了我。报应是不是一种公平？”","他需要苦涩的真实，不配得到过多安慰。",["truth","bitter","plain"],["sweet","hope"],3],
+      ["photographer","弥生","彗星摄影师",5,0,"“我追了十二年才拍到那颗彗星，照片却糊了。记忆里的它反而越来越清楚。”","她喜欢清澈、明亮和留住记忆的味道。",["clear","hope","memory"],["bitter","bold"],4],
+      ["vet","安德烈","合成宠物兽医",5,1,"“客户要求我重置一只机器狗，因为它还在等已经去世的主人。”","他重视温柔与诚实，不能接受刺激。",["gentle","honest","memory"],["bold","bitter"],3],
+      ["organizer","罗莎","矿区工会组织者",5,2,"“明天罢工。大家推我站在最前面，可我也害怕第一个失去工作。”","她需要勇气和希望，不喜欢回避问题。",["bold","hope","truth"],["plain","calm"],4],
+      ["monk","空野","星象修行者",5,3,"“我们观测到宇宙会终结。师父说接受无常，我却还是想多看一次日出。”","他偏爱安静、清澈与朴素。",["calm","clear","plain"],["bold","sweet"],2],
+      ["soundtech","诺克斯","夜店声音工程师",5,4,"“我的耳朵开始听不见高频，可整座城还等我让今晚响起来。”","她想要鲜明但不刺耳的希望。",["hope","clear","gentle"],["bitter","plain"],4],
+      ["navigator","巴洛","前海盗领航员",5,5,"“我记得每条秘密航道，却找不到女儿搬去的新住址。”","他喜欢旧日、温暖和坦率，不喝甜的。",["memory","warm","honest"],["sweet","clear"],3],
+      ["postclerk","苏菲","星际邮政分拣员",5,6,"“有一封信寄给五十年前的自己。规定说地址无效，但我知道时间邮局真的存在。”","她喜欢希望、记忆和清楚的选择。",["hope","memory","clear"],["bitter","bold"],4],
+      ["oxygen","泰奥","氧气农场技师",5,7,"“富人区要求提高氧气纯度，外环却已经有人喘不过气。”","他只接受朴素诚实的味道，讨厌奢侈甜味。",["plain","honest","truth"],["sweet","bold"],2],
+      ["sleep","莉安","深眠研究员",5,8,"“我替别人制造完美梦境，自己却连续一百天没有做梦。”","她需要温柔、平静，不要任何刺激。",["calm","gentle","memory"],["bold","bitter"],3],
+      ["poet","林墨","业余诗人",5,9,"“出版社说人类不再读诗。我把最后一首印在纸上，因为纸不会弹出广告。”","他喜欢诚实、记忆和微小的希望。",["honest","memory","hope"],["bold","sweet"],4]
+    ];
+    const sheetLayouts={2:[2,2],3:[3,2],4:[4,4],5:[5,2]};
+    function makeExtraGuest([id,name,role,sheet,p,story,hint,wants,dislikes,maxIngredients]){
+      const [cols,rows]=sheetLayouts[sheet],col=p%cols,row=Math.floor(p/cols);
+      return {
+        id,name,role,story,hint,wants,dislikes,maxIngredients,
+        portraitSheet:`assets/last-cup-guests-0${sheet}.png`,
+        portraitSize:`${cols*100}% ${rows*100}%`,
+        portraitPos:`${cols===1?0:col/(cols-1)*100}% ${rows===1?0:row/(rows-1)*100}%`,
+        reactions:{
+          good:`${name}认真喝完了这杯饮料。你没有猜中答案，而是真的听懂了话里的重量。`,
+          okay:`${name}又尝了一口：不算喜欢，但至少这杯没有忽略刚才说过的话。`,
+          bad:`${name}皱起眉，把杯子放远了一点：味道没有碰到真正想说的事情。`,
+          complaint:`${name}拒绝饮用并提交投诉：明确说过的禁忌被忽略了，或者杯里混入了太多东西。`
+        },
+        choices:[
+          {text:"“我听见了。你不必今晚就找出完整答案。”",empathy:2,edge:0,reply:`${name}安静了一会儿，肩膀终于不再绷得那么紧。`},
+          {text:"“如果规则只留下坏结局，也许该换一种走法。”",empathy:0,edge:2,reply:`${name}看向门外的航道：至少还有人愿意说出另一种可能。`}
+        ]
+      };
+    }
+    const guests=[...coreGuests,...extraGuestSpecs.map(makeExtraGuest)];
     const endings = {
       beacon:{mark:"✦",title:"把灯带走的人",copy:"酒馆熄灯后，你登上离站飞船。伊凡的军牌、米拉的信、九号的日出和露卡的名字，都成了新酒单的一部分。后来，人们说只要还有一杯饮料愿意听完一个故事，宇宙里就不算真正的黑夜。"},
       archive:{mark:"◉",title:"最后的守灯人",copy:"你留在旧站，把每位客人的故事写进航行日志。多年后，一艘迷航飞船捕捉到这里微弱的灯光。它找到的不只是一间酒馆，还有一份证明：曾经有人认真听过彼此。"},
       spark:{mark:"⚡",title:"越界的火种",copy:"你帮助旅人们越过规则留下的边界。信件抵达、数据逃生、名字获得自由。酒馆虽然消失，却成了地下航线的暗号——点一杯“最后一杯”，就代表这里愿意给你第二种选择。"}
     };
 
-    const defaultState = () => ({index:0,credits:0,empathy:0,edge:0,happy:0,trust:{},history:[],sound:true});
+    const defaultState = () => ({index:0,credits:0,empathy:0,edge:0,happy:0,reputation:70,trust:{},history:[],sound:true,failed:false});
     let state = defaultState();
     let selected = {base:[],flavor:[],garnish:[]};
+    let activeTaste=null,shakeStartedAt=0,shakeDuration=0,shakeGrade=null;
     let audioContext;
     const $ = id => document.getElementById(id);
 
@@ -338,19 +420,46 @@
           </button>`).join("")}
         </div></div>`).join("");
     }
-    function currentGuest(){return guests[Math.min(state.index,guests.length-1)]}
+    function currentGuest(){return guests[state.index%guests.length]}
+    function guestVisit(guest){return state.history.filter(entry=>entry.guest===guest.id).length}
+    function tasteFor(guest){
+      const visit=guestVisit(guest),cycle=["warm","memory","gentle","clear","hope","bold","truth","honest","plain","sweet","calm","bitter"];
+      if(visit===0)return{wants:[...guest.wants],dislikes:[...(guest.dislikes||[])],maxIngredients:guest.maxIngredients||4,noAlcohol:guest.noAlcohol};
+      const rotate=(tag,amount)=>cycle[(cycle.indexOf(tag)+amount+cycle.length)%cycle.length];
+      const wants=guest.wants.map(tag=>rotate(tag,visit));
+      const dislikes=(guest.dislikes||[]).map(tag=>rotate(tag,visit*2)).filter(tag=>!wants.includes(tag));
+      return{wants,dislikes,maxIngredients:Math.max(2,(guest.maxIngredients||4)+(visit%3)-1),noAlcohol:guest.noAlcohol&&visit%2===0};
+    }
+    function returnGreeting(guest){
+      const previous=[...state.history].reverse().find(entry=>entry.guest===guest.id);
+      if(!previous)return"";
+      const lines={
+        good:"“上次那杯我一直记得，所以又来了。不过今天想换一种感觉。”\n\n",
+        okay:"“上次那杯还算能喝。我再给你一次机会，今天我的口味不一样。”\n\n",
+        bad:"“上次的味道让我失望。听清楚一点，我今天不会勉强喝完。”\n\n",
+        complaint:"“我上次投诉过你。要不是别人说你改了，我不会再进这扇门。”\n\n"
+      };
+      return lines[previous.result]||"“我又来了，但今天别照搬上一次。”\n\n";
+    }
     function renderGuest(){
       const guest=currentGuest();
+      activeTaste=tasteFor(guest);
       selected={base:[],flavor:[],garnish:[]};
+      shakeStartedAt=0;shakeDuration=0;shakeGrade=null;
       document.querySelectorAll(".ingredient").forEach(btn=>{btn.classList.remove("selected");btn.setAttribute("aria-pressed","false")});
+      $("portrait").style.backgroundImage=`url("${guest.portraitSheet||"assets/last-cup-portraits.png"}")`;
+      $("portrait").style.backgroundSize=guest.portraitSize||"300% 200%";
       $("portrait").style.backgroundPosition=guest.portraitPos;
       $("portrait").setAttribute("aria-label",`${guest.name}的2D人物肖像`);
       $("guestName").textContent=guest.name;$("guestRole").textContent=guest.role;
-      $("dialogue").textContent=guest.story;$("hint").textContent=guest.hint;
+      $("dialogue").textContent=returnGreeting(guest)+guest.story;$("hint").textContent=guest.hint;
+      $("askBtn").disabled=false;$("askBtn").textContent="追问一点口味";
       const trust=state.trust[guest.id]??50;$("trustText").textContent=trust;$("trustBar").style.width=`${trust}%`;
-      $("nightHud").textContent=`${state.index+1} / ${guests.length}`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
+      $("nightHud").textContent=`第 ${state.index+1} 天 · ∞`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
+      $("reputationHud").textContent=state.reputation;
       $("drinkName").textContent="尚未完成";$("mixList").textContent="可以只放一种，也可以混合多种材料。";
-      $("liquid").style.height="12%";$("serveBtn").disabled=true;$("notice").textContent="";
+      $("liquid").style.height="12%";$("serveBtn").disabled=true;$("shakeBtn").disabled=true;
+      $("shakeStatus").textContent="选好材料后才能摇制";$("notice").textContent="";
     }
     function findItem(group,id){return ingredients[group].find(item=>item.id===id)}
     function drinkName(){
@@ -377,7 +486,8 @@
       $("drinkName").textContent=drinkName();
       $("liquid").style.height=`${Math.min(92,12+picked.length*16)}%`;
       if(selected.base.length)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base[0]).color},#59355f)`;
-      $("serveBtn").disabled=picked.length===0;
+      shakeGrade=null;shakeDuration=0;$("serveBtn").disabled=true;$("shakeBtn").disabled=picked.length===0;
+      $("shakeStatus").textContent=picked.length?`酒保直觉：这杯适合${requiredShake()<1500?"短摇":requiredShake()<2400?"中摇":"长摇"}`:"选好材料后才能摇制";
     }
     function selectIngredient(btn){
       const {group,id}=btn.dataset, list=selected[group], existing=list.indexOf(id);
@@ -386,22 +496,55 @@
       btn.classList.toggle("selected",on);btn.setAttribute("aria-pressed",String(on));
       $("notice").textContent="";updateMix();
     }
+    function requiredShake(){
+      const key=Object.values(selected).flat().sort().join("|");
+      let hash=0;for(const char of key)hash=(hash*31+char.charCodeAt(0))>>>0;
+      return 900+(hash%2200);
+    }
+    function startShake(event){
+      if($("shakeBtn").disabled||shakeStartedAt)return;
+      event.preventDefault();shakeStartedAt=performance.now();$("shakeBtn").classList.add("active");
+      $("shakeBtn").textContent="正在摇制……松开停止";$("shakeStatus").textContent="听冰块与杯壁的声音判断时机";tone(300,.08);
+      try{$("shakeBtn").setPointerCapture(event.pointerId)}catch(_){}
+    }
+    function stopShake(event){
+      if(!shakeStartedAt)return;
+      event.preventDefault();shakeDuration=performance.now()-shakeStartedAt;shakeStartedAt=0;$("shakeBtn").classList.remove("active");
+      const difference=Math.abs(shakeDuration-requiredShake());
+      shakeGrade=difference<=420?"perfect":difference<=900?"fair":"poor";
+      const label={perfect:"节奏恰到好处",fair:"摇制时间有一点偏差",poor:shakeDuration<requiredShake()?"摇得太短，风味没有融合":"摇得太久，风味已经发散"}[shakeGrade];
+      $("shakeBtn").textContent="重新长按摇制";$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · ${label}`;
+      $("serveBtn").disabled=false;tone(shakeGrade==="perfect"?680:shakeGrade==="fair"?430:190,.12);
+    }
+    function askTaste(){
+      const guest=currentGuest(),visit=guestVisit(guest);
+      const tagNames={warm:"温暖",memory:"怀旧",gentle:"柔和",clear:"清爽",hope:"有希望",bold:"强烈",truth:"苦涩真实",honest:"坦率",plain:"朴素",sweet:"甜",calm:"平静",bitter:"苦"};
+      const wanted=activeTaste.wants[visit%activeTaste.wants.length],avoided=activeTaste.dislikes[visit%Math.max(1,activeTaste.dislikes.length)];
+      $("hint").textContent=`${guest.name}补充说：“今天想要一点${tagNames[wanted]}的感觉${avoided?`，但别给我${tagNames[avoided]}的东西`:""}。”`;
+      $("askBtn").disabled=true;$("askBtn").textContent="已经追问过";tone(500,.08);
+    }
     function evaluateDrink(){
       const guest=currentGuest(), tags=[];
       Object.entries(selected).forEach(([group,ids])=>ids.forEach(id=>tags.push(...findItem(group,id).tags)));
-      const matched=new Set(guest.wants.filter(tag=>tags.includes(tag))).size;
-      const conflicts=new Set((guest.dislikes||[]).filter(tag=>tags.includes(tag))).size;
+      const matched=new Set(activeTaste.wants.filter(tag=>tags.includes(tag))).size;
+      const conflicts=new Set((activeTaste.dislikes||[]).filter(tag=>tags.includes(tag))).size;
       const total=Object.values(selected).reduce((sum,ids)=>sum+ids.length,0);
       const alcohol=selected.base.some(id=>["ember","lunar","beer","wine"].includes(id));
-      if(total>(guest.maxIngredients||4)||conflicts>=2||(guest.noAlcohol&&alcohol))return"complaint";
-      return matched>=2&&conflicts===0?"good":matched===1&&conflicts<=1?"okay":"bad";
+      if(total>activeTaste.maxIngredients||conflicts>=2||(activeTaste.noAlcohol&&alcohol))return"complaint";
+      let result=matched>=2&&conflicts===0?"good":matched===1&&conflicts<=1?"okay":"bad";
+      if(shakeGrade==="poor")result=result==="good"?"okay":"bad";
+      else if(shakeGrade==="fair"&&result==="good")result="okay";
+      return result;
     }
     function serve(){
       if(Object.values(selected).every(ids=>ids.length===0)){$("notice").textContent="至少选择一种材料。";return}
+      if(!shakeGrade){$("notice").textContent="需要先长按摇酒，再松开停止。";return}
       const guest=currentGuest(), result=evaluateDrink();
       const delta=result==="good"?25:result==="okay"?8:result==="complaint"?-25:-12;
       state.trust[guest.id]=Math.max(0,Math.min(100,(state.trust[guest.id]??50)+delta));
       state.credits=Math.max(0,state.credits+(result==="good"?30:result==="okay"?18:result==="complaint"?-20:8));
+      state.reputation=Math.max(0,Math.min(100,state.reputation+(result==="good"?6:result==="okay"?1:result==="complaint"?-20:-8)));
+      if(state.reputation===0)state.failed=true;
       if(result==="good"){state.empathy+=1;state.happy+=1}
       state.history.push({guest:guest.id,drink:drinkName(),result});
       save();tone(result==="bad"?180:result==="good"?620:440,.14);
@@ -415,22 +558,19 @@
       const guest=currentGuest(), choice=guest.choices[index];
       state.empathy+=choice.empathy;state.edge+=choice.edge;
       $("reactionTitle").textContent="你给出了回答";$("reactionCopy").textContent=choice.reply;
-      $("storyChoices").innerHTML=`<button class="primary" id="nextBtn">${state.index===guests.length-1?"看看灯灭以后":"送别客人，迎接下一夜"}</button>`;
+      $("storyChoices").innerHTML=`<button class="primary" id="nextBtn">${state.failed?"面对经营结果":"送别客人，继续营业"}</button>`;
       $("nextBtn").addEventListener("click",nextGuest);save();tone(520,.1);
     }
     function nextGuest(){
+      if(state.failed){$("reactionOverlay").classList.add("hidden");showFailure();return}
       state.index++;save();$("reactionOverlay").classList.add("hidden");
-      if(state.index>=guests.length){showEnding();return}
       renderGuest();window.scrollTo({top:0,behavior:"smooth"});
     }
-    function showEnding(){
-      let ending;
-      if(state.edge>=5)ending=endings.spark;
-      else if(state.empathy>=7)ending=endings.beacon;
-      else ending=endings.archive;
-      $("endingMark").textContent=ending.mark;$("endingTitle").textContent=ending.title;$("endingCopy").textContent=ending.copy;
+    function showFailure(){
+      $("endingMark").textContent="⚠";$("endingTitle").textContent="口碑归零 · 停止营业";
+      $("endingCopy").textContent=`酒馆在第 ${state.index+1} 天收到最后一份差评。客人不再推门，星港管理处收回了营业许可。重新开始后，请听清口味禁忌，也不要为了命中全部喜好而把所有材料倒进杯里。`;
       $("endEmpathy").textContent=state.empathy;$("endCredits").textContent=state.credits;$("endGuests").textContent=`${state.happy} / ${guests.length}`;
-      $("endingOverlay").classList.remove("hidden");localStorage.removeItem(SAVE_KEY);tone(700,.3);
+      $("endingOverlay").classList.remove("hidden");localStorage.removeItem(SAVE_KEY);tone(150,.35);
     }
     function begin(fresh){
       if(fresh)state=defaultState();
@@ -438,9 +578,9 @@
       renderGuest();save();
     }
     function refreshIntro(){
-      load();const hasSave=state.index>0&&state.index<guests.length;
+      load();const hasSave=state.index>0&&!state.failed;
       $("continueBtn").classList.toggle("hidden",!hasSave);$("resetBtn").classList.toggle("hidden",!hasSave);
-      $("startBtn").textContent=hasSave?"重新开始":"开始最后五夜";
+      $("startBtn").textContent=hasSave?"重新开始":"开始无限营业";
       $("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;
     }
 
@@ -448,6 +588,11 @@
     $("combinationCount").textContent=`${ingredients.base.length+ingredients.flavor.length+ingredients.garnish.length} 种材料 · 自由选料`;
     refreshIntro();
     $("ingredientRows").addEventListener("click",e=>{const btn=e.target.closest(".ingredient");if(btn)selectIngredient(btn)});
+    $("askBtn").addEventListener("click",askTaste);
+    $("shakeBtn").addEventListener("pointerdown",startShake);
+    $("shakeBtn").addEventListener("pointerup",stopShake);
+    $("shakeBtn").addEventListener("pointercancel",stopShake);
+    $("shakeBtn").addEventListener("contextmenu",e=>e.preventDefault());
     $("serveBtn").addEventListener("click",serve);
     $("storyChoices").addEventListener("click",e=>{const btn=e.target.closest("[data-choice]");if(btn)choose(Number(btn.dataset.choice))});
     $("startBtn").addEventListener("click",()=>begin(true));
