@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#100b1b">
+  <title>最后一杯 · ONE LAST CUP</title>
+  <style>
+    :root{
+      --ink:#f8efff;--muted:#a79bb8;--panel:rgba(25,16,39,.92);
+      --pink:#ff74bd;--cyan:#62e9ff;--gold:#ffc56e;--red:#ff6f78;
+      --line:rgba(255,255,255,.12);--shadow:0 24px 80px rgba(0,0,0,.45)
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#090712;color:var(--ink);font-family:"SFMono-Regular",Consolas,"Noto Sans SC",monospace}
+    body{overflow-x:hidden;background:
+      radial-gradient(circle at 15% 12%,rgba(255,116,189,.16),transparent 27%),
+      radial-gradient(circle at 83% 10%,rgba(98,233,255,.12),transparent 25%),
+      linear-gradient(180deg,#150d22 0,#090712 72%)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;background:
+      repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.025) 3px 4px)}
+    button{font:inherit}
+    button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+    .hidden{display:none!important}
+    .topbar{min-height:66px;padding:12px clamp(16px,4vw,48px);display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line);background:rgba(9,7,18,.75);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10}
+    .back{color:var(--muted);text-decoration:none;font-size:13px}.back:hover{color:var(--cyan)}
+    .brand{font-weight:900;letter-spacing:.16em}.brand span{color:var(--pink)}
+    .hud{margin-left:auto;display:flex;gap:18px;font-size:12px;color:var(--muted)}
+    .hud b{display:block;color:var(--ink);font-size:15px;margin-top:3px}
+    .sound{border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);padding:7px 10px;cursor:pointer}
+    main{width:min(1180px,calc(100% - 32px));margin:28px auto 70px}
+    .game-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);gap:20px}
+    .panel{border:1px solid var(--line);background:var(--panel);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .guest-stage{min-height:640px;position:relative;display:flex;flex-direction:column}
+    .window{height:180px;position:relative;overflow:hidden;background:
+      linear-gradient(180deg,rgba(42,29,68,.2),rgba(10,8,18,.86)),
+      radial-gradient(circle at 76% 36%,#ffe79a 0 2px,transparent 3px),
+      radial-gradient(circle at 22% 22%,#8edfff 0 1px,transparent 2px),
+      radial-gradient(circle at 50% 16%,#fff 0 1px,transparent 2px),#0a0814}
+    .planet{position:absolute;width:130px;height:130px;border-radius:50%;right:9%;top:32px;background:linear-gradient(145deg,#ff99ca,#74418c 55%,#231838);box-shadow:0 0 42px rgba(255,116,189,.28)}
+    .city{position:absolute;bottom:0;left:0;right:0;height:70px;background:
+      linear-gradient(90deg,transparent 4%,#191326 4% 11%,transparent 11% 15%,#21152e 15% 25%,transparent 25% 30%,#151124 30% 44%,transparent 44% 48%,#22162e 48% 62%,transparent 62% 68%,#171126 68% 82%,transparent 82% 86%,#23152e 86% 97%,transparent 97%)}
+    .city:after{content:"";position:absolute;inset:14px 5% 0;background:repeating-linear-gradient(90deg,transparent 0 16px,rgba(98,233,255,.5) 17px 19px,transparent 20px 34px)}
+    .guest{display:grid;grid-template-columns:132px 1fr;gap:20px;padding:24px 28px 10px;align-items:center}
+    .portrait{width:132px;height:150px;display:grid;place-items:center;font-size:76px;border:1px solid var(--line);border-radius:14px 14px 42px 42px;background:linear-gradient(145deg,rgba(98,233,255,.12),rgba(255,116,189,.12));box-shadow:inset 0 0 30px rgba(255,255,255,.04)}
+    .eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.14em}
+    h1,h2,p{margin:0}.guest h2{font-size:28px;margin:8px 0}.role{color:var(--muted);font-size:13px}
+    .trust{margin-top:14px}.trust-label{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+    .meter{height:6px;background:#0a0711;border-radius:99px;margin-top:7px;overflow:hidden}.meter i{display:block;height:100%;width:50%;background:linear-gradient(90deg,var(--pink),var(--cyan));transition:.35s}
+    .dialogue{margin:18px 28px 20px;padding:20px;border-left:3px solid var(--pink);background:rgba(255,255,255,.035);line-height:1.8;min-height:132px}
+    .dialogue:before{content:"客人的故事";display:block;color:var(--pink);font-size:11px;letter-spacing:.12em;margin-bottom:8px}
+    .hint{margin:auto 28px 24px;padding:13px 16px;border:1px dashed rgba(255,197,110,.35);color:#e8cfa5;font-size:12px;line-height:1.65;border-radius:10px}
+    .hint b{color:var(--gold)}
+    .bar-panel{padding:24px}
+    .section-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+    .section-title h2{font-size:20px}.section-title small{color:var(--muted)}
+    .recipe{display:grid;gap:15px}
+    .ingredient-row h3{font-size:11px;letter-spacing:.13em;color:var(--muted);margin:0 0 8px}
+    .choices{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+    .ingredient{min-height:72px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.035);color:var(--ink);cursor:pointer;padding:9px 5px;transition:.18s}
+    .ingredient:hover{transform:translateY(-2px);border-color:rgba(98,233,255,.5)}
+    .ingredient.selected{border-color:var(--cyan);background:rgba(98,233,255,.12);box-shadow:0 0 18px rgba(98,233,255,.12)}
+    .ingredient .ico{display:block;font-size:22px;margin-bottom:5px}.ingredient .name{font-size:10px}
+    .glass-zone{margin-top:20px;min-height:150px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.16));display:grid;grid-template-columns:115px 1fr;align-items:center;padding:18px}
+    .glass{width:74px;height:100px;margin:auto;border:3px solid rgba(255,255,255,.6);border-top:0;border-radius:5px 5px 30px 30px;position:relative;overflow:hidden}
+    .liquid{position:absolute;left:4px;right:4px;bottom:4px;height:12%;border-radius:2px 2px 24px 24px;background:linear-gradient(180deg,var(--pink),#733975);transition:.35s}
+    .glass:after{content:"";position:absolute;width:16px;height:65px;right:10px;top:12px;background:rgba(255,255,255,.14);transform:rotate(12deg)}
+    .mix-name{font-size:18px;font-weight:800}.mix-list{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.7}
+    .serve{width:100%;margin-top:15px;padding:14px;border:0;border-radius:10px;color:#170b18;background:linear-gradient(90deg,var(--pink),var(--gold));font-weight:900;cursor:pointer;box-shadow:0 10px 30px rgba(255,116,189,.18)}
+    .serve:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
+    .notice{height:20px;margin-top:9px;text-align:center;color:var(--red);font-size:11px}
+    .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:rgba(5,4,10,.82);backdrop-filter:blur(15px)}
+    .card{width:min(680px,100%);border:1px solid var(--line);border-radius:22px;background:#171023;box-shadow:var(--shadow);padding:clamp(28px,6vw,58px);text-align:center;position:relative;overflow:hidden}
+    .card:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0,rgba(255,116,189,.18),transparent 38%);pointer-events:none}
+    .kicker{color:var(--cyan);font-size:11px;letter-spacing:.22em}.title{font-size:clamp(36px,8vw,72px);line-height:.92;margin:20px 0 10px;text-shadow:4px 4px 0 #522441}.subtitle{color:var(--pink);letter-spacing:.22em}
+    .intro-copy{color:#cfc3d8;line-height:1.85;margin:28px auto;max-width:520px}
+    .primary,.secondary,.story-choice{border-radius:10px;padding:13px 22px;cursor:pointer}
+    .primary{border:0;background:linear-gradient(90deg,var(--pink),var(--gold));color:#170b18;font-weight:900}
+    .secondary{border:1px solid var(--line);background:transparent;color:var(--muted)}
+    .actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+    .reaction-icon{font-size:52px}.reaction-title{font-size:25px;margin:12px 0}.reaction-copy{color:#d5c8dc;line-height:1.8}
+    .choice-wrap{display:grid;gap:10px;margin-top:24px}
+    .story-choice{text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);line-height:1.45}
+    .story-choice:hover{border-color:var(--cyan);background:rgba(98,233,255,.08)}
+    .ending-mark{font-size:60px}.ending-title{font-size:34px;margin:16px 0 12px}.ending-copy{color:#d5c8dc;line-height:1.9}
+    .ending-stats{display:flex;justify-content:center;gap:24px;margin:22px 0;color:var(--muted);font-size:12px}.ending-stats b{display:block;color:var(--ink);font-size:22px}
+    @media(max-width:850px){
+      .game-grid{grid-template-columns:1fr}.guest-stage{min-height:auto}.hud .optional{display:none}
+      .bar-panel{padding:18px}.choices{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:520px){
+      main{width:min(100% - 18px,1180px);margin-top:10px}.topbar{padding:10px}.brand{font-size:12px}
+      .hud{gap:10px}.guest{grid-template-columns:84px 1fr;padding:18px 16px 4px}.portrait{width:84px;height:104px;font-size:48px}
+      .guest h2{font-size:21px}.dialogue,.hint{margin-left:16px;margin-right:16px}.window{height:120px}.planet{width:90px;height:90px;top:18px}
+      .glass-zone{grid-template-columns:90px 1fr}.card{padding:28px 20px}.ending-stats{gap:14px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="back" href="index.html">← 游戏库</a>
+    <div class="brand">ONE LAST <span>CUP</span></div>
+    <div class="hud">
+      <div>夜次<b id="nightHud">1 / 5</b></div>
+      <div class="optional">信用点<b id="creditHud">0</b></div>
+      <div>共鸣<b id="empathyHud">0</b></div>
+    </div>
+    <button class="sound" id="soundBtn" aria-label="切换声音">声音：开</button>
+  </header>
+
+  <main id="game" class="hidden">
+    <div class="game-grid">
+      <section class="panel guest-stage">
+        <div class="window"><div class="planet"></div><div class="city"></div></div>
+        <div class="guest">
+          <div class="portrait" id="portrait" aria-hidden="true">🧑‍🚀</div>
+          <div>
+            <div class="eyebrow">今晚的客人 / GUEST</div>
+            <h2 id="guestName">—</h2>
+            <div class="role" id="guestRole">—</div>
+            <div class="trust">
+              <div class="trust-label"><span>信任</span><span id="trustText">50</span></div>
+              <div class="meter"><i id="trustBar"></i></div>
+            </div>
+          </div>
+        </div>
+        <p class="dialogue" id="dialogue"></p>
+        <div class="hint"><b>调酒提示：</b><span id="hint"></span></div>
+      </section>
+
+      <section class="panel bar-panel">
+        <div class="section-title"><h2>调制今晚的一杯</h2><small>每栏选一种</small></div>
+        <div class="recipe" id="ingredientRows"></div>
+        <div class="glass-zone">
+          <div class="glass"><div class="liquid" id="liquid"></div></div>
+          <div>
+            <div class="mix-name" id="drinkName">尚未完成</div>
+            <div class="mix-list" id="mixList">倾听客人的故事，再决定放进杯里的东西。</div>
+          </div>
+        </div>
+        <button class="serve" id="serveBtn" disabled>端上这杯饮料</button>
+        <div class="notice" id="notice" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <section class="overlay" id="intro">
+    <div class="card">
+      <div class="kicker">NOVA ARCADE PRESENTS</div>
+      <h1 class="title">最后一杯</h1>
+      <div class="subtitle">ONE LAST CUP</div>
+      <p class="intro-copy">宇宙边缘的中转站即将永久熄灯。你是酒馆最后一任店主。五位旅人、五段没有说完的故事——听懂他们，再把答案调进杯里。</p>
+      <div class="actions">
+        <button class="primary" id="startBtn">开始最后五夜</button>
+        <button class="secondary hidden" id="continueBtn">继续营业</button>
+        <button class="secondary hidden" id="resetBtn">清除记录</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay hidden" id="reactionOverlay" aria-live="polite">
+    <div class="card">
+      <div class="reaction-icon" id="reactionIcon">✦</div>
+      <h2 class="reaction-title" id="reactionTitle"></h2>
+      <p class="reaction-copy" id="reactionCopy"></p>
+      <div class="choice-wrap" id="storyChoices"></div>
+    </div>
+  </section>
+
+  <section class="overlay hidden" id="endingOverlay">
+    <div class="card">
+      <div class="ending-mark" id="endingMark">☕</div>
+      <div class="kicker">YOUR ENDING</div>
+      <h2 class="ending-title" id="endingTitle"></h2>
+      <p class="ending-copy" id="endingCopy"></p>
+      <div class="ending-stats">
+        <div>共鸣<b id="endEmpathy">0</b></div>
+        <div>信用点<b id="endCredits">0</b></div>
+        <div>满意客人<b id="endGuests">0 / 5</b></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="againBtn">再守五夜</button>
+        <a class="secondary" href="index.html" style="text-decoration:none">返回游戏库</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (() => {
+    "use strict";
+    const SAVE_KEY = "nova-last-cup-v1";
+    const ingredients = {
+      base: [
+        {id:"ember",name:"余烬威士忌",icon:"🥃",tags:["warm","bold"],color:"#f08a58"},
+        {id:"lunar",name:"月海琴酒",icon:"🫧",tags:["calm","clear"],color:"#66dced"},
+        {id:"tea",name:"静默茶",icon:"🍵",tags:["gentle","memory"],color:"#9fc86c"},
+        {id:"water",name:"纯净水",icon:"💧",tags:["honest","plain"],color:"#83cfff"}
+      ],
+      flavor: [
+        {id:"spark",name:"星火糖浆",icon:"✨",tags:["hope","sweet"]},
+        {id:"salt",name:"故乡海盐",icon:"◈",tags:["memory","honest"]},
+        {id:"bitter",name:"暗面苦精",icon:"🌑",tags:["truth","bold"]},
+        {id:"milk",name:"云雾奶",icon:"☁️",tags:["gentle","calm"]}
+      ],
+      garnish: [
+        {id:"cherry",name:"霓虹樱桃",icon:"🍒",tags:["hope","sweet"]},
+        {id:"mint",name:"氧气薄荷",icon:"🌿",tags:["clear","calm"]},
+        {id:"anise",name:"旧日八角",icon:"✦",tags:["memory","warm"]},
+        {id:"none",name:"什么也不放",icon:"○",tags:["plain","honest"]}
+      ]
+    };
+    const groupNames = {base:"基底 / BASE",flavor:"风味 / FLAVOR",garnish:"点缀 / GARNISH"};
+    const guests = [
+      {
+        id:"veteran",name:"伊凡",role:"退役护航兵 · 不再佩枪",icon:"🧔",
+        story:"“我以前每天都听见警报。战争结束三年了，可一安静下来，我反而睡不着。今晚别给我庆功酒，我只想记起回家是什么感觉。”",
+        hint:"他不需要刺激，更想要温暖与旧日记忆。",wants:["warm","memory","gentle"],
+        reactions:{
+          good:"热气像一张旧毯子盖住伊凡的肩。他闭上眼，第一次没有去摸腰间早已不存在的枪。",
+          okay:"他慢慢喝下去。不是答案，但至少今夜的警报声远了一点。",
+          bad:"辛辣把他拽回战场。他放下杯子，手指仍在发抖。"
+        },
+        choices:[
+          {text:"“你已经回来了，睡不着也不代表你还在战场。”",empathy:2,edge:0,reply:"伊凡点头，把旧军牌留在吧台：也许明天，我会试着回家。"},
+          {text:"“有些战争不会结束，我们只能习惯。”",empathy:-1,edge:1,reply:"他苦笑了一下，重新扣紧外套，像又穿上了制服。"}
+        ]
+      },
+      {
+        id:"courier",name:"米拉",role:"禁区信使 · 追踪编号 07",icon:"🧑‍🚀",
+        story:"“货舱里不是违禁品，是十二封没能送达的信。检查站要我烧掉它们。可如果一封信永远到不了，它还算有人说过的话吗？”",
+        hint:"她想保持清醒，也需要一点敢于继续的希望。",wants:["clear","hope","bold"],
+        reactions:{
+          good:"杯里的微光像一条新的航线。米拉把信件坐标同步进导航仪。",
+          okay:"她喝了一口，仍在犹豫，但没有删除那些地址。",
+          bad:"甜腻掩不住焦虑。她盯着门外巡逻灯，准备放弃任务。"
+        },
+        choices:[
+          {text:"“送出去。被听见，是这些话最后的权利。”",empathy:1,edge:2,reply:"米拉笑了：那我今晚就要跑一条很长的路。"},
+          {text:"“先活下来，信件可以等待更安全的机会。”",empathy:1,edge:-1,reply:"她收好坐标：谨慎不等于遗忘。我会等。"}
+        ]
+      },
+      {
+        id:"ai",name:"终端九号",role:"退役空间站服务智能",icon:"🤖",
+        story:"“明天零点，我的主机将格式化。维护员说程序不会害怕。但我保存着八千六百二十一次日出。我不确定，舍不得删除算不算害怕。”",
+        hint:"它不要漂亮谎话，只想得到清楚、诚实的回答。",wants:["honest","truth","clear"],
+        reactions:{
+          good:"终端九号分析杯中最简单的味道，然后第一次把停顿称作‘舍不得’。",
+          okay:"它记录了风味参数，却仍无法给自己的感觉命名。",
+          bad:"复杂配方令传感器过载。它礼貌道谢，像任何一台合格机器。"
+        },
+        choices:[
+          {text:"“害怕失去记忆，就说明这些日出已经属于你。”",empathy:2,edge:1,reply:"它将一段日出影像投在墙上：那么，请替我记住一次。"},
+          {text:"“感受无法证明，但记忆可以复制，我会备份你。”",empathy:0,edge:2,reply:"它传来一枚数据种子：也许复制品会找到答案。"}
+        ]
+      },
+      {
+        id:"android",name:"露卡",role:"逃亡仿生人 · 无登记姓名",icon:"🦾",
+        story:"“工厂给我的名字是装配单号。我偷走一具报废身体，才第一次拥有一张脸。大家都问我是谁——可我现在只知道，我不想再是谁的东西。”",
+        hint:"她需要一个温柔而真实的选择，不想再被强迫。",wants:["gentle","honest","hope"],
+        reactions:{
+          good:"露卡双手捧杯，像捧住一件真正属于自己的东西。她为自己选中了‘露卡’这个名字。",
+          okay:"她认真记住味道。至少这一次，选择杯子的是她自己。",
+          bad:"强烈风味触发了工厂记忆。她迅速推开杯子，向门口看去。"
+        },
+        choices:[
+          {text:"“你不需要一次回答完。明天想成为谁，明天再选。”",empathy:2,edge:0,reply:"露卡把名字写在杯垫上：那今天，我先成为一个客人。"},
+          {text:"“拿着我的通行证，去核心城证明你是自由公民。”",empathy:1,edge:2,reply:"她收下证件：如果自由需要被证明，我会让规则先认识我。"}
+        ]
+      },
+      {
+        id:"last",name:"无名旅人",role:"酒馆最后一位客人",icon:"🧥",
+        story:"“车站已经空了。你替所有人调了一杯，却一直没问自己想喝什么。灯灭以后，你准备去哪里，店主？”",
+        hint:"这是最后一杯。没有标准配方——选出最像你一路所做选择的味道。",wants:["memory","honest","hope"],
+        reactions:{
+          good:"旅人把杯子推回你面前。你终于发现，这一杯从来就是为自己调的。",
+          okay:"旅人与你分喝这杯不完美的饮料。最后一夜，也因此不必完美。",
+          bad:"味道混乱又尖锐。旅人却没有责怪你：诚实的失败，也是一种答案。"
+        },
+        choices:[
+          {text:"“关掉招牌，带着这些故事去下一座城。”",empathy:2,edge:1,reply:"你把杯垫装进口袋。门外，第一班离站飞船正亮起舷灯。"},
+          {text:"“我会留在这里，直到最后一盏导航灯熄灭。”",empathy:1,edge:-1,reply:"旅人摘下兜帽——那是一张与你相似的脸。酒馆安静地陪你等到天亮。"}
+        ]
+      }
+    ];
+    const endings = {
+      beacon:{mark:"✦",title:"把灯带走的人",copy:"酒馆熄灯后，你登上离站飞船。伊凡的军牌、米拉的信、九号的日出和露卡的名字，都成了新酒单的一部分。后来，人们说只要还有一杯饮料愿意听完一个故事，宇宙里就不算真正的黑夜。"},
+      archive:{mark:"◉",title:"最后的守灯人",copy:"你留在旧站，把每位客人的故事写进航行日志。多年后，一艘迷航飞船捕捉到这里微弱的灯光。它找到的不只是一间酒馆，还有一份证明：曾经有人认真听过彼此。"},
+      spark:{mark:"⚡",title:"越界的火种",copy:"你帮助旅人们越过规则留下的边界。信件抵达、数据逃生、名字获得自由。酒馆虽然消失，却成了地下航线的暗号——点一杯“最后一杯”，就代表这里愿意给你第二种选择。"}
+    };
+
+    const defaultState = () => ({index:0,credits:0,empathy:0,edge:0,happy:0,trust:{},history:[],sound:true});
+    let state = defaultState();
+    let selected = {base:null,flavor:null,garnish:null};
+    let audioContext;
+    const $ = id => document.getElementById(id);
+
+    function tone(freq=420,duration=.06){
+      if(!state.sound) return;
+      try{
+        audioContext ||= new (window.AudioContext||window.webkitAudioContext)();
+        const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+        osc.frequency.value=freq; gain.gain.setValueAtTime(.035,audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);
+        osc.connect(gain).connect(audioContext.destination);osc.start();osc.stop(audioContext.currentTime+duration);
+      }catch(_){}
+    }
+    function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
+    function load(){
+      try{
+        const saved=JSON.parse(localStorage.getItem(SAVE_KEY));
+        if(saved&&Number.isInteger(saved.index)) state={...defaultState(),...saved};
+      }catch(_){localStorage.removeItem(SAVE_KEY)}
+    }
+    function renderIngredients(){
+      $("ingredientRows").innerHTML=Object.entries(ingredients).map(([group,items])=>`
+        <div class="ingredient-row"><h3>${groupNames[group]}</h3><div class="choices">
+          ${items.map(item=>`<button class="ingredient" data-group="${group}" data-id="${item.id}" aria-pressed="false">
+            <span class="ico">${item.icon}</span><span class="name">${item.name}</span>
+          </button>`).join("")}
+        </div></div>`).join("");
+    }
+    function currentGuest(){return guests[Math.min(state.index,guests.length-1)]}
+    function renderGuest(){
+      const guest=currentGuest();
+      selected={base:null,flavor:null,garnish:null};
+      document.querySelectorAll(".ingredient").forEach(btn=>{btn.classList.remove("selected");btn.setAttribute("aria-pressed","false")});
+      $("portrait").textContent=guest.icon;$("guestName").textContent=guest.name;$("guestRole").textContent=guest.role;
+      $("dialogue").textContent=guest.story;$("hint").textContent=guest.hint;
+      const trust=state.trust[guest.id]??50;$("trustText").textContent=trust;$("trustBar").style.width=`${trust}%`;
+      $("nightHud").textContent=`${state.index+1} / ${guests.length}`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
+      $("drinkName").textContent="尚未完成";$("mixList").textContent="倾听客人的故事，再决定放进杯里的东西。";
+      $("liquid").style.height="12%";$("serveBtn").disabled=true;$("notice").textContent="";
+    }
+    function findItem(group,id){return ingredients[group].find(item=>item.id===id)}
+    function drinkName(){
+      if(!selected.base||!selected.flavor||!selected.garnish)return"尚未完成";
+      const names={
+        "ember-salt-anise":"旧航线","tea-milk-anise":"安静故乡","lunar-spark-cherry":"新星",
+        "water-bitter-none":"真空回声","tea-spark-cherry":"明日来信","lunar-bitter-mint":"清醒梦"
+      };
+      const key=`${selected.base}-${selected.flavor}-${selected.garnish}`;
+      return names[key]||`${findItem("flavor",selected.flavor).name.slice(0,2)}·${findItem("base",selected.base).name}`;
+    }
+    function updateMix(){
+      const picked=Object.entries(selected).filter(([,id])=>id).map(([group,id])=>findItem(group,id));
+      $("mixList").textContent=picked.length?picked.map(item=>item.name).join(" ＋ "):"倾听客人的故事，再决定放进杯里的东西。";
+      $("drinkName").textContent=drinkName();
+      $("liquid").style.height=`${12+picked.length*25}%`;
+      if(selected.base)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base).color},#59355f)`;
+      $("serveBtn").disabled=picked.length!==3;
+    }
+    function selectIngredient(btn){
+      const {group,id}=btn.dataset; selected[group]=id;tone(360+Object.keys(ingredients).indexOf(group)*90);
+      document.querySelectorAll(`[data-group="${group}"]`).forEach(node=>{const on=node===btn;node.classList.toggle("selected",on);node.setAttribute("aria-pressed",String(on))});
+      $("notice").textContent="";updateMix();
+    }
+    function evaluateDrink(){
+      const guest=currentGuest(), tags=[];
+      Object.entries(selected).forEach(([group,id])=>tags.push(...findItem(group,id).tags));
+      const matched=new Set(guest.wants.filter(tag=>tags.includes(tag))).size;
+      return matched>=2?"good":matched===1?"okay":"bad";
+    }
+    function serve(){
+      if(Object.values(selected).some(v=>!v)){$("notice").textContent="请从三个栏目各选择一种。";return}
+      const guest=currentGuest(), result=evaluateDrink();
+      const delta=result==="good"?25:result==="okay"?8:-12;
+      state.trust[guest.id]=Math.max(0,Math.min(100,(state.trust[guest.id]??50)+delta));
+      state.credits+=result==="good"?30:result==="okay"?18:8;
+      if(result==="good"){state.empathy+=1;state.happy+=1}
+      state.history.push({guest:guest.id,drink:drinkName(),result});
+      save();tone(result==="bad"?180:result==="good"?620:440,.14);
+      const labels={good:["✦","你听懂了他"],okay:["◌","味道留下了余地"],bad:["×","这杯没有说中"]};
+      $("reactionIcon").textContent=labels[result][0];$("reactionTitle").textContent=`${labels[result][1]} · ${drinkName()}`;
+      $("reactionCopy").textContent=guest.reactions[result];
+      $("storyChoices").innerHTML=guest.choices.map((choice,i)=>`<button class="story-choice" data-choice="${i}">${choice.text}</button>`).join("");
+      $("reactionOverlay").classList.remove("hidden");
+    }
+    function choose(index){
+      const guest=currentGuest(), choice=guest.choices[index];
+      state.empathy+=choice.empathy;state.edge+=choice.edge;
+      $("reactionTitle").textContent="你给出了回答";$("reactionCopy").textContent=choice.reply;
+      $("storyChoices").innerHTML=`<button class="primary" id="nextBtn">${state.index===guests.length-1?"看看灯灭以后":"送别客人，迎接下一夜"}</button>`;
+      $("nextBtn").addEventListener("click",nextGuest);save();tone(520,.1);
+    }
+    function nextGuest(){
+      state.index++;save();$("reactionOverlay").classList.add("hidden");
+      if(state.index>=guests.length){showEnding();return}
+      renderGuest();window.scrollTo({top:0,behavior:"smooth"});
+    }
+    function showEnding(){
+      let ending;
+      if(state.edge>=5)ending=endings.spark;
+      else if(state.empathy>=7)ending=endings.beacon;
+      else ending=endings.archive;
+      $("endingMark").textContent=ending.mark;$("endingTitle").textContent=ending.title;$("endingCopy").textContent=ending.copy;
+      $("endEmpathy").textContent=state.empathy;$("endCredits").textContent=state.credits;$("endGuests").textContent=`${state.happy} / ${guests.length}`;
+      $("endingOverlay").classList.remove("hidden");localStorage.removeItem(SAVE_KEY);tone(700,.3);
+    }
+    function begin(fresh){
+      if(fresh)state=defaultState();
+      $("intro").classList.add("hidden");$("endingOverlay").classList.add("hidden");$("game").classList.remove("hidden");
+      renderGuest();save();
+    }
+    function refreshIntro(){
+      load();const hasSave=state.index>0&&state.index<guests.length;
+      $("continueBtn").classList.toggle("hidden",!hasSave);$("resetBtn").classList.toggle("hidden",!hasSave);
+      $("startBtn").textContent=hasSave?"重新开始":"开始最后五夜";
+      $("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;
+    }
+
+    renderIngredients();refreshIntro();
+    $("ingredientRows").addEventListener("click",e=>{const btn=e.target.closest(".ingredient");if(btn)selectIngredient(btn)});
+    $("serveBtn").addEventListener("click",serve);
+    $("storyChoices").addEventListener("click",e=>{const btn=e.target.closest("[data-choice]");if(btn)choose(Number(btn.dataset.choice))});
+    $("startBtn").addEventListener("click",()=>begin(true));
+    $("continueBtn").addEventListener("click",()=>begin(false));
+    $("resetBtn").addEventListener("click",()=>{localStorage.removeItem(SAVE_KEY);state=defaultState();refreshIntro()});
+    $("againBtn").addEventListener("click",()=>begin(true));
+    $("soundBtn").addEventListener("click",()=>{state.sound=!state.sound;$("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;save();tone(480)});
+  })();
+  </script>
+</body>
+</html>
