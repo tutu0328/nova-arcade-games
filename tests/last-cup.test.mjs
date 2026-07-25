@@ -27,6 +27,17 @@ test("核心循环包含五位客人和三段调制", () => {
   assert.match(game, /function choose\(index\)/);
 });
 
+test("酒水数量扩充到至少 150 种搭配", () => {
+  const groupSizes = ["base", "flavor", "garnish"].map((group) => {
+    const body = game.match(new RegExp(`${group}: \\[([\\s\\S]*?)\\n      \\]`))?.[1] ?? "";
+    return (body.match(/\{id:/g) ?? []).length;
+  });
+  assert.ok(groupSizes.reduce((total, size) => total * size, 1) >= 150);
+  for (const ingredient of ["beer", "wine", "citrus", "lemon"]) {
+    assert.match(game, new RegExp(`id:"${ingredient}"`));
+  }
+});
+
 test("选择缺失时不能端杯，错误配方也能继续故事", () => {
   assert.match(game, /Object\.values\(selected\)\.some\(v=>!v\)/);
   assert.match(game, /result==="bad"/);
