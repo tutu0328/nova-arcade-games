@@ -115,6 +115,16 @@ test("选料后需要长按摇酒，时间会改变评价", () => {
   assert.match(game, /需要先长按摇酒/);
 });
 
+test("做得不好时客人会指出具体错误但不公布配方", () => {
+  assert.match(game, /function buildCritique\(result\)/);
+  assert.match(game, /材料没有融合/);
+  assert.match(game, /风味被破坏/);
+  assert.match(game, /我明确说过不能喝含酒精/);
+  assert.match(game, /杯里出现了我不喜欢的/);
+  assert.match(game, /指出问题/);
+  assert.doesNotMatch(game, /正确材料是|正确配方是/);
+});
+
 test("进度可以保存、读取和清除", () => {
   assert.match(game, /localStorage\.setItem\(SAVE_KEY/);
   assert.match(game, /localStorage\.getItem\(SAVE_KEY/);
