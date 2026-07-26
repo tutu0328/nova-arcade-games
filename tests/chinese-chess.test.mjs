@@ -39,8 +39,11 @@ test("人机难度不止三档，并包含更高档位", () => {
 
 test("常见AI和超级人机是正式可选对手，不只藏在提示里", () => {
   assert.match(game, /id="aiProfileButtons"/);
-  for (const profile of ["standard", "aggressive", "defensive", "endgame", "super"]) {
+  for (const profile of ["standard", "doubao", "deepseek", "codex", "lobster", "aggressive", "defensive", "endgame", "super"]) {
     assert.match(game, new RegExp(`data-ai-profile="${profile}"`));
+  }
+  for (const label of ["豆包", "DeepSeek", "Codex", "龙虾"]) {
+    assert.match(game, new RegExp(`>${label}<`));
   }
   assert.match(game, /const AI_PROFILES=\[/);
   assert.match(game, /profileById/);
@@ -59,7 +62,16 @@ test("匹配模式会匹配玩家并插入少量人机补位", () => {
 test("将帅活动的九宫格有明显不同的棋盘颜色", () => {
   assert.match(game, /\.cell\.palace-red/);
   assert.match(game, /\.cell\.palace-black/);
+  assert.match(game, /palace-lines black/);
+  assert.match(game, /palace-lines red/);
   assert.match(game, /const palaceClass=palace\(RED,r,c\)\?"palace-red":palace\(BLACK,r,c\)\?"palace-black":""/);
+});
+
+test("楚河汉界使用对称的中线河界而不是挂在单个格子里", () => {
+  assert.match(game, /class="river-label"/);
+  assert.match(game, /<span>楚河<\/span><span>汉界<\/span>/);
+  assert.doesNotMatch(game, /nth-child\(41\)::after/);
+  assert.doesNotMatch(game, /nth-child\(45\)::after/);
 });
 
 test("连胜多场会安排超级人机制裁，连输多场会安排弱智人机", () => {
