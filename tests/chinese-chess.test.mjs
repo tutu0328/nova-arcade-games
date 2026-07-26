@@ -17,6 +17,16 @@ test("象棋页面脚本语法有效", () => {
   assert.doesNotThrow(() => new Function(script));
 });
 
+test("进入页面先看到首页介绍和开始游戏按钮", () => {
+  assert.match(game, /id="homeScreen"/);
+  assert.match(game, /id="gameScreen" class="hidden"/);
+  assert.match(game, /id="startGameBtn">开始游戏<\/button>/);
+  assert.match(game, /id="startMatchBtn">快速匹配<\/button>/);
+  assert.match(game, /一个可以单机练习、同屏双人、模拟匹配的中国象棋游戏/);
+  assert.match(game, /function showGame\(\)/);
+  assert.match(game, /\$\("startGameBtn"\)\.onclick/);
+});
+
 test("支持双人对战、人机对战和匹配对战", () => {
   assert.match(game, /data-mode="ai"/);
   assert.match(game, /data-mode="match"/);
@@ -49,6 +59,19 @@ test("常见AI和超级人机是正式可选对手，不只藏在提示里", () 
   assert.match(game, /profileById/);
   assert.match(game, /profileScore/);
   assert.match(game, /超级人机<\/button>/);
+});
+
+test("棋盘对面会显示当前AI头像和风格说明", () => {
+  assert.match(game, /class="opponent-card"/);
+  assert.match(game, /id="aiAvatar"/);
+  assert.match(game, /id="opponentName"/);
+  assert.match(game, /id="opponentStyle"/);
+  for (const field of ["avatar:", "color:", "intro:"]) {
+    assert.match(game, new RegExp(field));
+  }
+  assert.match(game, /activeProfile\.avatar/);
+  assert.match(game, /activeProfile\.intro/);
+  assert.match(game, /--avatar/);
 });
 
 test("匹配模式会匹配玩家并插入少量人机补位", () => {

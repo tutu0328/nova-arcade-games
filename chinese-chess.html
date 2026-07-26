@@ -18,10 +18,17 @@
       radial-gradient(circle at 88% 12%,rgba(61,178,127,.16),transparent 25%),
       linear-gradient(160deg,#1a0f0b 0,#3a1e12 44%,#120c0a 100%)}
     button,a{font:inherit;color:inherit}button{cursor:pointer}a{text-decoration:none}
+    .hidden{display:none!important}
     .topbar{min-height:66px;padding:12px clamp(14px,4vw,46px);display:flex;align-items:center;gap:18px;color:#ffeecb;border-bottom:1px solid rgba(255,255,255,.14);background:rgba(20,12,8,.72);backdrop-filter:blur(14px);position:sticky;top:0;z-index:10}
     .back{color:#d9bd91;font-size:13px}.back:hover{color:#fff}
     .brand{font-weight:900;letter-spacing:.14em}.brand span{color:var(--gold)}
     .hud{margin-left:auto;display:flex;gap:18px;font-size:12px;color:#d9bd91}.hud b{display:block;color:#fff6db;font-size:15px;margin-top:3px}
+    .home{width:min(1220px,calc(100% - 28px));margin:30px auto 64px;min-height:calc(100vh - 120px);display:grid;grid-template-columns:minmax(320px,.92fr) minmax(360px,1.08fr);gap:26px;align-items:center}
+    .home-copy{padding:clamp(26px,5vw,58px);border:1px solid rgba(255,255,255,.16);border-radius:18px;background:linear-gradient(145deg,rgba(43,26,16,.94),rgba(105,51,20,.64));color:#fff4d8;box-shadow:var(--shadow)}
+    .home-copy .kicker{color:var(--gold)}.home-copy h1{font-size:clamp(52px,9vw,96px);margin:18px 0;color:#fff0c8}.home-copy p{color:#e5cda7;line-height:1.85}
+    .home-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.home-actions .action{width:auto;min-width:150px;margin-top:0}.home-actions .secondary{color:#fff4d8;background:rgba(255,248,233,.1);border-color:rgba(255,241,202,.28)}
+    .home-features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}.home-feature{padding:13px;border:1px solid rgba(255,241,202,.16);border-radius:12px;background:rgba(255,248,233,.08)}.home-feature b{display:block;color:#ffd16a;margin-bottom:5px}.home-feature span{display:block;color:#e5cda7;font-size:12px;line-height:1.55}
+    .home-board{padding:18px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(255,246,225,.88);box-shadow:var(--shadow)}.home-board .opponent-card{margin-bottom:12px}.home-board .board{background:repeating-linear-gradient(0deg,transparent 0 calc(10% - 2px),rgba(92,44,18,.72) calc(10% - 2px) 10%),repeating-linear-gradient(90deg,transparent 0 calc(11.111% - 2px),rgba(92,44,18,.72) calc(11.111% - 2px) 11.111%)}.home-board-note{padding:14px 4px 0;color:#6d4525;line-height:1.7;font-size:13px}
     main{width:min(1220px,calc(100% - 28px));margin:28px auto 64px;display:grid;grid-template-columns:minmax(330px,.76fr) minmax(390px,1fr);gap:20px;align-items:start}
     .panel{border:1px solid rgba(255,255,255,.18);background:var(--panel);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
     .controls{padding:22px}.kicker{font-size:11px;letter-spacing:.18em;color:#8a512c;font-weight:900}
@@ -51,6 +58,9 @@
     .palace-lines:before,.palace-lines:after{content:"";position:absolute;left:0;top:50%;width:100%;height:2px;background:rgba(255,240,194,.72);transform-origin:center}
     .palace-lines:before{transform:rotate(45deg)}.palace-lines:after{transform:rotate(-45deg)}
     .cell.hint{background:rgba(61,178,127,.22)}.cell.capture{background:rgba(197,34,31,.22)}
+    .opponent-card{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;width:min(100%,720px);margin:0 auto 12px;padding:12px 14px;border:1px solid rgba(105,51,20,.32);border-radius:12px;background:linear-gradient(90deg,rgba(43,26,16,.92),rgba(105,51,20,.72));color:#fff4d8;box-shadow:0 12px 28px rgba(52,21,6,.18)}
+    .ai-avatar{--avatar:#8a512c;width:58px;aspect-ratio:1;border-radius:16px;display:grid;place-items:center;background:radial-gradient(circle at 34% 26%,#fff4c7,var(--avatar) 58%,#2b1a10);border:3px solid rgba(255,241,202,.78);color:#2b1a10;font-weight:900;font-size:24px;box-shadow:0 0 0 4px rgba(255,241,202,.1)}
+    .opponent-meta small{display:block;color:#ffd16a;font-size:11px;letter-spacing:.14em;font-weight:900}.opponent-meta b{display:block;font-size:19px;margin:3px 0}.opponent-meta span{display:block;color:#e5cda7;font-size:12px;line-height:1.45}
     .piece{position:absolute;z-index:3;width:9.5%;aspect-ratio:1;border-radius:50%;border:3px solid currentColor;background:radial-gradient(circle at 35% 25%,#fff9e7,#f7d699 72%);display:grid;place-items:center;font-size:clamp(18px,4.6vw,36px);font-weight:900;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(52,21,6,.28);transition:.16s}
     .piece.red{color:var(--red)}.piece.black{color:var(--black)}.piece.selected{outline:4px solid var(--jade);box-shadow:0 0 0 7px rgba(61,178,127,.18),0 8px 18px rgba(52,21,6,.28)}
     .piece.ai-turn{opacity:.8}
@@ -59,7 +69,7 @@
     .log{max-height:180px;overflow:auto;padding:16px;background:#fff4d9}.log h2{font-size:15px;margin-bottom:10px}.log ol{margin:0;padding-left:22px;line-height:1.65;color:#6d4525}
     .win{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:18px;background:rgba(16,8,5,.72);backdrop-filter:blur(10px)}
     .win.show{display:grid}.win-card{width:min(480px,100%);padding:34px;border-radius:14px;background:#fff3d8;color:#2b1a10;text-align:center;box-shadow:var(--shadow)}.win-card h2{font-size:32px;margin-bottom:10px}.win-card p{line-height:1.7;color:#704626}
-    @media(max-width:860px){main{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap{border-width:7px}.board{inset:9px}.piece{border-width:2px}.status{display:block}.status span{display:block;margin-top:6px}}
+    @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap{border-width:7px}.board{inset:9px}.piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.status{display:block}.status span{display:block;margin-top:6px}}
   </style>
 </head>
 <body>
@@ -73,7 +83,42 @@
     </div>
   </header>
 
-  <main>
+  <section class="home" id="homeScreen">
+    <div class="home-copy">
+      <div class="kicker">NOVA ARCADE · XIANGQI</div>
+      <h1>星河象棋</h1>
+      <p>一个可以单机练习、同屏双人、模拟匹配的中国象棋游戏。你可以挑战不同强度的人机，也可以选择豆包、DeepSeek、Codex、龙虾和超级人机等不同风格的 AI 对手。</p>
+      <div class="home-actions">
+        <button class="action" id="startGameBtn">开始游戏</button>
+        <button class="action secondary" id="startMatchBtn">快速匹配</button>
+      </div>
+      <div class="home-features">
+        <div class="home-feature"><b>多种模式</b><span>人机对战、匹配对战、同屏双人都能玩。</span></div>
+        <div class="home-feature"><b>多档难度</b><span>从入门到宗师，还有连胜后的超级人机挑战。</span></div>
+        <div class="home-feature"><b>AI 对手</b><span>豆包偏稳，DeepSeek 深算，Codex 战术，龙虾更怪。</span></div>
+        <div class="home-feature"><b>更清楚的棋盘</b><span>九宫格、楚河汉界、当前对手都更明显。</span></div>
+      </div>
+    </div>
+    <div class="home-board" aria-label="星河象棋预览">
+      <div class="opponent-card">
+        <div class="ai-avatar" style="--avatar:#32c48d">C</div>
+        <div class="opponent-meta">
+          <small>推荐挑战 / AI OPPONENT</small>
+          <b>Codex</b>
+          <span>偏战术，喜欢主动制造威胁和吃子。</span>
+        </div>
+      </div>
+      <div class="board-wrap">
+        <div class="board" aria-hidden="true"></div>
+        <div class="river-label" aria-hidden="true"><span>楚河</span><span>汉界</span></div>
+        <div class="palace-lines black" aria-hidden="true"></div>
+        <div class="palace-lines red" aria-hidden="true"></div>
+      </div>
+      <p class="home-board-note">点“开始游戏”进入正式棋局，选择难度和 AI 对手后即可开局。</p>
+    </div>
+  </section>
+
+  <main id="gameScreen" class="hidden">
     <section>
       <h1>星河象棋</h1>
       <p class="hero-copy">同屏双人可以直接轮流落子；人机模式可以选更多档位；匹配模式会按你的连胜连败安排对手。点自己的棋子，再点高亮位置就能走。</p>
@@ -129,6 +174,14 @@
 
     <section class="panel">
       <div class="stage">
+        <div class="opponent-card" id="opponentCard">
+          <div class="ai-avatar" id="aiAvatar">AI</div>
+          <div class="opponent-meta">
+            <small>棋盘对面 / OPPONENT</small>
+            <b id="opponentName">常规AI</b>
+            <span id="opponentStyle">均衡风格，会按当前难度行棋。</span>
+          </div>
+        </div>
         <div class="board-wrap" id="boardWrap">
           <div class="board" id="board" aria-label="中国象棋棋盘"></div>
           <div class="river-label" aria-hidden="true"><span>楚河</span><span>汉界</span></div>
@@ -171,15 +224,15 @@
       {id:"super",label:"超级人机",depth:3,top:1,random:0,noise:-15}
     ];
     const AI_PROFILES=[
-      {id:"standard",label:"常规AI",style:"balanced",difficulty:"custom"},
-      {id:"doubao",label:"豆包",style:"steady",difficulty:"advanced"},
-      {id:"deepseek",label:"DeepSeek",style:"deep",difficulty:"master"},
-      {id:"codex",label:"Codex",style:"tactical",difficulty:"legend"},
-      {id:"lobster",label:"龙虾",style:"weird",difficulty:"hard"},
-      {id:"aggressive",label:"进攻AI",style:"aggressive",difficulty:"advanced"},
-      {id:"defensive",label:"防守AI",style:"defensive",difficulty:"hard"},
-      {id:"endgame",label:"残局AI",style:"endgame",difficulty:"master"},
-      {id:"super",label:"超级人机",style:"super",difficulty:"super"}
+      {id:"standard",label:"常规AI",avatar:"AI",color:"#8a512c",intro:"均衡风格，会按当前难度行棋。",style:"balanced",difficulty:"custom"},
+      {id:"doubao",label:"豆包",avatar:"豆",color:"#ff9f43",intro:"偏稳，喜欢守住中路后慢慢推进。",style:"steady",difficulty:"advanced"},
+      {id:"deepseek",label:"DeepSeek",avatar:"深",color:"#4d7cff",intro:"偏深算，重视局面分数和将军机会。",style:"deep",difficulty:"master"},
+      {id:"codex",label:"Codex",avatar:"C",color:"#32c48d",intro:"偏战术，喜欢主动制造威胁和吃子。",style:"tactical",difficulty:"legend"},
+      {id:"lobster",label:"龙虾",avatar:"虾",color:"#ff5b4a",intro:"风格古怪，经常下出不按套路的棋。",style:"weird",difficulty:"hard"},
+      {id:"aggressive",label:"进攻AI",avatar:"攻",color:"#d6332a",intro:"进攻优先，看到将军和吃子会更兴奋。",style:"aggressive",difficulty:"advanced"},
+      {id:"defensive",label:"防守AI",avatar:"守",color:"#476072",intro:"防守优先，喜欢稳住宫区和阵型。",style:"defensive",difficulty:"hard"},
+      {id:"endgame",label:"残局AI",avatar:"残",color:"#9467bd",intro:"残局思路更强，会靠近主帅压缩空间。",style:"endgame",difficulty:"master"},
+      {id:"super",label:"超级人机",avatar:"神",color:"#111827",intro:"制裁级强度，少失误、强搜索、压迫感很足。",style:"super",difficulty:"super"}
     ];
     const MATCH_KEY="star-river-xiangqi-match";
     const playerPool=[
@@ -449,6 +502,10 @@
       $("coach").textContent=mode==="ai"?"你执红先走，可以在 AI 对手里直接选择不同风格。":mode==="match"?"匹配模式会看你的连胜连败调度对手，特殊对手会显示在当前对手里。":"双人对战适合同屏轮流走，红方先行。";
       $("matchStatus").textContent=matchStatus;
       $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
+      $("opponentName").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
+      $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"坐在你对面的人来执黑。":`${activeProfile.intro} 当前强度：${activeLevel.label}`;
+      $("aiAvatar").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name.slice(0,1):mode==="local"?"友":activeProfile.avatar;
+      $("aiAvatar").style.setProperty("--avatar",mode==="match"?matchedOpponent.type==="bot"?"#8a512c":"#3d7a5f":mode==="local"?"#6b7280":activeProfile.color);
       $("matchRecord").textContent=`${matchStats.wins} 胜 ${matchStats.losses} 负 · ${matchStats.streak>=0?"连胜":"连败"} ${Math.abs(matchStats.streak)} · 最佳 ${matchStats.best}`;
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
       document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"});
@@ -459,6 +516,13 @@
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
     $("aiProfileButtons").onclick=e=>{if(!e.target.dataset.aiProfile||mode!=="ai")return;aiProfile=e.target.dataset.aiProfile;resetGame()};
     $("matchButton").onclick=startMatch;$("newGame").onclick=()=>mode==="match"?startMatch():resetGame();$("playAgain").onclick=()=>mode==="match"?startMatch():resetGame();$("undoMove").onclick=undoMove;
+    function showGame(){
+      $("homeScreen").classList.add("hidden");
+      $("gameScreen").classList.remove("hidden");
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+    $("startGameBtn").onclick=()=>{showGame();resetGame()};
+    $("startMatchBtn").onclick=()=>{showGame();startMatch()};
     resetGame();
   </script>
 </body>
