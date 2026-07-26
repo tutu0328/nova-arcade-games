@@ -66,12 +66,18 @@ test("棋盘对面会显示当前AI头像和风格说明", () => {
   assert.match(game, /id="aiAvatar"/);
   assert.match(game, /id="opponentName"/);
   assert.match(game, /id="opponentStyle"/);
+  assert.match(game, /class="board-ai-badge"/);
+  assert.match(game, /id="boardAiAvatar"/);
+  assert.match(game, /id="boardAiName"/);
+  assert.match(game, /id="boardAiStyle"/);
   for (const field of ["avatar:", "color:", "intro:"]) {
     assert.match(game, new RegExp(field));
   }
   assert.match(game, /activeProfile\.avatar/);
   assert.match(game, /activeProfile\.intro/);
   assert.match(game, /--avatar/);
+  assert.match(game, /boardAiAvatar/);
+  assert.match(game, /boardAiName/);
 });
 
 test("匹配模式会匹配玩家并插入少量人机补位", () => {
