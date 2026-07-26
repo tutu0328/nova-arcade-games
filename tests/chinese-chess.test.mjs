@@ -7,6 +7,47 @@ const game = readFileSync(new URL("chinese-chess.html", root), "utf8");
 const index = readFileSync(new URL("index.html", root), "utf8");
 const script = game.match(/<script>([\s\S]*?)<\/script>/)?.[1] ?? "";
 
+function runGameScriptForRules() {
+  const previous = {
+    document: globalThis.document,
+    localStorage: globalThis.localStorage,
+    window: globalThis.window,
+    setTimeout: globalThis.setTimeout,
+  };
+  const makeEl = () => ({
+    textContent: "",
+    innerHTML: "",
+    children: [],
+    dataset: {},
+    style: {setProperty() {}},
+    classList: {add() {}, remove() {}, toggle() {}},
+    appendChild() {},
+    prepend() {},
+    setAttribute() {},
+    onclick: null,
+    disabled: false,
+    offsetWidth: 1,
+  });
+  globalThis.document = {
+    body: {dataset: {}},
+    getElementById: () => makeEl(),
+    createElement: () => makeEl(),
+    querySelectorAll: () => [],
+    querySelector: () => makeEl(),
+  };
+  globalThis.localStorage = {getItem: () => null, setItem() {}};
+  globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
+  globalThis.setTimeout = fn => fn();
+  try {
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard};`)();
+  } finally {
+    globalThis.document = previous.document;
+    globalThis.localStorage = previous.localStorage;
+    globalThis.window = previous.window;
+    globalThis.setTimeout = previous.setTimeout;
+  }
+}
+
 test("游戏库可以进入《星河棋社》", () => {
   assert.ok(existsSync(new URL("chinese-chess.html", root)));
   assert.match(index, /href:'chinese-chess\.html'/);
@@ -172,6 +213,15 @@ test("中国象棋棋子和点击热区落在十字交叉点，不落在格子�
   assert.match(game, /btn\.style\.top=`\$\{r\/9\*100\}%`/);
   assert.doesNotMatch(game, /\(c\+\.5\)\/9\*100/);
   assert.doesNotMatch(game, /\(r\+\.5\)\/10\*100/);
+});
+
+test("帅在九宫内可以正常移动", () => {
+  const {RED, BLACK, legalMovesFor} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[8][4] = {side: RED, type: "k"};
+  b[0][0] = {side: BLACK, type: "k"};
+  const moves = legalMovesFor(b, 8, 4).map(m => `${m.r},${m.c}`).sort();
+  assert.deepEqual(moves, ["7,4", "8,3", "8,5", "9,4"]);
 });
 
 test("连胜多场会安排超级人机制裁，连输多场会安排弱智人机", () => {
