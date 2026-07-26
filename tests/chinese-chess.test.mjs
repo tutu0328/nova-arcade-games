@@ -27,8 +27,20 @@ test("进入页面先看到首页介绍和开始游戏按钮", () => {
   assert.match(game, /一个棋类合集：可以玩中国象棋、国际象棋和跳棋/);
   assert.match(game, /不是空棋盘，是真功能。/);
   assert.match(game, /不在首页放空棋盘占位置/);
+  assert.match(game, /三款棋怎么玩？/);
   assert.match(game, /function showGame\(\)/);
   assert.match(game, /\$\("startGameBtn"\)\.onclick/);
+});
+
+test("首页介绍三款棋分别怎么玩", () => {
+  assert.match(game, /aria-label="三款棋怎么玩"/);
+  assert.match(game, /<b>中国象棋<\/b>/);
+  assert.match(game, /将死对方将\/帅/);
+  assert.match(game, /炮吃子要隔一个炮架/);
+  assert.match(game, /<b>国际象棋<\/b>/);
+  assert.match(game, /兵到底会自动升后/);
+  assert.match(game, /<b>跳棋<\/b>/);
+  assert.match(game, /能跳吃时必须跳吃/);
 });
 
 test("页面已经从单一象棋升级成棋类合集", () => {
