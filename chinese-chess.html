@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#261a12">
-  <title>星河象棋 · NOVA ARCADE</title>
+  <title>星河棋社 · NOVA ARCADE</title>
   <style>
     :root{
       --ink:#2a1409;--paper:#f6dfb5;--board:#d99b53;--line:#6c3417;
@@ -63,6 +63,14 @@
     .opponent-meta small{display:block;color:#ffd16a;font-size:11px;letter-spacing:.14em;font-weight:900}.opponent-meta b{display:block;font-size:19px;margin:3px 0}.opponent-meta span{display:block;color:#e5cda7;font-size:12px;line-height:1.45}
     .board-ai-badge{position:absolute;z-index:8;right:18px;top:18px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;max-width:min(240px,45%);padding:8px 10px;border-radius:14px;background:rgba(43,26,16,.88);color:#fff4d8;border:1px solid rgba(255,241,202,.34);box-shadow:0 10px 24px rgba(43,16,4,.3);backdrop-filter:blur(6px);pointer-events:none}
     .board-ai-badge .ai-avatar{width:42px;border-radius:12px;font-size:18px;border-width:2px}.board-ai-badge b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.board-ai-badge span{display:block;color:#e5cda7;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .classic-wrap{position:relative;margin:auto;width:min(100%,660px);aspect-ratio:1;border:12px solid #693314;border-radius:12px;background:linear-gradient(145deg,#f4c271,#be7134);box-shadow:inset 0 0 0 5px rgba(255,238,184,.45),0 16px 42px rgba(0,0,0,.28);overflow:hidden}
+    .classic-board{position:absolute;inset:14px;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border:3px solid rgba(92,44,18,.9)}
+    .classic-square{position:relative;border:0;display:grid;place-items:center;font-size:clamp(24px,5vw,48px);font-weight:900}
+    .classic-square.light{background:#f7d99b}.classic-square.dark{background:#8b532c}
+    .classic-square.hint:after,.classic-square.capture:after{content:"";position:absolute;inset:26%;border-radius:50%;background:rgba(61,178,127,.55)}
+    .classic-square.capture{box-shadow:inset 0 0 0 5px rgba(197,34,31,.5)}
+    .classic-piece{position:relative;z-index:2;width:76%;aspect-ratio:1;border-radius:50%;border:3px solid currentColor;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#fff8e0,#f2c577 72%);box-shadow:0 7px 16px rgba(52,21,6,.32);line-height:1}
+    .classic-piece.white{color:#c5221f}.classic-piece.black{color:#17202a;background:radial-gradient(circle at 35% 25%,#fff5cf,#d49b53 72%)}.classic-piece.selected{outline:4px solid var(--jade);box-shadow:0 0 0 8px rgba(61,178,127,.18),0 7px 16px rgba(52,21,6,.32)}
     .piece{position:absolute;z-index:3;width:9.5%;aspect-ratio:1;border-radius:50%;border:3px solid currentColor;background:radial-gradient(circle at 35% 25%,#fff9e7,#f7d699 72%);display:grid;place-items:center;font-size:clamp(18px,4.6vw,36px);font-weight:900;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(52,21,6,.28);transition:.16s}
     .piece.red{color:var(--red)}.piece.black{color:var(--black)}.piece.selected{outline:4px solid var(--jade);box-shadow:0 0 0 7px rgba(61,178,127,.18),0 8px 18px rgba(52,21,6,.28)}
     .piece.ai-turn{opacity:.8}
@@ -71,13 +79,13 @@
     .log{max-height:180px;overflow:auto;padding:16px;background:#fff4d9}.log h2{font-size:15px;margin-bottom:10px}.log ol{margin:0;padding-left:22px;line-height:1.65;color:#6d4525}
     .win{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:18px;background:rgba(16,8,5,.72);backdrop-filter:blur(10px)}
     .win.show{display:grid}.win-card{width:min(480px,100%);padding:34px;border-radius:14px;background:#fff3d8;color:#2b1a10;text-align:center;box-shadow:var(--shadow)}.win-card h2{font-size:32px;margin-bottom:10px}.win-card p{line-height:1.7;color:#704626}
-    @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap{border-width:7px}.board{inset:9px}.piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.board-ai-badge{right:12px;top:12px;max-width:52%;padding:6px 8px}.board-ai-badge .ai-avatar{width:34px;font-size:15px}.board-ai-badge b{font-size:12px}.status{display:block}.status span{display:block;margin-top:6px}}
+    @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap,.classic-wrap{border-width:7px}.board,.classic-board{inset:9px}.piece,.classic-piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.board-ai-badge{right:12px;top:12px;max-width:52%;padding:6px 8px}.board-ai-badge .ai-avatar{width:34px;font-size:15px}.board-ai-badge b{font-size:12px}.status{display:block}.status span{display:block;margin-top:6px}}
   </style>
 </head>
 <body>
   <header class="topbar">
     <a class="back" href="index.html">← 游戏库</a>
-    <div class="brand">STAR RIVER <span>XIANGQI</span></div>
+    <div class="brand">NOVA <span>CHESS CLUB</span></div>
     <div class="hud">
       <div>模式<b id="modeHud">人机对战</b></div>
       <div>难度<b id="difficultyHud">普通</b></div>
@@ -87,9 +95,9 @@
 
   <section class="home" id="homeScreen">
     <div class="home-copy">
-      <div class="kicker">NOVA ARCADE · XIANGQI</div>
-      <h1>星河象棋</h1>
-      <p>一个可以单机练习、同屏双人、模拟匹配的中国象棋游戏。你可以挑战不同强度的人机，也可以选择豆包、DeepSeek、Codex、龙虾和超级人机等不同风格的 AI 对手。</p>
+      <div class="kicker">NOVA ARCADE · CHESS CLUB</div>
+      <h1>星河棋社</h1>
+      <p>一个棋类合集：可以玩中国象棋、国际象棋和跳棋。你可以单机练习、同屏双人、模拟匹配，也可以挑战豆包、DeepSeek、Codex、龙虾和超级人机等不同风格的 AI 对手。</p>
       <div class="home-actions">
         <button class="action" id="startGameBtn">开始游戏</button>
         <button class="action secondary" id="startMatchBtn">快速匹配</button>
@@ -101,7 +109,7 @@
         <div class="home-feature"><b>更清楚的棋盘</b><span>九宫格、楚河汉界、当前对手都更明显。</span></div>
       </div>
     </div>
-    <div class="home-board" aria-label="星河象棋预览">
+    <div class="home-board" aria-label="星河棋社预览">
       <div class="opponent-card">
         <div class="ai-avatar" style="--avatar:#32c48d">C</div>
         <div class="opponent-meta">
@@ -116,16 +124,24 @@
         <div class="palace-lines black" aria-hidden="true"></div>
         <div class="palace-lines red" aria-hidden="true"></div>
       </div>
-      <p class="home-board-note">点“开始游戏”进入正式棋局，选择难度和 AI 对手后即可开局。</p>
+      <p class="home-board-note">点“开始游戏”进入正式棋局，先选中国象棋、国际象棋或跳棋，再选择难度和 AI 对手。</p>
     </div>
   </section>
 
   <main id="gameScreen" class="hidden">
     <section>
-      <h1>星河象棋</h1>
-      <p class="hero-copy">同屏双人可以直接轮流落子；人机模式可以选更多档位；匹配模式会按你的连胜连败安排对手。点自己的棋子，再点高亮位置就能走。</p>
+      <h1>星河棋社</h1>
+      <p class="hero-copy">中国象棋、国际象棋、跳棋都能在这里玩。同屏双人可以直接轮流落子；人机模式可以选更多档位；匹配模式会按你的连胜连败安排对手。</p>
       <div class="panel controls">
         <div class="kicker">PLAY MODE</div>
+        <div class="control-block">
+          <h2>棋类选择</h2>
+          <div class="seg three" id="gameTypeButtons">
+            <button class="active" data-game-type="xiangqi">中国象棋</button>
+            <button data-game-type="chess">国际象棋</button>
+            <button data-game-type="checkers">跳棋</button>
+          </div>
+        </div>
         <div class="control-block">
           <h2>对战方式</h2>
           <div class="seg three" id="modeButtons">
@@ -154,9 +170,6 @@
             <button data-ai-profile="deepseek">DeepSeek</button>
             <button data-ai-profile="codex">Codex</button>
             <button data-ai-profile="lobster">龙虾</button>
-            <button data-ai-profile="aggressive">进攻AI</button>
-            <button data-ai-profile="defensive">防守AI</button>
-            <button data-ai-profile="endgame">残局AI</button>
             <button data-ai-profile="super">超级人机</button>
           </div>
         </div>
@@ -193,6 +206,13 @@
           <div class="river-label" aria-hidden="true"><span>楚河</span><span>汉界</span></div>
           <div class="palace-lines black" aria-hidden="true"></div>
           <div class="palace-lines red" aria-hidden="true"></div>
+        </div>
+        <div class="classic-wrap hidden" id="classicWrap">
+          <div class="board-ai-badge" id="classicAiBadge" aria-live="polite">
+            <div class="ai-avatar" id="classicAiAvatar">AI</div>
+            <div><b id="classicAiName">常规AI</b><span id="classicAiStyle">均衡</span></div>
+          </div>
+          <div class="classic-board" id="classicBoard" aria-label="国际象棋和跳棋棋盘"></div>
         </div>
         <div class="status">
           <div id="statusText"><b>红方</b> 请选择棋子。</div>
@@ -235,9 +255,6 @@
       {id:"deepseek",label:"DeepSeek",avatar:"深",color:"#4d7cff",intro:"偏深算，重视局面分数和将军机会。",style:"deep",difficulty:"master"},
       {id:"codex",label:"Codex",avatar:"C",color:"#32c48d",intro:"偏战术，喜欢主动制造威胁和吃子。",style:"tactical",difficulty:"legend"},
       {id:"lobster",label:"龙虾",avatar:"虾",color:"#ff5b4a",intro:"风格古怪，经常下出不按套路的棋。",style:"weird",difficulty:"hard"},
-      {id:"aggressive",label:"进攻AI",avatar:"攻",color:"#d6332a",intro:"进攻优先，看到将军和吃子会更兴奋。",style:"aggressive",difficulty:"advanced"},
-      {id:"defensive",label:"防守AI",avatar:"守",color:"#476072",intro:"防守优先，喜欢稳住宫区和阵型。",style:"defensive",difficulty:"hard"},
-      {id:"endgame",label:"残局AI",avatar:"残",color:"#9467bd",intro:"残局思路更强，会靠近主帅压缩空间。",style:"endgame",difficulty:"master"},
       {id:"super",label:"超级人机",avatar:"神",color:"#111827",intro:"制裁级强度，少失误、强搜索、压迫感很足。",style:"super",difficulty:"super"}
     ];
     const MATCH_KEY="star-river-xiangqi-match";
@@ -255,12 +272,17 @@
     const horseSteps=[[2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0],[1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1]];
     const elephantSteps=[[2,2,1,1],[2,-2,1,-1],[-2,2,-1,1],[-2,-2,-1,-1]];
     const advisorSteps=[[1,1],[1,-1],[-1,1],[-1,-1]];
+    const GAME_TYPES={xiangqi:"中国象棋",chess:"国际象棋",checkers:"跳棋"};
+    const classicText={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟",wm:"●",bm:"●",wK:"♛",bK:"♛"};
+    const classicValues={k:10000,q:900,r:500,b:330,n:320,p:100,m:100,K:230};
     let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
+    let gameType="xiangqi",classicBoard=[],classicTurn="w",classicSelected=null,classicMoves=[],classicHistory=[];
     let matchStats=loadMatchStats();
 
     const $=id=>document.getElementById(id);
     const clone=b=>b.map(row=>row.map(p=>p?{...p}:null));
     const inside=(r,c)=>r>=0&&r<10&&c>=0&&c<9;
+    const insideClassic=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
     const enemy=(p,side)=>p&&p.side!==side;
     const own=(p,side)=>p&&p.side===side;
     const palace=(side,r,c)=>c>=3&&c<=5&&(side===RED?r>=7&&r<=9:r>=0&&r<=2);
@@ -288,8 +310,31 @@
       return b;
     }
 
+    function initialClassicBoard(type){
+      const b=Array.from({length:8},()=>Array(8).fill(null));
+      const put=(r,c,side,piece)=>b[r][c]={side,type:piece,id:side+piece+r+c};
+      if(type==="chess"){
+        ["r","n","b","q","k","b","n","r"].forEach((t,c)=>put(0,c,"b",t));
+        for(let c=0;c<8;c++)put(1,c,"b","p");
+        for(let c=0;c<8;c++)put(6,c,"w","p");
+        ["r","n","b","q","k","b","n","r"].forEach((t,c)=>put(7,c,"w",t));
+      }else if(type==="checkers"){
+        for(let r=0;r<3;r++)for(let c=0;c<8;c++)if((r+c)%2)put(r,c,"b","m");
+        for(let r=5;r<8;r++)for(let c=0;c<8;c++)if((r+c)%2)put(r,c,"w","m");
+      }
+      return b;
+    }
+
+    function switchGameType(type){
+      if(!GAME_TYPES[type])return;
+      gameType=type;
+      matchStatus=`已切换到${GAME_TYPES[gameType]}。`;
+      resetGame();
+    }
+
     function resetGame(){
       board=initialBoard();turn=RED;selected=null;moves=[];history=[];gameOver=false;thinking=false;
+      classicBoard=initialClassicBoard(gameType);classicTurn="w";classicSelected=null;classicMoves=[];classicHistory=[];
       $("winnerLayer").classList.remove("show");render();
     }
 
@@ -366,6 +411,96 @@
       return out;
     }
 
+    function rawClassicMovesFor(b,r,c,onlyCaptures=false){
+      const p=b[r][c];if(!p)return[];
+      const out=[];const add=(nr,nc,extra={})=>{if(insideClassic(nr,nc)&&!own(b[nr][nc],p.side))out.push({from:{r,c},to:{r:nr,c:nc},...extra})};
+      if(gameType==="chess"){
+        const step=p.side==="w"?-1:1,start=p.side==="w"?6:1;
+        const slide=directions=>{for(const [dr,dc] of directions){let nr=r+dr,nc=c+dc;while(insideClassic(nr,nc)){if(!b[nr][nc]){if(!onlyCaptures)out.push({from:{r,c},to:{r:nr,c:nc}})}else{if(enemy(b[nr][nc],p.side))out.push({from:{r,c},to:{r:nr,c:nc},capture:true});break}nr+=dr;nc+=dc}}};
+        if(p.type==="p"){
+          if(!onlyCaptures&&!b[r+step]?.[c]){out.push({from:{r,c},to:{r:r+step,c}});if(r===start&&!b[r+step*2]?.[c])out.push({from:{r,c},to:{r:r+step*2,c}})}
+          for(const dc of [-1,1])if(enemy(b[r+step]?.[c+dc],p.side))add(r+step,c+dc,{capture:true});
+        }
+        if(p.type==="n")for(const [dr,dc] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[-1,2],[1,-2],[-1,-2]])add(r+dr,c+dc,{capture:!!b[r+dr]?.[c+dc]});
+        if(p.type==="b")slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
+        if(p.type==="r")slide([[1,0],[-1,0],[0,1],[0,-1]]);
+        if(p.type==="q")slide([[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]);
+        if(p.type==="k")for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]])add(r+dr,c+dc,{capture:!!b[r+dr]?.[c+dc]});
+      }
+      if(gameType==="checkers"){
+        const dirs=p.type==="K"?[[1,1],[1,-1],[-1,1],[-1,-1]]:(p.side==="w"?[[-1,1],[-1,-1]]:[[1,1],[1,-1]]);
+        for(const [dr,dc] of dirs){
+          const mr=r+dr,mc=c+dc,nr=r+dr*2,nc=c+dc*2;
+          if(enemy(b[mr]?.[mc],p.side)&&insideClassic(nr,nc)&&!b[nr][nc])out.push({from:{r,c},to:{r:nr,c:nc},jump:{r:mr,c:mc},capture:true});
+          else if(!onlyCaptures&&insideClassic(mr,mc)&&!b[mr][mc])out.push({from:{r,c},to:{r:mr,c:mc}});
+        }
+      }
+      return out;
+    }
+
+    function allRawClassicCaptures(b,side){
+      const captures=[];
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.side===side)captures.push(...rawClassicMovesFor(b,r,c,true));
+      return captures;
+    }
+
+    function classicMovesFor(b,r,c){
+      const p=b[r][c];if(!p)return[];
+      if(gameType==="checkers"&&allRawClassicCaptures(b,p.side).length)return rawClassicMovesFor(b,r,c,true);
+      return rawClassicMovesFor(b,r,c,false);
+    }
+
+    function allClassicMoves(b,side){
+      if(gameType==="checkers"){
+        const captures=allRawClassicCaptures(b,side);
+        if(captures.length)return captures;
+      }
+      const out=[];
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.side===side)out.push(...rawClassicMovesFor(b,r,c,false));
+      return out;
+    }
+
+    function movedClassicBoard(b,move){
+      const next=clone(b),moving=next[move.from.r][move.from.c];
+      next[move.to.r][move.to.c]=moving;next[move.from.r][move.from.c]=null;
+      if(move.jump)next[move.jump.r][move.jump.c]=null;
+      if(gameType==="chess"&&moving?.type==="p"&&(move.to.r===0||move.to.r===7))moving.type="q";
+      if(gameType==="checkers"&&moving?.type==="m"&&((moving.side==="w"&&move.to.r===0)||(moving.side==="b"&&move.to.r===7)))moving.type="K";
+      return next;
+    }
+
+    function classicBoardScore(b,side){
+      let score=0;
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(!p)continue;let v=classicValues[p.type]||100;v+=Math.max(0,4-Math.abs(c-3.5))*3;score+=p.side===side?v:-v}
+      score+=allClassicMoves(b,side).length*4;
+      score-=allClassicMoves(b,side==="w"?"b":"w").length*3;
+      return score;
+    }
+
+    function classicMoveScore(b,move,side,config){
+      const taken=gameType==="checkers"?b[move.jump?.r]?.[move.jump?.c]:b[move.to.r][move.to.c];
+      const next=movedClassicBoard(b,move);
+      let score=classicBoardScore(next,side)+(taken?(classicValues[taken.type]||100)*1.1:0);
+      score-=Math.abs(move.to.c-3.5)*5;
+      const canBeTaken=allClassicMoves(next,side==="w"?"b":"w").some(reply=>reply.to.r===move.to.r&&reply.to.c===move.to.c);
+      if(canBeTaken)score-=(classicValues[b[move.from.r][move.from.c]?.type]||100)*.9;
+      if(gameType==="chess"&&taken?.type==="k")score+=9000;
+      if(gameType==="checkers"&&move.to.r>=2&&move.to.r<=5)score+=25;
+      return score+(Math.random()*Math.max(0,config.noise));
+    }
+
+    function chooseClassicAiMove(){
+      const profile=mode==="ai"?profileById(aiProfile):{style:"balanced",difficulty:"custom"};
+      const selectedDifficulty=profile.difficulty==="custom"?difficulty:profile.difficulty;
+      const config=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:selectedDifficulty);
+      const list=allClassicMoves(classicBoard,"b");
+      if(!list.length)return null;
+      if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
+      const ranked=list.map(move=>({move,score:classicMoveScore(classicBoard,move,"b",config)+(profile.style==="super"?classicBoardScore(movedClassicBoard(classicBoard,move),"b")*.45:0)})).sort((a,b)=>b.score-a.score);
+      const top=ranked.slice(0,Math.max(1,config.top));
+      return top[Math.floor(Math.random()*top.length)].move;
+    }
+
     function posName(pos){return `${"一二三四五六七八九"[pos.c]}${10-pos.r}`;}
     function sideName(side){return side===RED?"红方":"黑方";}
     function pieceLabel(p){return p?pieceText[p.side+p.type]:"";}
@@ -414,9 +549,30 @@
       return score;
     }
 
+    function hangingPenalty(next,move,side){
+      const moved=next[move.to.r]?.[move.to.c];if(!moved)return 0;
+      const other=side===RED?BLACK:RED;
+      const canBeCaptured=allMoves(next,other).some(reply=>reply.to.r===move.to.r&&reply.to.c===move.to.c);
+      return canBeCaptured?values[moved.type]*1.25:0;
+    }
+
+    function strategicScore(b,move,side){
+      const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      let score=scoreBoard(next,side);
+      score+=(taken?values[taken.type]*.85:0);
+      score-=hangingPenalty(next,move,side);
+      if(inCheck(next,side===RED?BLACK:RED))score+=180;
+      if(inCheck(next,side))score-=260;
+      if(moving?.type==="p"&&crossed(side,move.to.r))score+=45;
+      if(moving?.type==="k"||moving?.type==="a"||moving?.type==="e")score+=palace(side,move.to.r,move.to.c)?25:-80;
+      score-=Math.abs(move.to.c-4)*6;
+      score+=allMoves(next,side).length*3;
+      return score;
+    }
+
     function moveScore(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
-      let score=(taken?values[taken.type]*3:0)+scoreBoard(movedBoard(b,move.from,move.to),side);
+      let score=(taken?values[taken.type]*.9:0)+scoreBoard(movedBoard(b,move.from,move.to),side);
       if(moving?.type==="p"&&crossed(side,move.to.r))score+=35;
       score-=Math.abs(move.to.c-4)*3;
       return score+Math.random()*12;
@@ -432,10 +588,7 @@
       if(profile.style==="deep")return scoreBoard(next,side)*.18+(inCheck(next,side===RED?BLACK:RED)?220:0);
       if(profile.style==="tactical")return (taken?values[taken.type]*1.4:0)+(inCheck(next,side===RED?BLACK:RED)?240:0)+(move.to.r>4?35:0);
       if(profile.style==="weird")return (Math.sin((move.to.r+1)*(move.to.c+2))*95)+(taken?values[taken.type]*.55:0);
-      if(profile.style==="aggressive")return (taken?values[taken.type]*1.2:0)+(inCheck(next,side===RED?BLACK:RED)?180:0);
-      if(profile.style==="defensive")return (inCheck(next,side)?-260:0)+(move.to.c>=3&&move.to.c<=5?22:0);
-      if(profile.style==="endgame"){const king=findKing(next,side===RED?BLACK:RED);return king?(9-Math.abs(move.to.r-king.r)-Math.abs(move.to.c-king.c))*18:0}
-      if(profile.style==="super")return (taken?values[taken.type]*1.6:0)+(inCheck(next,side===RED?BLACK:RED)?260:0)-Math.abs(move.to.c-4)*10;
+      if(profile.style==="super")return strategicScore(b,move,side)*.55+(inCheck(next,side===RED?BLACK:RED)?260:0)-hangingPenalty(next,move,side)*.8;
       return 0;
     }
 
@@ -457,7 +610,8 @@
       if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
       const ranked=list.map(move=>{
         const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
-        return{move,score:base+configuredScore(board,move,BLACK,config)+profileScore(board,move,BLACK,profile)};
+        const plan=config.depth>=2?strategicScore(board,move,BLACK):configuredScore(board,move,BLACK,config);
+        return{move,score:base+plan+profileScore(board,move,BLACK,profile)};
       }).sort((a,b)=>b.score-a.score);
       const top=ranked.slice(0,Math.max(1,config.top));
       return top[Math.floor(Math.random()*top.length)].move;
@@ -469,8 +623,57 @@
       if(move)makeMove(move.from,move.to,"ai");
     }
 
+    function classicSideName(side){return gameType==="chess"?(side==="w"?"白方":"黑方"):(side==="w"?"红方":"黑方")}
+    function classicPieceLabel(p){return p?classicText[p.side+p.type]||"●":""}
+
+    function selectClassicSquare(r,c){
+      if(gameOver||thinking||gameType==="xiangqi")return;
+      const p=classicBoard[r][c];
+      if(isAutoOpponent()&&classicTurn==="b")return;
+      if(p?.side===classicTurn){classicSelected={r,c};classicMoves=classicMovesFor(classicBoard,r,c);render();return}
+      const move=classicSelected&&classicMoves.find(m=>m.to.r===r&&m.to.c===c);
+      if(move)makeClassicMove(move,"human");
+    }
+
+    function makeClassicMove(move,actor){
+      const moving=classicBoard[move.from.r][move.from.c];
+      const taken=gameType==="checkers"?classicBoard[move.jump?.r]?.[move.jump?.c]:classicBoard[move.to.r][move.to.c];
+      classicHistory.push({board:clone(classicBoard),turn:classicTurn,moveLog:$("moveLog").innerHTML,actor});
+      classicBoard=movedClassicBoard(classicBoard,move);classicSelected=null;classicMoves=[];
+      const li=document.createElement("li");li.textContent=`${classicSideName(classicTurn)} ${classicPieceLabel(moving)} ${move.from.r+1},${move.from.c+1} → ${move.to.r+1},${move.to.c+1}${taken?"，吃 "+classicPieceLabel(taken):""}`;$("moveLog").prepend(li);
+      if(gameType==="chess"&&taken?.type==="k"){finishClassic(classicTurn,`${classicSideName(classicTurn)} 吃掉对方国王。`);return}
+      const other=classicTurn==="w"?"b":"w";
+      if(!classicBoard.flat().some(p=>p?.side===other)){finishClassic(classicTurn,`${classicSideName(other)} 没有棋子了。`);return}
+      classicTurn=other;
+      if(!allClassicMoves(classicBoard,classicTurn).length){finishClassic(classicTurn==="w"?"b":"w",`${classicSideName(classicTurn)} 无子可走。`);return}
+      render();
+      if(isAutoOpponent()&&classicTurn==="b"){thinking=true;render();setTimeout(classicAiMove,420)}
+    }
+
+    function classicAiMove(){
+      if(gameOver||classicTurn!=="b")return;
+      const move=chooseClassicAiMove();thinking=false;
+      if(move)makeClassicMove(move,"ai");
+    }
+
+    function finishClassic(winner,copy){
+      if(mode==="match")recordMatchResult(winner==="w"?RED:BLACK);
+      gameOver=true;render();
+      $("winnerTitle").textContent=`${classicSideName(winner)}获胜`;
+      $("winnerCopy").textContent=copy;
+      $("winnerLayer").classList.add("show");
+    }
+
     function undoMove(){
-      if(thinking||!history.length)return;
+      if(thinking)return;
+      if(gameType!=="xiangqi"){
+        if(!classicHistory.length)return;
+        let last=classicHistory.pop();
+        if(isAutoOpponent()&&last?.actor==="ai"&&classicHistory.length)last=classicHistory.pop();
+        if(!last)return;
+        classicBoard=clone(last.board);classicTurn=last.turn;classicSelected=null;classicMoves=[];gameOver=false;$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();return;
+      }
+      if(!history.length)return;
       let last=history.pop();
       if(isAutoOpponent()&&last?.actor==="ai"&&history.length)last=history.pop();
       if(!last)return;
@@ -488,6 +691,27 @@
       for(let r=0;r<10;r++)for(let c=0;c<9;c++){const p=board[r][c];if(!p)continue;const btn=document.createElement("button");btn.type="button";btn.className=`piece ${p.side===RED?"red":"black"}${selected?.r===r&&selected?.c===c?" selected":""}${thinking&&p.side===BLACK?" ai-turn":""}`;btn.textContent=pieceLabel(p);btn.style.left=`${(c+.5)/9*100}%`;btn.style.top=`${(r+.5)/10*100}%`;btn.setAttribute("aria-label",`${sideName(p.side)}${pieceName[p.type]}`);btn.onclick=()=>selectSquare(r,c);$("boardWrap").appendChild(btn)}
     }
 
+    function renderClassicBoard(){
+      const boardEl=$("classicBoard");boardEl.innerHTML="";
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+        const p=classicBoard[r][c];
+        const cell=document.createElement("button");
+        cell.type="button";
+        cell.className=`classic-square ${(r+c)%2?"dark":"light"}`;
+        cell.dataset.r=r;cell.dataset.c=c;
+        cell.setAttribute("aria-label",`${GAME_TYPES[gameType]}第${r+1}行第${c+1}列`);
+        if(classicMoves.some(m=>m.to.r===r&&m.to.c===c))cell.classList.add(p?"capture":"hint");
+        if(p){
+          const piece=document.createElement("span");
+          piece.className=`classic-piece ${p.side==="w"?"white":"black"}${classicSelected?.r===r&&classicSelected?.c===c?" selected":""}`;
+          piece.textContent=classicPieceLabel(p);
+          cell.appendChild(piece);
+        }
+        cell.onclick=()=>selectClassicSquare(r,c);
+        boardEl.appendChild(cell);
+      }
+    }
+
     function renderCaptured(){
       const reds=[],blacks=[];
       const initial={rk:1,ra:2,re:2,rh:2,rr:2,rc:2,rp:5,bk:1,ba:2,be:2,bh:2,br:2,bc:2,bp:5};
@@ -499,13 +723,15 @@
 
     function render(){
       document.querySelectorAll(".piece").forEach(p=>p.remove());
-      renderBoard();renderCaptured();
+      $("boardWrap").classList.toggle("hidden",gameType!=="xiangqi");
+      $("classicWrap").classList.toggle("hidden",gameType==="xiangqi");
+      if(gameType==="xiangqi"){renderBoard();renderCaptured()}else{renderClassicBoard();$("redCaptured").textContent="—";$("blackCaptured").textContent="—"}
       const activeProfile=profileById(aiProfile);
       const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:activeProfile.difficulty==="custom"?difficulty:activeProfile.difficulty);
       $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
-      $("turnHud").textContent=sideName(turn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`;
-      const checked=inCheck(board,turn);$("checkText").textContent=checked?`${sideName(turn)}被将军`:"未将军";
-      $("coach").textContent=mode==="ai"?"你执红先走，可以在 AI 对手里直接选择不同风格。":mode==="match"?"匹配模式会看你的连胜连败调度对手，特殊对手会显示在当前对手里。":"双人对战适合同屏轮流走，红方先行。";
+      $("turnHud").textContent=gameType==="xiangqi"?sideName(turn):classicSideName(classicTurn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:gameType==="xiangqi"?`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`:`<b>${classicSideName(classicTurn)}</b> ${classicSelected?"选择落点。":"请选择棋子。"}`;
+      const checked=gameType==="xiangqi"&&inCheck(board,turn);$("checkText").textContent=gameType==="xiangqi"?(checked?`${sideName(turn)}被将军`:"未将军"):`${GAME_TYPES[gameType]} · 难度共享`;
+      $("coach").textContent=gameType==="xiangqi"?"红方先行。高难 AI 会尽量避免炮换马这类亏子交换。":gameType==="chess"?"国际象棋使用同一套难度和 AI 对手；兵到底会自动升后。":"跳棋使用同一套难度和 AI 对手；能跳吃时必须跳吃。";
       $("matchStatus").textContent=matchStatus;
       $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
       $("opponentName").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
@@ -519,12 +745,18 @@
       $("boardAiAvatar").style.setProperty("--avatar",avatarColor);
       $("boardAiName").textContent=opponentName;
       $("boardAiStyle").textContent=mode==="local"?"双人":mode==="match"?"匹配中":activeLevel.label;
+      $("classicAiAvatar").textContent=avatarText;
+      $("classicAiAvatar").style.setProperty("--avatar",avatarColor);
+      $("classicAiName").textContent=opponentName;
+      $("classicAiStyle").textContent=mode==="local"?"双人":mode==="match"?"匹配中":activeLevel.label;
       $("matchRecord").textContent=`${matchStats.wins} 胜 ${matchStats.losses} 负 · ${matchStats.streak>=0?"连胜":"连败"} ${Math.abs(matchStats.streak)} · 最佳 ${matchStats.best}`;
+      document.querySelectorAll("#gameTypeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.gameType===gameType));
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
-      document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"});
+      document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"||aiProfile==="super"});
       document.querySelectorAll("#aiProfileButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.aiProfile===aiProfile);b.disabled=mode!=="ai"});
     }
 
+    $("gameTypeButtons").onclick=e=>{if(!e.target.dataset.gameType)return;switchGameType(e.target.dataset.gameType)};
     $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;if(mode==="match")startMatch();else{matchedOpponent=null;matchStatus=mode==="ai"?"人机练习已准备好。":"双人同屏对局已准备好。";resetGame()}};
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
     $("aiProfileButtons").onclick=e=>{if(!e.target.dataset.aiProfile||mode!=="ai")return;aiProfile=e.target.dataset.aiProfile;resetGame()};

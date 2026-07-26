@@ -7,10 +7,12 @@ const game = readFileSync(new URL("chinese-chess.html", root), "utf8");
 const index = readFileSync(new URL("index.html", root), "utf8");
 const script = game.match(/<script>([\s\S]*?)<\/script>/)?.[1] ?? "";
 
-test("游戏库可以进入《星河象棋》", () => {
+test("游戏库可以进入《星河棋社》", () => {
   assert.ok(existsSync(new URL("chinese-chess.html", root)));
   assert.match(index, /href:'chinese-chess\.html'/);
-  assert.match(index, /title:'星河象棋'/);
+  assert.match(index, /title:'星河棋社'/);
+  assert.match(index, /NOVA CHESS CLUB/);
+  assert.match(index, /中国象棋、国际象棋、跳棋/);
 });
 
 test("象棋页面脚本语法有效", () => {
@@ -22,9 +24,34 @@ test("进入页面先看到首页介绍和开始游戏按钮", () => {
   assert.match(game, /id="gameScreen" class="hidden"/);
   assert.match(game, /id="startGameBtn">开始游戏<\/button>/);
   assert.match(game, /id="startMatchBtn">快速匹配<\/button>/);
-  assert.match(game, /一个可以单机练习、同屏双人、模拟匹配的中国象棋游戏/);
+  assert.match(game, /一个棋类合集：可以玩中国象棋、国际象棋和跳棋/);
   assert.match(game, /function showGame\(\)/);
   assert.match(game, /\$\("startGameBtn"\)\.onclick/);
+});
+
+test("页面已经从单一象棋升级成棋类合集", () => {
+  assert.match(game, /星河棋社/);
+  assert.match(game, /NOVA <span>CHESS CLUB<\/span>/);
+  assert.match(game, /id="gameTypeButtons"/);
+  assert.match(game, /data-game-type="xiangqi"/);
+  assert.match(game, /data-game-type="chess"/);
+  assert.match(game, /data-game-type="checkers"/);
+  assert.match(game, /const GAME_TYPES=\{xiangqi:"中国象棋",chess:"国际象棋",checkers:"跳棋"\}/);
+  assert.match(game, /function switchGameType\(type\)/);
+});
+
+test("国际象棋和跳棋有独立的8x8棋盘与基础走子", () => {
+  assert.match(game, /id="classicWrap"/);
+  assert.match(game, /id="classicBoard"/);
+  assert.match(game, /function initialClassicBoard\(type\)/);
+  assert.match(game, /if\(type==="chess"\)/);
+  assert.match(game, /if\(type==="checkers"\)/);
+  assert.match(game, /function rawClassicMovesFor\(b,r,c,onlyCaptures=false\)/);
+  for (const piece of ["p", "n", "b", "r", "q", "k"]) {
+    assert.match(game, new RegExp(`p\\.type==="${piece}"`));
+  }
+  assert.match(game, /function renderClassicBoard\(\)/);
+  assert.match(game, /function makeClassicMove\(move,actor\)/);
 });
 
 test("支持双人对战、人机对战和匹配对战", () => {
@@ -36,7 +63,7 @@ test("支持双人对战、人机对战和匹配对战", () => {
   assert.match(game, /双人对战/);
 });
 
-test("人机难度不止三档，并包含更高档位", () => {
+test("人机难度不止三档，并包含更高档位，而且三种棋共享难度", () => {
   for (const level of ["novice", "easy", "normal", "advanced", "hard", "master", "legend"]) {
     assert.match(game, new RegExp(`data-difficulty="${level}"`));
   }
@@ -45,11 +72,15 @@ test("人机难度不止三档，并包含更高档位", () => {
   assert.match(game, /const DIFFICULTIES=\[/);
   assert.match(game, /difficultyById/);
   assert.match(game, /minimax/);
+  assert.match(game, /function chooseClassicAiMove\(\)/);
+  assert.match(game, /difficultyById\(mode==="match"&&matchedOpponent\?matchedOpponent\.difficulty:selectedDifficulty\)/);
+  assert.match(game, /国际象棋使用同一套难度和 AI 对手/);
+  assert.match(game, /跳棋使用同一套难度和 AI 对手/);
 });
 
 test("常见AI和超级人机是正式可选对手，不只藏在提示里", () => {
   assert.match(game, /id="aiProfileButtons"/);
-  for (const profile of ["standard", "doubao", "deepseek", "codex", "lobster", "aggressive", "defensive", "endgame", "super"]) {
+  for (const profile of ["standard", "doubao", "deepseek", "codex", "lobster", "super"]) {
     assert.match(game, new RegExp(`data-ai-profile="${profile}"`));
   }
   for (const label of ["豆包", "DeepSeek", "Codex", "龙虾"]) {
@@ -59,6 +90,21 @@ test("常见AI和超级人机是正式可选对手，不只藏在提示里", () 
   assert.match(game, /profileById/);
   assert.match(game, /profileScore/);
   assert.match(game, /超级人机<\/button>/);
+});
+
+test("进攻AI、防守AI、残局AI已经从正式选项删除", () => {
+  assert.doesNotMatch(game, /data-ai-profile="aggressive"/);
+  assert.doesNotMatch(game, /data-ai-profile="defensive"/);
+  assert.doesNotMatch(game, /data-ai-profile="endgame"/);
+  assert.doesNotMatch(game, />进攻AI</);
+  assert.doesNotMatch(game, />防守AI</);
+  assert.doesNotMatch(game, />残局AI</);
+});
+
+test("选择超级人机时不需要再选难度", () => {
+  assert.match(game, /aiProfile==="super"/);
+  assert.match(game, /b\.disabled=mode!=="ai"\|\|aiProfile==="super"/);
+  assert.match(game, /difficulty:"super"/);
 });
 
 test("棋盘对面会显示当前AI头像和风格说明", () => {
@@ -131,6 +177,23 @@ test("车马炮兵仕相帅都有合法走法限制", () => {
   assert.match(game, /elephantSteps/);
   assert.match(game, /palace\(p\.side,nr,nc\)/);
   assert.match(game, /crossed\(p\.side,r\)/);
+});
+
+test("炮仍然遵守原规则，但高难AI会避免炮换马这类亏子交换", () => {
+  assert.match(game, /if\(p\.type==="c"\)/);
+  assert.match(game, /screen=false/);
+  assert.match(game, /else if\(!screen&&b\[nr\]\[nc\]\)screen=true/);
+  assert.match(game, /else if\(screen&&b\[nr\]\[nc\]\)\{if\(enemy\(b\[nr\]\[nc\],p\.side\)\)out\.push\(\{r:nr,c:nc\}\);break\}/);
+  assert.match(game, /避免炮换马这类亏子交换/);
+});
+
+test("宗师和超级人机不再只按吃子贪心评分", () => {
+  assert.match(game, /function strategicScore\(b,move,side\)/);
+  assert.match(game, /function hangingPenalty\(next,move,side\)/);
+  assert.match(game, /values\[taken\.type\]\*\.85/);
+  assert.match(game, /if\(profile\.style==="super"\)return strategicScore/);
+  assert.doesNotMatch(game, /values\[taken\.type\]\*3/);
+  assert.doesNotMatch(game, /values\[taken\.type\]\*1\.6/);
 });
 
 test("不能走出会让自己被将军的位置", () => {
