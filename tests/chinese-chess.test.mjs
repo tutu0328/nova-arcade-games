@@ -17,21 +17,42 @@ test("象棋页面脚本语法有效", () => {
   assert.doesNotThrow(() => new Function(script));
 });
 
-test("支持双人对战和人机对战", () => {
+test("支持双人对战、人机对战和匹配对战", () => {
   assert.match(game, /data-mode="ai"/);
+  assert.match(game, /data-mode="match"/);
   assert.match(game, /data-mode="local"/);
-  assert.match(game, /mode==="ai"&&turn===BLACK/);
+  assert.match(game, /function startMatch\(\)/);
+  assert.match(game, /id="matchButton"/);
   assert.match(game, /双人对战/);
 });
 
-test("人机必须有三档难度选择", () => {
-  for (const level of ["easy", "normal", "hard"]) {
+test("人机难度不止三档，并包含更高档位", () => {
+  for (const level of ["novice", "easy", "normal", "advanced", "hard", "master", "legend"]) {
     assert.match(game, new RegExp(`data-difficulty="${level}"`));
   }
+  assert.match(game, /id:"super"/);
   assert.match(game, /function chooseAiMove\(\)/);
-  assert.match(game, /difficulty==="easy"/);
-  assert.match(game, /difficulty==="normal"/);
+  assert.match(game, /const DIFFICULTIES=\[/);
+  assert.match(game, /difficultyById/);
   assert.match(game, /minimax/);
+});
+
+test("匹配模式会匹配玩家并插入少量人机补位", () => {
+  assert.match(game, /const playerPool=\[/);
+  assert.match(game, /const botPool=\[/);
+  assert.match(game, /匹配玩家/);
+  assert.match(game, /人机补位/);
+  assert.match(game, /Math\.random\(\)<\.22/);
+});
+
+test("连胜多场会安排超级人机制裁，连输多场会安排弱智人机", () => {
+  assert.match(game, /matchStats\.streak>=3/);
+  assert.match(game, /天元制裁官/);
+  assert.match(game, /difficulty:"super"/);
+  assert.match(game, /matchStats\.streak<=-3/);
+  assert.match(game, /迷路小兵/);
+  assert.match(game, /difficulty:"novice"/);
+  assert.match(game, /recordMatchResult/);
 });
 
 test("初始棋盘包含完整32枚棋子", () => {

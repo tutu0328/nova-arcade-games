@@ -29,7 +29,7 @@
     .hero-copy{color:#e5cda7;line-height:1.75;margin-bottom:18px}
     .control-block{border-top:1px solid rgba(104,55,22,.18);padding-top:18px;margin-top:18px}
     .control-block h2{font-size:16px;margin-bottom:10px}
-    .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg.three{grid-template-columns:repeat(3,1fr)}
+    .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg.three{grid-template-columns:repeat(3,1fr)}.seg.levels{grid-template-columns:repeat(auto-fit,minmax(74px,1fr))}
     .seg button,.action{border:1px solid rgba(104,55,22,.28);border-radius:10px;background:#fff8e9;padding:11px 10px;font-weight:800;color:#553015}
     .seg button.active{background:#2b1a10;color:#fff1ca;border-color:#2b1a10}
     .seg button:disabled{opacity:.45;cursor:not-allowed}
@@ -70,27 +70,36 @@
   <main>
     <section>
       <h1>星河象棋</h1>
-      <p class="hero-copy">同屏双人可以直接轮流落子；人机模式下你执红先行，黑方会按难度思考。点自己的棋子，再点高亮位置就能走。</p>
+      <p class="hero-copy">同屏双人可以直接轮流落子；人机模式可以选更多档位；匹配模式会按你的连胜连败安排对手。点自己的棋子，再点高亮位置就能走。</p>
       <div class="panel controls">
         <div class="kicker">PLAY MODE</div>
         <div class="control-block">
           <h2>对战方式</h2>
-          <div class="seg" id="modeButtons">
+          <div class="seg three" id="modeButtons">
             <button class="active" data-mode="ai">人机对战</button>
+            <button data-mode="match">匹配对战</button>
             <button data-mode="local">双人对战</button>
           </div>
         </div>
         <div class="control-block">
           <h2>人机难度</h2>
-          <div class="seg three" id="difficultyButtons">
-            <button data-difficulty="easy">简单</button>
-            <button class="active" data-difficulty="normal">普通</button>
-            <button data-difficulty="hard">困难</button>
+          <div class="seg levels" id="difficultyButtons">
+            <button data-difficulty="novice">入门</button>
+            <button data-difficulty="easy">新手</button>
+            <button class="active" data-difficulty="normal">业余</button>
+            <button data-difficulty="advanced">进阶</button>
+            <button data-difficulty="hard">高手</button>
+            <button data-difficulty="master">大师</button>
+            <button data-difficulty="legend">宗师</button>
           </div>
         </div>
+        <button class="action secondary" id="matchButton">开始匹配</button>
         <button class="action" id="newGame">重新开局</button>
         <button class="action secondary" id="undoMove">悔一步</button>
         <div class="info">
+          <div class="info-card"><small>匹配状态</small><div id="matchStatus">未开始匹配。</div></div>
+          <div class="info-card"><small>当前对手</small><div id="opponentInfo">人机对战 · 业余</div></div>
+          <div class="info-card"><small>匹配战绩</small><div id="matchRecord">0 胜 0 负 · 连胜 0</div></div>
           <div class="info-card"><small>红方吃子</small><div class="captured" id="redCaptured">—</div></div>
           <div class="info-card"><small>黑方吃子</small><div class="captured" id="blackCaptured">—</div></div>
           <div class="info-card"><small>提示</small><div id="coach">红方先行。帅和将不能照面。</div></div>
@@ -128,11 +137,33 @@
     const pieceText={rk:"帅",ra:"仕",re:"相",rh:"马",rr:"车",rc:"炮",rp:"兵",bk:"将",ba:"士",be:"象",bh:"马",br:"车",bc:"炮",bp:"卒"};
     const pieceName={k:"将帅",a:"士仕",e:"象相",h:"马",r:"车",c:"炮",p:"兵卒"};
     const values={k:10000,r:900,c:460,h:430,e:230,a:230,p:100};
+    const DIFFICULTIES=[
+      {id:"novice",label:"入门",depth:0,top:10,random:.85,noise:130},
+      {id:"easy",label:"新手",depth:0,top:7,random:.55,noise:80},
+      {id:"normal",label:"业余",depth:0,top:4,random:.22,noise:35},
+      {id:"advanced",label:"进阶",depth:1,top:4,random:.12,noise:22},
+      {id:"hard",label:"高手",depth:2,top:3,random:.05,noise:12},
+      {id:"master",label:"大师",depth:2,top:2,random:.02,noise:5},
+      {id:"legend",label:"宗师",depth:3,top:1,random:0,noise:0},
+      {id:"super",label:"超级人机",depth:3,top:1,random:0,noise:-15}
+    ];
+    const MATCH_KEY="star-river-xiangqi-match";
+    const playerPool=[
+      "江南棋客","北巷车王","云端炮手","河界少年","夜航棋士","青石巷阿七","松风残局","红马过河",
+      "山城老将","天台棋社","半步将军","落子无声","楚河访客","汉界旅人","边兵不回头","巡河车手"
+    ];
+    const botPool=[
+      {name:"补位人机-小卒",difficulty:"easy"},
+      {name:"补位人机-巡河炮",difficulty:"normal"},
+      {name:"补位人机-稳手马",difficulty:"advanced"},
+      {name:"补位人机-守宫士",difficulty:"normal"}
+    ];
     const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
     const horseSteps=[[2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0],[1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1]];
     const elephantSteps=[[2,2,1,1],[2,-2,1,-1],[-2,2,-1,1],[-2,-2,-1,-1]];
     const advisorSteps=[[1,1],[1,-1],[-1,1],[-1,-1]];
-    let board,turn,selected,moves,mode="ai",difficulty="normal",history,gameOver,thinking=false;
+    let board,turn,selected,moves,mode="ai",difficulty="normal",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
+    let matchStats=loadMatchStats();
 
     const $=id=>document.getElementById(id);
     const clone=b=>b.map(row=>row.map(p=>p?{...p}:null));
@@ -142,6 +173,16 @@
     const palace=(side,r,c)=>c>=3&&c<=5&&(side===RED?r>=7&&r<=9:r>=0&&r<=2);
     const crossed=(side,r)=>side===RED?r<=4:r>=5;
     const forward=side=>side===RED?-1:1;
+    const difficultyById=id=>DIFFICULTIES.find(level=>level.id===id)||DIFFICULTIES[2];
+    const isAutoOpponent=()=>mode==="ai"||mode==="match";
+
+    function loadMatchStats(){
+      try{return JSON.parse(localStorage.getItem(MATCH_KEY))||{wins:0,losses:0,streak:0,best:0}}catch{return{wins:0,losses:0,streak:0,best:0}}
+    }
+
+    function saveMatchStats(){
+      localStorage.setItem(MATCH_KEY,JSON.stringify(matchStats));
+    }
 
     function initialBoard(){
       const b=Array.from({length:10},()=>Array(9).fill(null));
@@ -156,6 +197,23 @@
     function resetGame(){
       board=initialBoard();turn=RED;selected=null;moves=[];history=[];gameOver=false;thinking=false;
       $("winnerLayer").classList.remove("show");render();
+    }
+
+    function startMatch(){
+      mode="match";matchedOpponent=chooseMatchedOpponent();
+      matchStatus=`已匹配：${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"玩家"} · ${matchedOpponent.reason}`;
+      resetGame();
+    }
+
+    function chooseMatchedOpponent(){
+      if(matchStats.streak>=3)return{name:"天元制裁官",type:"bot",difficulty:"super",reason:"你已经连胜多场，系统安排超级人机压一压"};
+      if(matchStats.streak<=-3)return{name:"迷路小兵",type:"bot",difficulty:"novice",reason:"你已经连输多场，系统安排弱智人机送一点机会"};
+      if(Math.random()<.22){
+        const bot=botPool[Math.floor(Math.random()*botPool.length)];
+        return{...bot,type:"bot",reason:"匹配池暂时缺人，插入一点人机补位"};
+      }
+      const skill=Math.max(0,Math.min(6,2+Math.floor((matchStats.wins-matchStats.losses)/3)+Math.floor(Math.random()*3)-1));
+      return{name:playerPool[Math.floor(Math.random()*playerPool.length)],type:"player",difficulty:DIFFICULTIES[skill].id,reason:"按当前战绩匹配到接近水平的玩家"};
     }
 
     function pseudoMoves(b,r,c){
@@ -221,7 +279,7 @@
     function selectSquare(r,c){
       if(gameOver||thinking)return;
       const p=board[r][c];
-      if(mode==="ai"&&turn===BLACK)return;
+      if(isAutoOpponent()&&turn===BLACK)return;
       if(p?.side===turn){selected={r,c};moves=legalMovesFor(board,r,c);render();return}
       if(selected&&moves.some(m=>m.r===r&&m.c===c))makeMove(selected,{r,c},"human");
     }
@@ -237,14 +295,21 @@
       const replies=allMoves(board,turn);
       if(!replies.length){finish(turn===RED?BLACK:RED,inCheck(board,turn)?`${sideName(turn)} 被将死。`:`${sideName(turn)} 无子可走。`);return}
       render();
-      if(mode==="ai"&&turn===BLACK){thinking=true;render();setTimeout(aiMove,420)}
+      if(isAutoOpponent()&&turn===BLACK){thinking=true;render();setTimeout(aiMove,420)}
     }
 
     function finish(winner,copy){
+      if(mode==="match")recordMatchResult(winner);
       gameOver=true;render();
       $("winnerTitle").textContent=`${sideName(winner)}获胜`;
       $("winnerCopy").textContent=copy;
       $("winnerLayer").classList.add("show");
+    }
+
+    function recordMatchResult(winner){
+      if(winner===RED){matchStats.wins++;matchStats.streak=Math.max(1,matchStats.streak+1);matchStats.best=Math.max(matchStats.best,matchStats.streak);matchStatus=`本局获胜。当前${matchStats.streak>=0?"连胜":"连败"} ${Math.abs(matchStats.streak)} 场。`}
+      else{matchStats.losses++;matchStats.streak=Math.min(-1,matchStats.streak-1);matchStatus=`本局落败。当前连败 ${Math.abs(matchStats.streak)} 场。`}
+      saveMatchStats();
     }
 
     function scoreBoard(b,side){
@@ -263,6 +328,10 @@
       return score+Math.random()*12;
     }
 
+    function configuredScore(b,move,side,config){
+      return moveScore(b,move,side)+(Math.random()*config.noise);
+    }
+
     function minimax(b,side,depth,maximizing,alpha,beta){
       const active=maximizing?side:(side===RED?BLACK:RED);
       const list=allMoves(b,active).sort((a,bm)=>moveScore(b,bm,side)-moveScore(b,a,side)).slice(0,18);
@@ -274,10 +343,15 @@
     }
 
     function chooseAiMove(){
+      const config=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:difficulty);
       const list=allMoves(board,BLACK);
-      if(difficulty==="easy")return list[Math.floor(Math.random()*list.length)];
-      if(difficulty==="normal")return list.sort((a,b)=>moveScore(board,b,BLACK)-moveScore(board,a,BLACK))[0];
-      return list.map(move=>({move,score:minimax(movedBoard(board,move.from,move.to),BLACK,2,false,-Infinity,Infinity)})).sort((a,b)=>b.score-a.score)[0].move;
+      if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
+      const ranked=list.map(move=>{
+        const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
+        return{move,score:base+configuredScore(board,move,BLACK,config)};
+      }).sort((a,b)=>b.score-a.score);
+      const top=ranked.slice(0,Math.max(1,config.top));
+      return top[Math.floor(Math.random()*top.length)].move;
     }
 
     function aiMove(){
@@ -289,7 +363,7 @@
     function undoMove(){
       if(thinking||!history.length)return;
       let last=history.pop();
-      if(mode==="ai"&&last?.actor==="ai"&&history.length)last=history.pop();
+      if(isAutoOpponent()&&last?.actor==="ai"&&history.length)last=history.pop();
       if(!last)return;
       board=clone(last.board);turn=last.turn;selected=null;moves=[];gameOver=false;$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();
     }
@@ -316,17 +390,21 @@
     function render(){
       document.querySelectorAll(".piece").forEach(p=>p.remove());
       renderBoard();renderCaptured();
-      $("modeHud").textContent=mode==="ai"?"人机对战":"双人对战";$("difficultyHud").textContent={easy:"简单",normal:"普通",hard:"困难"}[difficulty];
-      $("turnHud").textContent=sideName(turn);$("statusText").innerHTML=thinking?"<b>黑方</b> 正在思考。":`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`;
+      const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:difficulty);
+      $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
+      $("turnHud").textContent=sideName(turn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`;
       const checked=inCheck(board,turn);$("checkText").textContent=checked?`${sideName(turn)}被将军`:"未将军";
-      $("coach").textContent=mode==="ai"?"你执红先走。简单会随手下，普通会优先吃子，困难会多算几步。":"双人对战适合同屏轮流走，红方先行。";
+      $("coach").textContent=mode==="ai"?"你执红先走。入门会经常走错，宗师会多算几步。":mode==="match"?"匹配模式会看你的连胜连败调度对手；连胜多会遇到超级人机，连败多会遇到弱智人机。":"双人对战适合同屏轮流走，红方先行。";
+      $("matchStatus").textContent=matchStatus;
+      $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`固定人机 · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
+      $("matchRecord").textContent=`${matchStats.wins} 胜 ${matchStats.losses} 负 · ${matchStats.streak>=0?"连胜":"连败"} ${Math.abs(matchStats.streak)} · 最佳 ${matchStats.best}`;
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
       document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"});
     }
 
-    $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;resetGame()};
+    $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;if(mode==="match")startMatch();else{matchedOpponent=null;matchStatus=mode==="ai"?"人机练习已准备好。":"双人同屏对局已准备好。";resetGame()}};
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
-    $("newGame").onclick=resetGame;$("playAgain").onclick=resetGame;$("undoMove").onclick=undoMove;
+    $("matchButton").onclick=startMatch;$("newGame").onclick=()=>mode==="match"?startMatch():resetGame();$("playAgain").onclick=()=>mode==="match"?startMatch():resetGame();$("undoMove").onclick=undoMove;
     resetGame();
   </script>
 </body>
