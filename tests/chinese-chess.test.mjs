@@ -37,12 +37,29 @@ test("人机难度不止三档，并包含更高档位", () => {
   assert.match(game, /minimax/);
 });
 
+test("常见AI和超级人机是正式可选对手，不只藏在提示里", () => {
+  assert.match(game, /id="aiProfileButtons"/);
+  for (const profile of ["standard", "aggressive", "defensive", "endgame", "super"]) {
+    assert.match(game, new RegExp(`data-ai-profile="${profile}"`));
+  }
+  assert.match(game, /const AI_PROFILES=\[/);
+  assert.match(game, /profileById/);
+  assert.match(game, /profileScore/);
+  assert.match(game, /超级人机<\/button>/);
+});
+
 test("匹配模式会匹配玩家并插入少量人机补位", () => {
   assert.match(game, /const playerPool=\[/);
   assert.match(game, /const botPool=\[/);
   assert.match(game, /匹配玩家/);
   assert.match(game, /人机补位/);
   assert.match(game, /Math\.random\(\)<\.22/);
+});
+
+test("将帅活动的九宫格有明显不同的棋盘颜色", () => {
+  assert.match(game, /\.cell\.palace-red/);
+  assert.match(game, /\.cell\.palace-black/);
+  assert.match(game, /const palaceClass=palace\(RED,r,c\)\?"palace-red":palace\(BLACK,r,c\)\?"palace-black":""/);
 });
 
 test("连胜多场会安排超级人机制裁，连输多场会安排弱智人机", () => {

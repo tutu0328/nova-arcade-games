@@ -29,7 +29,7 @@
     .hero-copy{color:#e5cda7;line-height:1.75;margin-bottom:18px}
     .control-block{border-top:1px solid rgba(104,55,22,.18);padding-top:18px;margin-top:18px}
     .control-block h2{font-size:16px;margin-bottom:10px}
-    .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg.three{grid-template-columns:repeat(3,1fr)}.seg.levels{grid-template-columns:repeat(auto-fit,minmax(74px,1fr))}
+    .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg.three{grid-template-columns:repeat(3,1fr)}.seg.levels,.seg.profiles{grid-template-columns:repeat(auto-fit,minmax(74px,1fr))}
     .seg button,.action{border:1px solid rgba(104,55,22,.28);border-radius:10px;background:#fff8e9;padding:11px 10px;font-weight:800;color:#553015}
     .seg button.active{background:#2b1a10;color:#fff1ca;border-color:#2b1a10}
     .seg button:disabled{opacity:.45;cursor:not-allowed}
@@ -41,6 +41,9 @@
     .board-wrap{position:relative;margin:auto;width:min(100%,720px);aspect-ratio:9/10;border:10px solid #6b3518;border-radius:10px;background:var(--board);box-shadow:inset 0 0 0 3px rgba(255,237,177,.25),0 16px 42px rgba(0,0,0,.28)}
     .board{position:absolute;inset:14px;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(10,1fr);border-left:2px solid var(--line);border-top:2px solid var(--line)}
     .cell{position:relative;border-right:2px solid var(--line);border-bottom:2px solid var(--line);background:rgba(255,255,255,.03)}
+    .cell.palace-red{background:linear-gradient(135deg,rgba(197,34,31,.28),rgba(255,246,225,.1));box-shadow:inset 0 0 0 2px rgba(197,34,31,.24)}
+    .cell.palace-black{background:linear-gradient(135deg,rgba(29,32,40,.3),rgba(255,246,225,.12));box-shadow:inset 0 0 0 2px rgba(29,32,40,.24)}
+    .cell.palace-red:before,.cell.palace-black:before{content:"";position:absolute;inset:18%;border:1px dashed rgba(255,246,225,.42);transform:rotate(45deg);pointer-events:none}
     .cell.river{background:rgba(255,226,152,.34)}
     .cell.river:nth-child(41)::after{content:"楚河";position:absolute;left:18%;top:50%;transform:translateY(-50%);font-weight:900;font-size:clamp(18px,4vw,38px);color:rgba(92,45,18,.45);letter-spacing:.18em}
     .cell.river:nth-child(45)::after{content:"汉界";position:absolute;right:18%;top:50%;transform:translateY(-50%);font-weight:900;font-size:clamp(18px,4vw,38px);color:rgba(92,45,18,.45);letter-spacing:.18em}
@@ -91,6 +94,16 @@
             <button data-difficulty="hard">高手</button>
             <button data-difficulty="master">大师</button>
             <button data-difficulty="legend">宗师</button>
+          </div>
+        </div>
+        <div class="control-block">
+          <h2>AI 对手</h2>
+          <div class="seg profiles" id="aiProfileButtons">
+            <button class="active" data-ai-profile="standard">常规AI</button>
+            <button data-ai-profile="aggressive">进攻AI</button>
+            <button data-ai-profile="defensive">防守AI</button>
+            <button data-ai-profile="endgame">残局AI</button>
+            <button data-ai-profile="super">超级人机</button>
           </div>
         </div>
         <button class="action secondary" id="matchButton">开始匹配</button>
@@ -147,6 +160,13 @@
       {id:"legend",label:"宗师",depth:3,top:1,random:0,noise:0},
       {id:"super",label:"超级人机",depth:3,top:1,random:0,noise:-15}
     ];
+    const AI_PROFILES=[
+      {id:"standard",label:"常规AI",style:"balanced",difficulty:"custom"},
+      {id:"aggressive",label:"进攻AI",style:"aggressive",difficulty:"advanced"},
+      {id:"defensive",label:"防守AI",style:"defensive",difficulty:"hard"},
+      {id:"endgame",label:"残局AI",style:"endgame",difficulty:"master"},
+      {id:"super",label:"超级人机",style:"super",difficulty:"super"}
+    ];
     const MATCH_KEY="star-river-xiangqi-match";
     const playerPool=[
       "江南棋客","北巷车王","云端炮手","河界少年","夜航棋士","青石巷阿七","松风残局","红马过河",
@@ -162,7 +182,7 @@
     const horseSteps=[[2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0],[1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1]];
     const elephantSteps=[[2,2,1,1],[2,-2,1,-1],[-2,2,-1,1],[-2,-2,-1,-1]];
     const advisorSteps=[[1,1],[1,-1],[-1,1],[-1,-1]];
-    let board,turn,selected,moves,mode="ai",difficulty="normal",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
+    let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
     let matchStats=loadMatchStats();
 
     const $=id=>document.getElementById(id);
@@ -174,6 +194,7 @@
     const crossed=(side,r)=>side===RED?r<=4:r>=5;
     const forward=side=>side===RED?-1:1;
     const difficultyById=id=>DIFFICULTIES.find(level=>level.id===id)||DIFFICULTIES[2];
+    const profileById=id=>AI_PROFILES.find(profile=>profile.id===id)||AI_PROFILES[0];
     const isAutoOpponent=()=>mode==="ai"||mode==="match";
 
     function loadMatchStats(){
@@ -332,6 +353,15 @@
       return moveScore(b,move,side)+(Math.random()*config.noise);
     }
 
+    function profileScore(b,move,side,profile){
+      const next=movedBoard(b,move.from,move.to),taken=b[move.to.r][move.to.c];
+      if(profile.style==="aggressive")return (taken?values[taken.type]*1.2:0)+(inCheck(next,side===RED?BLACK:RED)?180:0);
+      if(profile.style==="defensive")return (inCheck(next,side)?-260:0)+(move.to.c>=3&&move.to.c<=5?22:0);
+      if(profile.style==="endgame"){const king=findKing(next,side===RED?BLACK:RED);return king?(9-Math.abs(move.to.r-king.r)-Math.abs(move.to.c-king.c))*18:0}
+      if(profile.style==="super")return (taken?values[taken.type]*1.6:0)+(inCheck(next,side===RED?BLACK:RED)?260:0)-Math.abs(move.to.c-4)*10;
+      return 0;
+    }
+
     function minimax(b,side,depth,maximizing,alpha,beta){
       const active=maximizing?side:(side===RED?BLACK:RED);
       const list=allMoves(b,active).sort((a,bm)=>moveScore(b,bm,side)-moveScore(b,a,side)).slice(0,18);
@@ -343,12 +373,14 @@
     }
 
     function chooseAiMove(){
-      const config=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:difficulty);
+      const profile=mode==="ai"?profileById(aiProfile):{style:"balanced",difficulty:"custom"};
+      const selectedDifficulty=profile.difficulty==="custom"?difficulty:profile.difficulty;
+      const config=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:selectedDifficulty);
       const list=allMoves(board,BLACK);
       if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
       const ranked=list.map(move=>{
         const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
-        return{move,score:base+configuredScore(board,move,BLACK,config)};
+        return{move,score:base+configuredScore(board,move,BLACK,config)+profileScore(board,move,BLACK,profile)};
       }).sort((a,b)=>b.score-a.score);
       const top=ranked.slice(0,Math.max(1,config.top));
       return top[Math.floor(Math.random()*top.length)].move;
@@ -371,7 +403,8 @@
     function renderBoard(){
       const boardEl=$("board");boardEl.innerHTML="";
       for(let r=0;r<10;r++)for(let c=0;c<9;c++){
-        const cell=document.createElement("button");cell.className=`cell ${r===4||r===5?"river":""}`;cell.type="button";cell.dataset.r=r;cell.dataset.c=c;cell.setAttribute("aria-label",`第${r+1}行第${c+1}列`);cell.onclick=()=>selectSquare(r,c);
+        const palaceClass=palace(RED,r,c)?"palace-red":palace(BLACK,r,c)?"palace-black":"";
+        const cell=document.createElement("button");cell.className=`cell ${r===4||r===5?"river":""} ${palaceClass}`;cell.type="button";cell.dataset.r=r;cell.dataset.c=c;cell.setAttribute("aria-label",`第${r+1}行第${c+1}列`);cell.onclick=()=>selectSquare(r,c);
         if(moves.some(m=>m.r===r&&m.c===c))cell.classList.add(board[r][c]?"capture":"hint");
         boardEl.appendChild(cell);
       }
@@ -390,20 +423,23 @@
     function render(){
       document.querySelectorAll(".piece").forEach(p=>p.remove());
       renderBoard();renderCaptured();
-      const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:difficulty);
+      const activeProfile=profileById(aiProfile);
+      const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:activeProfile.difficulty==="custom"?difficulty:activeProfile.difficulty);
       $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
       $("turnHud").textContent=sideName(turn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`;
       const checked=inCheck(board,turn);$("checkText").textContent=checked?`${sideName(turn)}被将军`:"未将军";
-      $("coach").textContent=mode==="ai"?"你执红先走。入门会经常走错，宗师会多算几步。":mode==="match"?"匹配模式会看你的连胜连败调度对手；连胜多会遇到超级人机，连败多会遇到弱智人机。":"双人对战适合同屏轮流走，红方先行。";
+      $("coach").textContent=mode==="ai"?"你执红先走，可以在 AI 对手里直接选择不同风格。":mode==="match"?"匹配模式会看你的连胜连败调度对手，特殊对手会显示在当前对手里。":"双人对战适合同屏轮流走，红方先行。";
       $("matchStatus").textContent=matchStatus;
-      $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`固定人机 · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
+      $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
       $("matchRecord").textContent=`${matchStats.wins} 胜 ${matchStats.losses} 负 · ${matchStats.streak>=0?"连胜":"连败"} ${Math.abs(matchStats.streak)} · 最佳 ${matchStats.best}`;
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
       document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"});
+      document.querySelectorAll("#aiProfileButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.aiProfile===aiProfile);b.disabled=mode!=="ai"});
     }
 
     $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;if(mode==="match")startMatch();else{matchedOpponent=null;matchStatus=mode==="ai"?"人机练习已准备好。":"双人同屏对局已准备好。";resetGame()}};
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
+    $("aiProfileButtons").onclick=e=>{if(!e.target.dataset.aiProfile||mode!=="ai")return;aiProfile=e.target.dataset.aiProfile;resetGame()};
     $("matchButton").onclick=startMatch;$("newGame").onclick=()=>mode==="match"?startMatch():resetGame();$("playAgain").onclick=()=>mode==="match"?startMatch():resetGame();$("undoMove").onclick=undoMove;
     resetGame();
   </script>
