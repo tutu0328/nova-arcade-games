@@ -26,9 +26,9 @@
     .home{width:min(1220px,calc(100% - 28px));margin:30px auto 64px;min-height:calc(100vh - 120px);display:grid;grid-template-columns:minmax(320px,.92fr) minmax(360px,1.08fr);gap:26px;align-items:center}
     .home-copy{padding:clamp(26px,5vw,58px);border:1px solid rgba(255,255,255,.16);border-radius:18px;background:linear-gradient(145deg,rgba(43,26,16,.94),rgba(105,51,20,.64));color:#fff4d8;box-shadow:var(--shadow)}
     .home-copy .kicker{color:var(--gold)}.home-copy h1{font-size:clamp(52px,9vw,96px);margin:18px 0;color:#fff0c8}.home-copy p{color:#e5cda7;line-height:1.85}
-    .home-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.home-actions .action{width:auto;min-width:150px;margin-top:0}.home-actions .secondary{color:#fff4d8;background:rgba(255,248,233,.1);border-color:rgba(255,241,202,.28)}
+    .home-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.home-actions .action{width:auto;min-width:150px;margin-top:0}.home-actions .secondary{color:#2b1a10;background:#fff8e9;border-color:rgba(255,241,202,.7);box-shadow:inset 0 0 0 1px rgba(43,26,16,.12)}
     .home-features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}.home-feature{padding:13px;border:1px solid rgba(255,241,202,.16);border-radius:12px;background:rgba(255,248,233,.08)}.home-feature b{display:block;color:#ffd16a;margin-bottom:5px}.home-feature span{display:block;color:#e5cda7;font-size:12px;line-height:1.55}
-    .home-board{padding:18px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(255,246,225,.88);box-shadow:var(--shadow)}.home-board .opponent-card{margin-bottom:12px}.home-board .board{background:repeating-linear-gradient(0deg,transparent 0 calc(10% - 2px),rgba(92,44,18,.72) calc(10% - 2px) 10%),repeating-linear-gradient(90deg,transparent 0 calc(11.111% - 2px),rgba(92,44,18,.72) calc(11.111% - 2px) 11.111%)}.home-board-note{padding:14px 4px 0;color:#6d4525;line-height:1.7;font-size:13px}
+    .home-board{padding:24px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(255,246,225,.92);box-shadow:var(--shadow)}.home-board-note{padding:14px 4px 0;color:#6d4525;line-height:1.7;font-size:13px}.showcase-title{font-size:34px;line-height:1.05;margin:6px 0 14px;color:#2b1a10}.showcase-list{display:grid;gap:10px}.showcase-item{padding:14px;border-radius:14px;background:#fff8e9;border:1px solid rgba(104,55,22,.16);box-shadow:0 8px 18px rgba(52,21,6,.08)}.showcase-item b{display:block;color:#7a3d17;margin-bottom:4px}.showcase-item span{display:block;color:#6d4525;font-size:13px;line-height:1.55}
     main{width:min(1220px,calc(100% - 28px));margin:28px auto 64px;display:grid;grid-template-columns:minmax(330px,.76fr) minmax(390px,1fr);gap:20px;align-items:start}
     .panel{border:1px solid rgba(255,255,255,.18);background:var(--panel);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
     .controls{padding:22px}.kicker{font-size:11px;letter-spacing:.18em;color:#8a512c;font-weight:900}
@@ -53,21 +53,25 @@
     body[data-board-theme="jade"] .stage{background:linear-gradient(180deg,#9fd8b7,#4c8d72)}body[data-board-theme="jade"] .board-wrap,body[data-board-theme="jade"] .classic-wrap{background:linear-gradient(145deg,#c8f2d7,#4c8d72);border-color:#235340}
     body[data-board-theme="ink"] .stage{background:linear-gradient(180deg,#d7d0c1,#40362d)}body[data-board-theme="ink"] .board-wrap,body[data-board-theme="ink"] .classic-wrap{background:linear-gradient(145deg,#eadfc8,#8e7b65);border-color:#241915}
     body[data-board-theme="star"] .stage{background:radial-gradient(circle at 20% 18%,#4d3c8e,#120d26)}body[data-board-theme="star"] .board-wrap,body[data-board-theme="star"] .classic-wrap{background:linear-gradient(145deg,#2c245f,#120d26);border-color:#6b5bd6}body[data-board-theme="star"] .cell,body[data-board-theme="star"] .classic-square.light{background:rgba(255,255,255,.08)}body[data-board-theme="star"] .classic-square.dark{background:rgba(123,100,255,.24)}
-    .board{position:absolute;inset:14px;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(10,1fr);border-left:2px solid var(--line);border-top:2px solid var(--line)}
-    .cell{position:relative;border-right:2px solid rgba(92,44,18,.88);border-bottom:2px solid rgba(92,44,18,.88);background:rgba(255,255,255,.04)}
-    .cell.palace-red{background:linear-gradient(135deg,rgba(208,48,31,.36),rgba(255,210,112,.28));box-shadow:inset 0 0 0 2px rgba(208,48,31,.34)}
-    .cell.palace-black{background:linear-gradient(135deg,rgba(46,36,28,.42),rgba(255,224,152,.22));box-shadow:inset 0 0 0 2px rgba(46,36,28,.34)}
-    .cell.river{background:rgba(255,225,146,.22)}
-    .river-label{position:absolute;z-index:2;left:14px;right:14px;top:50%;height:10%;transform:translateY(-50%);display:grid;grid-template-columns:1fr 1fr;align-items:center;text-align:center;pointer-events:none;background:linear-gradient(90deg,rgba(255,231,168,.68),rgba(246,196,103,.82),rgba(255,231,168,.68));border-top:3px solid rgba(92,44,18,.72);border-bottom:3px solid rgba(92,44,18,.72);box-shadow:0 0 18px rgba(87,36,11,.16)}
+    .board{position:absolute;inset:32px;display:block;border:0;background:repeating-linear-gradient(0deg,rgba(92,44,18,.9) 0 2px,transparent 2px calc(100% / 9))}
+    .board:before,.board:after{content:"";position:absolute;left:0;right:0;height:44.45%;background:repeating-linear-gradient(90deg,rgba(92,44,18,.9) 0 2px,transparent 2px calc(100% / 8));pointer-events:none}
+    .board:before{top:0}.board:after{bottom:0}
+    .cell{position:absolute;z-index:4;width:12.5%;height:10.9%;transform:translate(-50%,-50%);border:0;border-radius:10px;background:transparent}
+    .cell.palace-red{background:radial-gradient(circle,rgba(208,48,31,.22),rgba(255,210,112,.1) 55%,transparent 70%);box-shadow:inset 0 0 0 1px rgba(208,48,31,.18)}
+    .cell.palace-black{background:radial-gradient(circle,rgba(46,36,28,.28),rgba(255,224,152,.12) 55%,transparent 70%);box-shadow:inset 0 0 0 1px rgba(46,36,28,.18)}
+    .cell.river{background:transparent}
+    .river-label{position:absolute;z-index:6;left:32px;right:32px;top:50%;height:11.2%;transform:translateY(-50%);display:grid;grid-template-columns:1fr 1fr;align-items:center;text-align:center;pointer-events:none;background:linear-gradient(90deg,#ffe3a2,#f5c46b,#ffe3a2);border-top:3px solid rgba(92,44,18,.72);border-bottom:3px solid rgba(92,44,18,.72);box-shadow:0 0 18px rgba(87,36,11,.16)}
     .river-label span{font-family:Georgia,"Songti SC","SimSun",serif;font-size:clamp(24px,4.5vw,46px);font-weight:900;color:rgba(104,50,18,.72);letter-spacing:.28em;text-shadow:0 1px 0 rgba(255,240,190,.7)}
     .palace-lines{position:absolute;z-index:2;left:calc(33.333% + 4.7px);width:calc(33.333% - 9.3px);height:calc(30% - 8.4px);pointer-events:none}
     .palace-lines.black{top:14px}.palace-lines.red{bottom:14px}
     .palace-lines:before,.palace-lines:after{content:"";position:absolute;left:0;top:50%;width:100%;height:2px;background:rgba(255,240,194,.72);transform-origin:center}
     .palace-lines:before{transform:rotate(45deg)}.palace-lines:after{transform:rotate(-45deg)}
-    .cell.hint{background:rgba(61,178,127,.22)}.cell.capture{background:rgba(197,34,31,.22)}
+    .cell.hint{background:radial-gradient(circle,rgba(61,178,127,.55) 0 22%,rgba(61,178,127,.16) 23% 45%,transparent 46%)}.cell.capture{background:radial-gradient(circle,rgba(197,34,31,.48) 0 42%,rgba(197,34,31,.16) 43% 62%,transparent 63%)}
     .opponent-card{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;width:min(100%,720px);margin:0 auto 12px;padding:12px 14px;border:1px solid rgba(105,51,20,.32);border-radius:12px;background:linear-gradient(90deg,rgba(43,26,16,.92),rgba(105,51,20,.72));color:#fff4d8;box-shadow:0 12px 28px rgba(52,21,6,.18)}
     .ai-avatar{--avatar:#8a512c;width:58px;aspect-ratio:1;border-radius:16px;display:grid;place-items:center;background:radial-gradient(circle at 34% 26%,#fff4c7,var(--avatar) 58%,#2b1a10);border:3px solid rgba(255,241,202,.78);color:#2b1a10;font-weight:900;font-size:24px;box-shadow:0 0 0 4px rgba(255,241,202,.1)}
     .opponent-meta small{display:block;color:#ffd16a;font-size:11px;letter-spacing:.14em;font-weight:900}.opponent-meta b{display:block;font-size:19px;margin:3px 0}.opponent-meta span{display:block;color:#e5cda7;font-size:12px;line-height:1.45}
+    .assistant-bubble{grid-column:1/-1;position:relative;margin-left:70px;padding:10px 12px;border-radius:14px 14px 14px 4px;background:#fff8e9;color:#3b210f;border:1px solid rgba(255,241,202,.72);box-shadow:0 8px 18px rgba(42,18,5,.18);font-weight:800;line-height:1.55}
+    .assistant-bubble:before{content:"";position:absolute;left:-10px;top:12px;border:10px solid transparent;border-right-color:#fff8e9;border-left:0}
     .board-ai-badge{position:absolute;z-index:8;right:18px;top:18px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;max-width:min(240px,45%);padding:8px 10px;border-radius:14px;background:rgba(43,26,16,.88);color:#fff4d8;border:1px solid rgba(255,241,202,.34);box-shadow:0 10px 24px rgba(43,16,4,.3);backdrop-filter:blur(6px);pointer-events:none}
     .board-ai-badge .ai-avatar{width:42px;border-radius:12px;font-size:18px;border-width:2px}.board-ai-badge b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.board-ai-badge span{display:block;color:#e5cda7;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .classic-wrap{position:relative;margin:auto;width:min(100%,660px);aspect-ratio:1;border:12px solid #693314;border-radius:12px;background:linear-gradient(145deg,#f4c271,#be7134);box-shadow:inset 0 0 0 5px rgba(255,238,184,.45),0 16px 42px rgba(0,0,0,.28);overflow:hidden}
@@ -86,11 +90,11 @@
     .status b{color:var(--gold)}
     .desk{padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:#fff4d9;border-top:1px solid rgba(104,55,22,.18)}
     .desk-card{padding:13px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(104,55,22,.16);min-height:84px}.desk-card h2{font-size:15px;margin:0 0 8px}.desk-card p,.desk-card div{font-size:13px;line-height:1.6;color:#6d4525}
-    .chat-line{position:relative;padding-left:18px}.chat-line:before{content:"“";position:absolute;left:0;color:#c5221f;font-weight:900}
+    .chat-line{position:relative;padding:9px 11px;border-radius:13px;background:#fff8e9;color:#3b210f;box-shadow:inset 0 0 0 1px rgba(104,55,22,.12)}.chat-line:before{content:"";position:absolute;left:18px;top:-8px;border:8px solid transparent;border-bottom-color:#fff8e9;border-top:0}
     .log{max-height:180px;overflow:auto;padding:16px;background:#fff4d9}.log h2{font-size:15px;margin-bottom:10px}.log ol{margin:0;padding-left:22px;line-height:1.65;color:#6d4525}
     .win{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:18px;background:rgba(16,8,5,.72);backdrop-filter:blur(10px)}
     .win.show{display:grid}.win-card{width:min(480px,100%);padding:34px;border-radius:14px;background:#fff3d8;color:#2b1a10;text-align:center;box-shadow:var(--shadow)}.win-card h2{font-size:32px;margin-bottom:10px}.win-card p{line-height:1.7;color:#704626}
-    @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap,.classic-wrap{border-width:7px}.board,.classic-board{inset:9px}.piece,.classic-piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.board-ai-badge{right:12px;top:12px;max-width:52%;padding:6px 8px}.board-ai-badge .ai-avatar{width:34px;font-size:15px}.board-ai-badge b{font-size:12px}.status{display:block}.status span{display:block;margin-top:6px}}
+    @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap,.classic-wrap{border-width:7px}.board,.classic-board{inset:18px}.river-label{left:18px;right:18px}.piece,.classic-piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.assistant-bubble{margin-left:56px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.board-ai-badge{right:12px;top:12px;max-width:52%;padding:6px 8px}.board-ai-badge .ai-avatar{width:34px;font-size:15px}.board-ai-badge b{font-size:12px}.status{display:block}.status span{display:block;margin-top:6px}}
   </style>
 </head>
 <body>
@@ -120,22 +124,16 @@
         <div class="home-feature"><b>教练和大厅</b><span>AI 会聊天、会复盘，还有开局库、残局练习和模拟观战大厅。</span></div>
       </div>
     </div>
-    <div class="home-board" aria-label="星河棋社预览">
-      <div class="opponent-card">
-        <div class="ai-avatar" style="--avatar:#32c48d">C</div>
-        <div class="opponent-meta">
-          <small>推荐挑战 / AI OPPONENT</small>
-          <b>Codex</b>
-          <span>偏战术，喜欢主动制造威胁和吃子。</span>
-        </div>
+    <div class="home-board" aria-label="星河棋社功能介绍">
+      <div class="kicker">THIS VERSION FIXES</div>
+      <h2 class="showcase-title">不是空棋盘，是真功能。</h2>
+      <div class="showcase-list">
+        <div class="showcase-item"><b>AI 性格</b><span>老棋痴、快枪手、攻击狂魔、铁桶阵、残局大师、心理大师都能选。</span></div>
+        <div class="showcase-item"><b>棋盘修正</b><span>中国象棋棋子落在线的交叉点；楚河汉界中间不再穿线。</span></div>
+        <div class="showcase-item"><b>AI 小助手</b><span>说话改成头像气泡，不再只是在侧边堆一段文字。</span></div>
+        <div class="showcase-item"><b>学习功能</b><span>AI 复盘、开局库、残局练习、观战大厅都在正式对局页里。</span></div>
       </div>
-      <div class="board-wrap">
-        <div class="board" aria-hidden="true"></div>
-        <div class="river-label" aria-hidden="true"><span>楚河</span><span>汉界</span></div>
-        <div class="palace-lines black" aria-hidden="true"></div>
-        <div class="palace-lines red" aria-hidden="true"></div>
-      </div>
-      <p class="home-board-note">点“开始游戏”进入正式棋局，先选中国象棋、国际象棋或跳棋，再选择难度和 AI 对手。</p>
+      <p class="home-board-note">点“开始游戏”后进入正式棋盘，不在首页放空棋盘占位置。</p>
     </div>
   </section>
 
@@ -182,6 +180,17 @@
             <button data-ai-profile="codex">Codex</button>
             <button data-ai-profile="lobster">龙虾</button>
             <button data-ai-profile="super">超级人机</button>
+          </div>
+        </div>
+        <div class="control-block">
+          <h2>AI 性格</h2>
+          <div class="seg profiles" id="aiPersonaButtons">
+            <button class="active" data-ai-persona="scholar">老棋痴</button>
+            <button data-ai-persona="sprinter">快枪手</button>
+            <button data-ai-persona="berserker">攻击狂魔</button>
+            <button data-ai-persona="turtle">铁桶阵</button>
+            <button data-ai-persona="endmaster">残局大师</button>
+            <button data-ai-persona="trickster">心理大师</button>
           </div>
         </div>
         <button class="action secondary" id="matchButton">开始匹配</button>
@@ -238,6 +247,7 @@
             <b id="opponentName">常规AI</b>
             <span id="opponentStyle">均衡风格，会按当前难度行棋。</span>
           </div>
+          <div class="assistant-bubble" id="aiBubble">初次见面，先走一步看看你的棋风。</div>
         </div>
         <div class="board-wrap" id="boardWrap">
           <div class="board" id="board" aria-label="中国象棋棋盘"></div>
@@ -269,7 +279,7 @@
         <div class="desk-card"><h2>AI复盘</h2><div id="reviewPanel">下完棋或点击“AI复盘”，这里会指出关键失误和建议。</div></div>
         <div class="desk-card"><h2>开局库</h2><div id="openingPanel">可学习中炮、屏风马、飞象局、仙人指路。</div></div>
         <div class="desk-card"><h2>残局练习</h2><div id="endgamePanel">每日练习改成本地题库：三步杀、马炮配合、车兵残局。</div></div>
-        <div class="desk-card"><h2>好友大厅 / 观战弹幕</h2><div id="socialPanel">在线 128 人 · 江南棋客 VS 北巷车王 · 弹幕：这步漂亮！</div></div>
+        <div class="desk-card"><h2>好友大厅 / 观战</h2><div id="socialPanel">在线 128 人 · 江南棋客 VS 北巷车王 · 观战 32 人</div></div>
       </div>
     </section>
   </main>
@@ -305,6 +315,14 @@
       {id:"lobster",label:"龙虾",avatar:"虾",color:"#ff5b4a",intro:"风格古怪，经常下出不按套路的棋。",style:"weird",difficulty:"hard"},
       {id:"super",label:"超级人机",avatar:"神",color:"#111827",intro:"制裁级强度，少失误、强搜索、压迫感很足。",style:"super",difficulty:"super"}
     ];
+    const AI_PERSONAS=[
+      {id:"scholar",label:"老棋痴",intro:"喜欢布局，残局很强，走法偏厚。"},
+      {id:"sprinter",label:"快枪手",intro:"走棋特别快，前中盘节奏压得很紧。"},
+      {id:"berserker",label:"攻击狂魔",intro:"疯狂进攻，喜欢将军和压迫主帅。"},
+      {id:"turtle",label:"铁桶阵",intro:"死守型，优先保护主帅和关键大子。"},
+      {id:"endmaster",label:"残局大师",intro:"残局几乎不会白送子，会主动压缩空间。"},
+      {id:"trickster",label:"心理大师",intro:"专门诱骗吃子，喜欢制造看似能吃的陷阱。"}
+    ];
     const MATCH_KEY="star-river-xiangqi-match";
     const MEMORY_KEY="nova-chess-club-memory";
     const PREF_KEY="nova-chess-club-preferences";
@@ -333,10 +351,10 @@
     };
     const OPENINGS=["中炮：快速控制中路，适合主动进攻。","屏风马：稳住双马，防守反击更强。","飞象局：先补厚阵型，适合慢慢压制。","仙人指路：先试探对方，应变空间大。"];
     const ENDGAMES=["三步杀：先制造将军，再封住退路。","马炮配合：炮负责牵制，马负责卡位。","车兵残局：车不要急着换，先护兵过河。","单车例胜：把对方主帅压到边线再收网。"];
-    const LOBBY_LINES=["江南棋客 VS 北巷车王 · 观战 32","云端炮手正在挑战 DeepSeek","红马过河邀请你下快棋","弹幕：这步漂亮！","弹幕：别贪吃，后面有炮！"];
+    const LOBBY_LINES=["江南棋客 VS 北巷车王 · 观战 32","云端炮手正在挑战 DeepSeek","红马过河邀请你下快棋","好友邀请：红马过河想和你下一局","观战席：老棋痴正在复盘中局"];
     const classicText={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟",wm:"●",bm:"●",wK:"♛",bK:"♛"};
     const classicValues={k:10000,q:900,r:500,b:330,n:320,p:100,m:100,K:230};
-    let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
+    let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",aiPersona="scholar",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
     let gameType="xiangqi",classicBoard=[],classicTurn="w",classicSelected=null,classicMoves=[],classicHistory=[];
     let matchStats=loadMatchStats();
     let memory=loadMemory(),preferences=loadPreferences();
@@ -352,6 +370,7 @@
     const forward=side=>side===RED?-1:1;
     const difficultyById=id=>DIFFICULTIES.find(level=>level.id===id)||DIFFICULTIES[2];
     const profileById=id=>AI_PROFILES.find(profile=>profile.id===id)||AI_PROFILES[0];
+    const personaById=id=>AI_PERSONAS.find(persona=>persona.id===id)||AI_PERSONAS[0];
     const isAutoOpponent=()=>mode==="ai"||mode==="match";
 
     function loadMatchStats(){
@@ -436,7 +455,10 @@
 
     function sayAi(type="start"){
       const lines=AI_TALKS[type]||AI_TALKS.start;
-      $("aiChat").textContent=lines[Math.floor(Math.random()*lines.length)];
+      const persona=personaById(aiPersona);
+      const line=`${persona.label}：${lines[Math.floor(Math.random()*lines.length)]}`;
+      $("aiChat").textContent=line;
+      $("aiBubble").textContent=line;
     }
 
     function playTone(kind="move"){
@@ -456,6 +478,12 @@
       target.classList.remove("move-pop","check-flash");
       void target.offsetWidth;
       target.classList.add(kind==="check"?"check-flash":"move-pop");
+    }
+
+    function aiDelay(){
+      if(aiPersona==="sprinter")return 150;
+      if(aiPersona==="scholar"||aiPersona==="endmaster")return 520;
+      return 360;
     }
 
     function applyPreferences(){
@@ -650,7 +678,18 @@
       const list=allClassicMoves(classicBoard,"b");
       if(!list.length)return null;
       if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
-      const ranked=list.map(move=>({move,score:classicMoveScore(classicBoard,move,"b",config)+(profile.style==="super"?classicBoardScore(movedClassicBoard(classicBoard,move),"b")*.45:0)})).sort((a,b)=>b.score-a.score);
+      const ranked=list.map(move=>{
+        const next=movedClassicBoard(classicBoard,move),taken=gameType==="checkers"?classicBoard[move.jump?.r]?.[move.jump?.c]:classicBoard[move.to.r][move.to.c];
+        const persona=personaById(aiPersona);
+        const personaBonus=
+          persona.id==="sprinter"?allClassicMoves(next,"b").length*4:
+          persona.id==="berserker"?(move.capture?120:0):
+          persona.id==="turtle"?(taken?20:70)-Math.abs(move.to.c-3.5)*6:
+          persona.id==="endmaster"?(classicBoard.flat().filter(Boolean).length<8?classicBoardScore(next,"b")*.6:0):
+          persona.id==="trickster"?(move.capture?35:90):
+          Math.abs(move.to.c-3.5)<2?42:0;
+        return{move,score:classicMoveScore(classicBoard,move,"b",config)+(profile.style==="super"?classicBoardScore(next,"b")*.45:0)+personaBonus};
+      }).sort((a,b)=>b.score-a.score);
       const top=ranked.slice(0,Math.max(1,config.top));
       return top[Math.floor(Math.random()*top.length)].move;
     }
@@ -681,7 +720,7 @@
       const replies=allMoves(board,turn);
       if(!replies.length){finish(turn===RED?BLACK:RED,inCheck(board,turn)?`${sideName(turn)} 被将死。`:`${sideName(turn)} 无子可走。`);return}
       render();
-      if(isAutoOpponent()&&turn===BLACK){thinking=true;render();setTimeout(aiMove,420)}
+      if(isAutoOpponent()&&turn===BLACK){thinking=true;render();setTimeout(aiMove,aiDelay())}
     }
 
     function finish(winner,copy){
@@ -751,6 +790,22 @@
       return 0;
     }
 
+    function personaScore(b,move,side){
+      const persona=personaById(aiPersona),next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      const other=side===RED?BLACK:RED,enemyKing=findKing(next,other),totalPieces=next.flat().filter(Boolean).length;
+      if(persona.id==="scholar")return (moving?.type==="h"||moving?.type==="e"?35:0)+(Math.abs(move.to.c-4)<2?28:0)+(totalPieces<12?80:0);
+      if(persona.id==="sprinter")return allMoves(next,side).length*5+(taken?25:0);
+      if(persona.id==="berserker")return (inCheck(next,other)?260:0)+(taken?values[taken.type]*.65:0)+(enemyKing?(10-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*18:0);
+      if(persona.id==="turtle")return -hangingPenalty(next,move,side)*1.3+(moving?.type==="a"||moving?.type==="e"||moving?.type==="k"?55:0)+(inCheck(next,side)?-500:0);
+      if(persona.id==="endmaster")return totalPieces<=12?strategicScore(b,move,side)*.8+(enemyKing?(12-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*22:0):-Math.abs(move.to.c-4)*8;
+      if(persona.id==="trickster"){
+        const replies=allMoves(next,other);
+        const tempting=replies.some(reply=>next[reply.to.r]?.[reply.to.c]?.type==="p"||next[reply.to.r]?.[reply.to.c]?.type==="c");
+        return (tempting?95:0)+(moving?.type==="h"||moving?.type==="c"?45:0)-hangingPenalty(next,move,side)*.45;
+      }
+      return 0;
+    }
+
     function minimax(b,side,depth,maximizing,alpha,beta){
       const active=maximizing?side:(side===RED?BLACK:RED);
       const list=allMoves(b,active).sort((a,bm)=>moveScore(b,bm,side)-moveScore(b,a,side)).slice(0,18);
@@ -770,7 +825,7 @@
       const ranked=list.map(move=>{
         const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
         const plan=config.depth>=2?strategicScore(board,move,BLACK):configuredScore(board,move,BLACK,config);
-        return{move,score:base+plan+profileScore(board,move,BLACK,profile)};
+        return{move,score:base+plan+profileScore(board,move,BLACK,profile)+personaScore(board,move,BLACK)};
       }).sort((a,b)=>b.score-a.score);
       const top=ranked.slice(0,Math.max(1,config.top));
       return top[Math.floor(Math.random()*top.length)].move;
@@ -807,7 +862,7 @@
       classicTurn=other;
       if(!allClassicMoves(classicBoard,classicTurn).length){finishClassic(classicTurn==="w"?"b":"w",`${classicSideName(classicTurn)} 无子可走。`);return}
       render();
-      if(isAutoOpponent()&&classicTurn==="b"){thinking=true;render();setTimeout(classicAiMove,420)}
+      if(isAutoOpponent()&&classicTurn==="b"){thinking=true;render();setTimeout(classicAiMove,aiDelay())}
     }
 
     function classicAiMove(){
@@ -847,10 +902,11 @@
       for(let r=0;r<10;r++)for(let c=0;c<9;c++){
         const palaceClass=palace(RED,r,c)?"palace-red":palace(BLACK,r,c)?"palace-black":"";
         const cell=document.createElement("button");cell.className=`cell ${r===4||r===5?"river":""} ${palaceClass}`;cell.type="button";cell.dataset.r=r;cell.dataset.c=c;cell.setAttribute("aria-label",`第${r+1}行第${c+1}列`);cell.onclick=()=>selectSquare(r,c);
+        cell.style.left=`${c/8*100}%`;cell.style.top=`${r/9*100}%`;
         if(moves.some(m=>m.r===r&&m.c===c))cell.classList.add(board[r][c]?"capture":"hint");
         boardEl.appendChild(cell);
       }
-      for(let r=0;r<10;r++)for(let c=0;c<9;c++){const p=board[r][c];if(!p)continue;const btn=document.createElement("button");btn.type="button";btn.className=`piece ${p.side===RED?"red":"black"}${selected?.r===r&&selected?.c===c?" selected":""}${thinking&&p.side===BLACK?" ai-turn":""}`;btn.textContent=pieceLabel(p);btn.style.left=`${(c+.5)/9*100}%`;btn.style.top=`${(r+.5)/10*100}%`;btn.setAttribute("aria-label",`${sideName(p.side)}${pieceName[p.type]}`);btn.onclick=()=>selectSquare(r,c);$("boardWrap").appendChild(btn)}
+      for(let r=0;r<10;r++)for(let c=0;c<9;c++){const p=board[r][c];if(!p)continue;const btn=document.createElement("button");btn.type="button";btn.className=`piece ${p.side===RED?"red":"black"}${selected?.r===r&&selected?.c===c?" selected":""}${thinking&&p.side===BLACK?" ai-turn":""}`;btn.textContent=pieceLabel(p);btn.style.left=`${c/8*100}%`;btn.style.top=`${r/9*100}%`;btn.setAttribute("aria-label",`${sideName(p.side)}${pieceName[p.type]}`);btn.onclick=()=>selectSquare(r,c);boardEl.appendChild(btn)}
     }
 
     function renderClassicBoard(){
@@ -889,6 +945,7 @@
       $("classicWrap").classList.toggle("hidden",gameType==="xiangqi");
       if(gameType==="xiangqi"){renderBoard();renderCaptured()}else{renderClassicBoard();$("redCaptured").textContent="—";$("blackCaptured").textContent="—"}
       const activeProfile=profileById(aiProfile);
+      const activePersona=personaById(aiPersona);
       const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:activeProfile.difficulty==="custom"?difficulty:activeProfile.difficulty);
       $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
       $("turnHud").textContent=gameType==="xiangqi"?sideName(turn):classicSideName(classicTurn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:gameType==="xiangqi"?`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`:`<b>${classicSideName(classicTurn)}</b> ${classicSelected?"选择落点。":"请选择棋子。"}`;
@@ -897,7 +954,7 @@
       $("matchStatus").textContent=matchStatus;
       $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
       $("opponentName").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
-      $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"坐在你对面的人来执黑。":`${activeProfile.intro} 当前强度：${activeLevel.label}`;
+      $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"坐在你对面的人来执黑。":`${activeProfile.intro} 性格：${activePersona.label}，${activePersona.intro} 当前强度：${activeLevel.label}`;
       const avatarText=mode==="match"&&matchedOpponent?matchedOpponent.name.slice(0,1):mode==="local"?"友":activeProfile.avatar;
       const avatarColor=mode==="match"?matchedOpponent.type==="bot"?"#8a512c":"#3d7a5f":mode==="local"?"#6b7280":activeProfile.color;
       const opponentName=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
@@ -916,6 +973,7 @@
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
       document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"||aiProfile==="super"});
       document.querySelectorAll("#aiProfileButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.aiProfile===aiProfile);b.disabled=mode!=="ai"});
+      document.querySelectorAll("#aiPersonaButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.aiPersona===aiPersona);b.disabled=mode!=="ai"});
       applyPreferences();renderProgressPanels();
     }
 
@@ -923,6 +981,7 @@
     $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;if(mode==="match")startMatch();else{matchedOpponent=null;matchStatus=mode==="ai"?"人机练习已准备好。":"双人同屏对局已准备好。";resetGame()}};
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
     $("aiProfileButtons").onclick=e=>{if(!e.target.dataset.aiProfile||mode!=="ai")return;aiProfile=e.target.dataset.aiProfile;resetGame()};
+    $("aiPersonaButtons").onclick=e=>{if(!e.target.dataset.aiPersona||mode!=="ai")return;aiPersona=e.target.dataset.aiPersona;sayAi("start");render()};
     $("themeButtons").onclick=e=>{if(!e.target.dataset.boardTheme)return;preferences.theme=e.target.dataset.boardTheme;savePreferences();render()};
     $("skinButtons").onclick=e=>{if(!e.target.dataset.pieceSkin)return;preferences.skin=e.target.dataset.pieceSkin;savePreferences();render()};
     $("reviewButton").onclick=showReview;$("openingButton").onclick=showOpeningLibrary;$("endgameButton").onclick=showEndgamePractice;$("lobbyButton").onclick=showLobby;

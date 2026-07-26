@@ -25,6 +25,8 @@ test("进入页面先看到首页介绍和开始游戏按钮", () => {
   assert.match(game, /id="startGameBtn">开始游戏<\/button>/);
   assert.match(game, /id="startMatchBtn">快速匹配<\/button>/);
   assert.match(game, /一个棋类合集：可以玩中国象棋、国际象棋和跳棋/);
+  assert.match(game, /不是空棋盘，是真功能。/);
+  assert.match(game, /不在首页放空棋盘占位置/);
   assert.match(game, /function showGame\(\)/);
   assert.match(game, /\$\("startGameBtn"\)\.onclick/);
 });
@@ -145,8 +147,19 @@ test("将帅活动的九宫格有明显不同的棋盘颜色", () => {
 test("楚河汉界使用对称的中线河界而不是挂在单个格子里", () => {
   assert.match(game, /class="river-label"/);
   assert.match(game, /<span>楚河<\/span><span>汉界<\/span>/);
+  assert.match(game, /\.board:before,\s*\.board:after/);
+  assert.match(game, /#ffe3a2/);
   assert.doesNotMatch(game, /nth-child\(41\)::after/);
   assert.doesNotMatch(game, /nth-child\(45\)::after/);
+});
+
+test("中国象棋棋子和点击热区落在十字交叉点，不落在格子中心", () => {
+  assert.match(game, /cell\.style\.left=`\$\{c\/8\*100\}%`/);
+  assert.match(game, /cell\.style\.top=`\$\{r\/9\*100\}%`/);
+  assert.match(game, /btn\.style\.left=`\$\{c\/8\*100\}%`/);
+  assert.match(game, /btn\.style\.top=`\$\{r\/9\*100\}%`/);
+  assert.doesNotMatch(game, /\(c\+\.5\)\/9\*100/);
+  assert.doesNotMatch(game, /\(r\+\.5\)\/10\*100/);
 });
 
 test("连胜多场会安排超级人机制裁，连输多场会安排弱智人机", () => {
@@ -218,7 +231,7 @@ test("除签到和赛事外，加入长期留存功能面板", () => {
   assert.match(game, /开局库/);
   assert.match(game, /残局练习/);
   assert.match(game, /好友大厅/);
-  assert.match(game, /观战弹幕/);
+  assert.match(game, /好友大厅/);
   assert.doesNotMatch(game, /每日签到/);
   assert.doesNotMatch(game, /签到/);
   assert.doesNotMatch(game, /赛事/);
@@ -227,12 +240,27 @@ test("除签到和赛事外，加入长期留存功能面板", () => {
 test("AI会聊天、记住玩家并生成成就统计", () => {
   assert.match(game, /const AI_TALKS=/);
   assert.match(game, /function sayAi\(type="start"\)/);
+  assert.match(game, /id="aiBubble"/);
+  assert.match(game, /class="assistant-bubble"/);
   assert.match(game, /const MEMORY_KEY="nova-chess-club-memory"/);
   assert.match(game, /function loadMemory\(\)/);
   assert.match(game, /function renderProgressPanels\(\)/);
   assert.match(game, /achievementList/);
   assert.match(game, /memory\.games/);
   assert.match(game, /memory\.moves/);
+});
+
+test("AI拥有可选择的不同性格，并会影响走法", () => {
+  assert.match(game, /id="aiPersonaButtons"/);
+  for (const persona of ["scholar", "sprinter", "berserker", "turtle", "endmaster", "trickster"]) {
+    assert.match(game, new RegExp(`data-ai-persona="${persona}"`));
+  }
+  for (const label of ["老棋痴", "快枪手", "攻击狂魔", "铁桶阵", "残局大师", "心理大师"]) {
+    assert.match(game, new RegExp(`>${label}<`));
+  }
+  assert.match(game, /const AI_PERSONAS=/);
+  assert.match(game, /function personaScore\(b,move,side\)/);
+  assert.match(game, /aiDelay\(\)/);
 });
 
 test("棋子动画、音效、棋盘主题和棋子皮肤可切换", () => {
@@ -260,10 +288,12 @@ test("学习功能包含AI复盘、开局库和残局练习", () => {
   assert.match(game, /function showEndgamePractice\(\)/);
 });
 
-test("社交功能先做成本地好友大厅、观战和弹幕", () => {
+test("社交功能保留本地好友大厅和观战，但不再使用弹幕", () => {
   assert.match(game, /const LOBBY_LINES=/);
   assert.match(game, /function showLobby\(\)/);
   assert.match(game, /好友邀请码/);
   assert.match(game, /观战/);
-  assert.match(game, /弹幕/);
+  assert.doesNotMatch(game, /观战弹幕/);
+  assert.doesNotMatch(game, /danmaku/);
+  assert.doesNotMatch(game, /弹幕：/);
 });
