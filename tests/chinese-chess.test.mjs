@@ -39,7 +39,7 @@ function runGameScriptForRules() {
   globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
   globalThis.setTimeout = fn => fn();
   try {
-    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard};`)();
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
   } finally {
     globalThis.document = previous.document;
     globalThis.localStorage = previous.localStorage;
@@ -265,10 +265,24 @@ test("炮仍然遵守原规则，但高难AI会避免炮换马这类亏子交换
 test("宗师和超级人机不再只按吃子贪心评分", () => {
   assert.match(game, /function strategicScore\(b,move,side\)/);
   assert.match(game, /function hangingPenalty\(next,move,side\)/);
+  assert.match(game, /function profitableCaptureScore\(b,move,side\)/);
   assert.match(game, /values\[taken\.type\]\*\.85/);
   assert.match(game, /if\(profile\.style==="super"\)return strategicScore/);
   assert.doesNotMatch(game, /values\[taken\.type\]\*3/);
   assert.doesNotMatch(game, /values\[taken\.type\]\*1\.6/);
+});
+
+test("黑车能安全吃红炮时AI会吃炮，不会走到炮前面", () => {
+  const {RED, BLACK, chooseAiMove, setAiTestState} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[0][4] = {side: BLACK, type: "k"};
+  b[9][3] = {side: RED, type: "k"};
+  b[4][6] = {side: BLACK, type: "r"};
+  b[5][6] = {side: RED, type: "c"};
+  b[6][1] = {side: RED, type: "p"};
+  setAiTestState({board: b, difficulty: "legend", aiProfile: "standard", aiPersona: "scholar"});
+  const move = chooseAiMove();
+  assert.deepEqual(move, {from: {r: 4, c: 6}, to: {r: 5, c: 6}});
 });
 
 test("不能走出会让自己被将军的位置", () => {

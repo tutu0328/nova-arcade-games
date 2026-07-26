@@ -772,10 +772,24 @@
       return canBeCaptured?values[moved.type]*1.25:0;
     }
 
+    function profitableCaptureScore(b,move,side){
+      const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      if(!moving||!taken)return 0;
+      const next=movedBoard(b,move.from,move.to);
+      const risk=hangingPenalty(next,move,side);
+      const gain=values[taken.type], movingValue=values[moving.type];
+      let score=gain*2.4;
+      if(!risk)score+=gain*1.8;
+      else score+=Math.max(0,gain-risk)*1.1;
+      if(moving.type==="r"&&(taken.type==="c"||taken.type==="h"))score+=risk<movingValue?360:-120;
+      if(gain>=values.c&&risk<movingValue)score+=260;
+      return score;
+    }
+
     function strategicScore(b,move,side){
       const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       let score=scoreBoard(next,side);
-      score+=(taken?values[taken.type]*.85:0);
+      score+=(taken?values[taken.type]*.85:0)+profitableCaptureScore(b,move,side);
       score-=hangingPenalty(next,move,side);
       if(inCheck(next,side===RED?BLACK:RED))score+=180;
       if(inCheck(next,side))score-=260;
@@ -788,7 +802,7 @@
 
     function moveScore(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
-      let score=(taken?values[taken.type]*.9:0)+scoreBoard(movedBoard(b,move.from,move.to),side);
+      let score=(taken?values[taken.type]*.9:0)+profitableCaptureScore(b,move,side)+scoreBoard(movedBoard(b,move.from,move.to),side);
       if(moving?.type==="p"&&crossed(side,move.to.r))score+=35;
       score-=Math.abs(move.to.c-4)*3;
       return score+Math.random()*12;
