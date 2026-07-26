@@ -42,10 +42,17 @@
     .seg button:disabled{opacity:.45;cursor:not-allowed}
     .action{width:100%;margin-top:10px;background:linear-gradient(90deg,var(--gold),#ff9d52)}
     .action.secondary{background:#fff8e9}
+    .mini-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mini-actions .action{margin-top:0}
     .info{display:grid;gap:10px;margin-top:14px}.info-card{padding:13px;border:1px solid rgba(104,55,22,.18);border-radius:10px;background:rgba(255,255,255,.42);line-height:1.55}
     .info-card small{display:block;color:#8a512c;font-weight:900;margin-bottom:5px}.captured{min-height:42px;font-size:22px;letter-spacing:.12em;word-break:break-all}
+    .pill-list{display:flex;gap:7px;flex-wrap:wrap}.pill{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:999px;background:#fff8e9;border:1px solid rgba(104,55,22,.18);font-size:12px;font-weight:800;color:#68401e}
     .stage{padding:18px;background:linear-gradient(180deg,#f2bd70,#d58d45)}
     .board-wrap{position:relative;margin:auto;width:min(100%,720px);aspect-ratio:9/10;border:12px solid #693314;border-radius:12px;background:linear-gradient(145deg,#f2bd70,#cc833e);box-shadow:inset 0 0 0 5px rgba(255,238,184,.45),0 16px 42px rgba(0,0,0,.28);overflow:hidden}
+    .board-wrap.move-pop,.classic-wrap.move-pop{animation:movePop .24s ease}.board-wrap.check-flash,.classic-wrap.check-flash{animation:checkFlash .32s ease}
+    @keyframes movePop{50%{transform:scale(1.012)}}@keyframes checkFlash{35%{box-shadow:inset 0 0 0 5px rgba(255,238,184,.45),0 0 0 7px rgba(197,34,31,.34),0 16px 42px rgba(0,0,0,.28)}}
+    body[data-board-theme="jade"] .stage{background:linear-gradient(180deg,#9fd8b7,#4c8d72)}body[data-board-theme="jade"] .board-wrap,body[data-board-theme="jade"] .classic-wrap{background:linear-gradient(145deg,#c8f2d7,#4c8d72);border-color:#235340}
+    body[data-board-theme="ink"] .stage{background:linear-gradient(180deg,#d7d0c1,#40362d)}body[data-board-theme="ink"] .board-wrap,body[data-board-theme="ink"] .classic-wrap{background:linear-gradient(145deg,#eadfc8,#8e7b65);border-color:#241915}
+    body[data-board-theme="star"] .stage{background:radial-gradient(circle at 20% 18%,#4d3c8e,#120d26)}body[data-board-theme="star"] .board-wrap,body[data-board-theme="star"] .classic-wrap{background:linear-gradient(145deg,#2c245f,#120d26);border-color:#6b5bd6}body[data-board-theme="star"] .cell,body[data-board-theme="star"] .classic-square.light{background:rgba(255,255,255,.08)}body[data-board-theme="star"] .classic-square.dark{background:rgba(123,100,255,.24)}
     .board{position:absolute;inset:14px;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(10,1fr);border-left:2px solid var(--line);border-top:2px solid var(--line)}
     .cell{position:relative;border-right:2px solid rgba(92,44,18,.88);border-bottom:2px solid rgba(92,44,18,.88);background:rgba(255,255,255,.04)}
     .cell.palace-red{background:linear-gradient(135deg,rgba(208,48,31,.36),rgba(255,210,112,.28));box-shadow:inset 0 0 0 2px rgba(208,48,31,.34)}
@@ -74,8 +81,12 @@
     .piece{position:absolute;z-index:3;width:9.5%;aspect-ratio:1;border-radius:50%;border:3px solid currentColor;background:radial-gradient(circle at 35% 25%,#fff9e7,#f7d699 72%);display:grid;place-items:center;font-size:clamp(18px,4.6vw,36px);font-weight:900;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(52,21,6,.28);transition:.16s}
     .piece.red{color:var(--red)}.piece.black{color:var(--black)}.piece.selected{outline:4px solid var(--jade);box-shadow:0 0 0 7px rgba(61,178,127,.18),0 8px 18px rgba(52,21,6,.28)}
     .piece.ai-turn{opacity:.8}
+    body[data-piece-skin="jade"] .piece,body[data-piece-skin="jade"] .classic-piece{background:radial-gradient(circle at 35% 25%,#effff4,#97d7b1 72%)}body[data-piece-skin="gold"] .piece,body[data-piece-skin="gold"] .classic-piece{background:radial-gradient(circle at 35% 25%,#fff8d8,#d6a63d 72%);box-shadow:0 0 18px rgba(255,209,106,.35),0 8px 18px rgba(52,21,6,.28)}body[data-piece-skin="cyber"] .piece,body[data-piece-skin="cyber"] .classic-piece{background:radial-gradient(circle at 35% 25%,#f4ffff,#5df2ff 55%,#3827b9 76%);text-shadow:0 0 8px currentColor}
     .status{margin-top:14px;padding:15px 16px;border-radius:10px;background:#2b1a10;color:#fff0cf;line-height:1.6;display:flex;justify-content:space-between;gap:16px;align-items:center}
     .status b{color:var(--gold)}
+    .desk{padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:#fff4d9;border-top:1px solid rgba(104,55,22,.18)}
+    .desk-card{padding:13px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(104,55,22,.16);min-height:84px}.desk-card h2{font-size:15px;margin:0 0 8px}.desk-card p,.desk-card div{font-size:13px;line-height:1.6;color:#6d4525}
+    .chat-line{position:relative;padding-left:18px}.chat-line:before{content:"“";position:absolute;left:0;color:#c5221f;font-weight:900}
     .log{max-height:180px;overflow:auto;padding:16px;background:#fff4d9}.log h2{font-size:15px;margin-bottom:10px}.log ol{margin:0;padding-left:22px;line-height:1.65;color:#6d4525}
     .win{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:18px;background:rgba(16,8,5,.72);backdrop-filter:blur(10px)}
     .win.show{display:grid}.win-card{width:min(480px,100%);padding:34px;border-radius:14px;background:#fff3d8;color:#2b1a10;text-align:center;box-shadow:var(--shadow)}.win-card h2{font-size:32px;margin-bottom:10px}.win-card p{line-height:1.7;color:#704626}
@@ -106,7 +117,7 @@
         <div class="home-feature"><b>多种模式</b><span>人机对战、匹配对战、同屏双人都能玩。</span></div>
         <div class="home-feature"><b>多档难度</b><span>从入门到宗师，还有连胜后的超级人机挑战。</span></div>
         <div class="home-feature"><b>AI 对手</b><span>豆包偏稳，DeepSeek 深算，Codex 战术，龙虾更怪。</span></div>
-        <div class="home-feature"><b>更清楚的棋盘</b><span>九宫格、楚河汉界、当前对手都更明显。</span></div>
+        <div class="home-feature"><b>教练和大厅</b><span>AI 会聊天、会复盘，还有开局库、残局练习和模拟观战大厅。</span></div>
       </div>
     </div>
     <div class="home-board" aria-label="星河棋社预览">
@@ -176,10 +187,41 @@
         <button class="action secondary" id="matchButton">开始匹配</button>
         <button class="action" id="newGame">重新开局</button>
         <button class="action secondary" id="undoMove">悔一步</button>
+        <div class="control-block">
+          <h2>棋盘主题</h2>
+          <div class="seg" id="themeButtons">
+            <button class="active" data-board-theme="wood">红木</button>
+            <button data-board-theme="jade">玉石</button>
+            <button data-board-theme="ink">水墨</button>
+            <button data-board-theme="star">星空</button>
+          </div>
+        </div>
+        <div class="control-block">
+          <h2>棋子皮肤</h2>
+          <div class="seg" id="skinButtons">
+            <button class="active" data-piece-skin="classic">经典</button>
+            <button data-piece-skin="jade">玉石</button>
+            <button data-piece-skin="gold">鎏金</button>
+            <button data-piece-skin="cyber">赛博</button>
+          </div>
+        </div>
+        <div class="control-block">
+          <h2>学习与社交</h2>
+          <div class="mini-actions">
+            <button class="action secondary" id="reviewButton">AI复盘</button>
+            <button class="action secondary" id="openingButton">开局库</button>
+            <button class="action secondary" id="endgameButton">残局练习</button>
+            <button class="action secondary" id="lobbyButton">好友大厅</button>
+          </div>
+        </div>
         <div class="info">
           <div class="info-card"><small>匹配状态</small><div id="matchStatus">未开始匹配。</div></div>
           <div class="info-card"><small>当前对手</small><div id="opponentInfo">人机对战 · 业余</div></div>
           <div class="info-card"><small>匹配战绩</small><div id="matchRecord">0 胜 0 负 · 连胜 0</div></div>
+          <div class="info-card"><small>AI聊天</small><div id="aiChat" class="chat-line">初次见面，先走一步看看你的棋风。</div></div>
+          <div class="info-card"><small>AI记忆</small><div id="memoryCard">还没记录你的棋风。</div></div>
+          <div class="info-card"><small>数据统计</small><div id="playerStats">总局数 0 · 总步数 0 · 最长连胜 0</div></div>
+          <div class="info-card"><small>成就</small><div id="achievements" class="pill-list"><span class="pill">新棋手</span></div></div>
           <div class="info-card"><small>红方吃子</small><div class="captured" id="redCaptured">—</div></div>
           <div class="info-card"><small>黑方吃子</small><div class="captured" id="blackCaptured">—</div></div>
           <div class="info-card"><small>提示</small><div id="coach">红方先行。帅和将不能照面。</div></div>
@@ -223,6 +265,12 @@
         <h2>棋谱</h2>
         <ol id="moveLog"></ol>
       </div>
+      <div class="desk">
+        <div class="desk-card"><h2>AI复盘</h2><div id="reviewPanel">下完棋或点击“AI复盘”，这里会指出关键失误和建议。</div></div>
+        <div class="desk-card"><h2>开局库</h2><div id="openingPanel">可学习中炮、屏风马、飞象局、仙人指路。</div></div>
+        <div class="desk-card"><h2>残局练习</h2><div id="endgamePanel">每日练习改成本地题库：三步杀、马炮配合、车兵残局。</div></div>
+        <div class="desk-card"><h2>好友大厅 / 观战弹幕</h2><div id="socialPanel">在线 128 人 · 江南棋客 VS 北巷车王 · 弹幕：这步漂亮！</div></div>
+      </div>
     </section>
   </main>
 
@@ -258,6 +306,8 @@
       {id:"super",label:"超级人机",avatar:"神",color:"#111827",intro:"制裁级强度，少失误、强搜索、压迫感很足。",style:"super",difficulty:"super"}
     ];
     const MATCH_KEY="star-river-xiangqi-match";
+    const MEMORY_KEY="nova-chess-club-memory";
+    const PREF_KEY="nova-chess-club-preferences";
     const playerPool=[
       "江南棋客","北巷车王","云端炮手","河界少年","夜航棋士","青石巷阿七","松风残局","红马过河",
       "山城老将","天台棋社","半步将军","落子无声","楚河访客","汉界旅人","边兵不回头","巡河车手"
@@ -273,11 +323,23 @@
     const elephantSteps=[[2,2,1,1],[2,-2,1,-1],[-2,2,-1,1],[-2,-2,-1,-1]];
     const advisorSteps=[[1,1],[1,-1],[-1,1],[-1,-1]];
     const GAME_TYPES={xiangqi:"中国象棋",chess:"国际象棋",checkers:"跳棋"};
+    const AI_TALKS={
+      start:["又见面了，我会记住你的棋风。","今天先稳一点，看看你是不是又想抢攻。","开局别急，真正的破绽通常在第十步后出现。"],
+      capture:["吃子不是目的，位置才是。","这枚子我收下，但我也会看它有没有毒。","交换可以，亏子不行。"],
+      check:["将军。现在轮到你证明防守了。","好，局面开始有味道了。","这一将不是吓你，是逼你表态。"],
+      mistake:["这步有点危险，后面可能会丢大子。","你给了我一个目标。","这里如果先补防，会舒服很多。"],
+      win:["复盘一下吧，真正的问题不在最后一步。","再来一局？我已经更新你的棋风记录了。"],
+      lose:["好棋。我下次会更小心这个套路。","你这盘中局处理得不错。"]
+    };
+    const OPENINGS=["中炮：快速控制中路，适合主动进攻。","屏风马：稳住双马，防守反击更强。","飞象局：先补厚阵型，适合慢慢压制。","仙人指路：先试探对方，应变空间大。"];
+    const ENDGAMES=["三步杀：先制造将军，再封住退路。","马炮配合：炮负责牵制，马负责卡位。","车兵残局：车不要急着换，先护兵过河。","单车例胜：把对方主帅压到边线再收网。"];
+    const LOBBY_LINES=["江南棋客 VS 北巷车王 · 观战 32","云端炮手正在挑战 DeepSeek","红马过河邀请你下快棋","弹幕：这步漂亮！","弹幕：别贪吃，后面有炮！"];
     const classicText={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟",wm:"●",bm:"●",wK:"♛",bK:"♛"};
     const classicValues={k:10000,q:900,r:500,b:330,n:320,p:100,m:100,K:230};
     let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
     let gameType="xiangqi",classicBoard=[],classicTurn="w",classicSelected=null,classicMoves=[],classicHistory=[];
     let matchStats=loadMatchStats();
+    let memory=loadMemory(),preferences=loadPreferences();
 
     const $=id=>document.getElementById(id);
     const clone=b=>b.map(row=>row.map(p=>p?{...p}:null));
@@ -298,6 +360,23 @@
 
     function saveMatchStats(){
       localStorage.setItem(MATCH_KEY,JSON.stringify(matchStats));
+    }
+
+    function loadMemory(){
+      try{return JSON.parse(localStorage.getItem(MEMORY_KEY))||{games:0,wins:0,losses:0,moves:0,captures:0,checks:0,bestStreak:0,openings:0,endgames:0,reviews:0}}catch{return{games:0,wins:0,losses:0,moves:0,captures:0,checks:0,bestStreak:0,openings:0,endgames:0,reviews:0}}
+    }
+
+    function saveMemory(){
+      memory.bestStreak=Math.max(memory.bestStreak,matchStats.best||0);
+      localStorage.setItem(MEMORY_KEY,JSON.stringify(memory));
+    }
+
+    function loadPreferences(){
+      try{return JSON.parse(localStorage.getItem(PREF_KEY))||{theme:"wood",skin:"classic",sound:true}}catch{return{theme:"wood",skin:"classic",sound:true}}
+    }
+
+    function savePreferences(){
+      localStorage.setItem(PREF_KEY,JSON.stringify(preferences));
     }
 
     function initialBoard(){
@@ -335,7 +414,7 @@
     function resetGame(){
       board=initialBoard();turn=RED;selected=null;moves=[];history=[];gameOver=false;thinking=false;
       classicBoard=initialClassicBoard(gameType);classicTurn="w";classicSelected=null;classicMoves=[];classicHistory=[];
-      $("winnerLayer").classList.remove("show");render();
+      $("winnerLayer").classList.remove("show");sayAi(memory.games?"start":"start");render();
     }
 
     function startMatch(){
@@ -353,6 +432,81 @@
       }
       const skill=Math.max(0,Math.min(6,2+Math.floor((matchStats.wins-matchStats.losses)/3)+Math.floor(Math.random()*3)-1));
       return{name:playerPool[Math.floor(Math.random()*playerPool.length)],type:"player",difficulty:DIFFICULTIES[skill].id,reason:"按当前战绩匹配到接近水平的玩家"};
+    }
+
+    function sayAi(type="start"){
+      const lines=AI_TALKS[type]||AI_TALKS.start;
+      $("aiChat").textContent=lines[Math.floor(Math.random()*lines.length)];
+    }
+
+    function playTone(kind="move"){
+      if(!preferences.sound)return;
+      try{
+        const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
+        const ctx=new AudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
+        const hz=kind==="capture"?180:kind==="check"?110:kind==="win"?260:220;
+        osc.frequency.value=hz;osc.type=kind==="check"?"sawtooth":"triangle";gain.gain.value=.045;
+        osc.connect(gain);gain.connect(ctx.destination);osc.start();
+        gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.stop(ctx.currentTime+.2);
+      }catch{}
+    }
+
+    function pulseBoard(kind="move"){
+      const target=gameType==="xiangqi"?$("boardWrap"):$("classicWrap");
+      target.classList.remove("move-pop","check-flash");
+      void target.offsetWidth;
+      target.classList.add(kind==="check"?"check-flash":"move-pop");
+    }
+
+    function applyPreferences(){
+      document.body.dataset.boardTheme=preferences.theme;
+      document.body.dataset.pieceSkin=preferences.skin;
+      document.querySelectorAll("#themeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.boardTheme===preferences.theme));
+      document.querySelectorAll("#skinButtons button").forEach(b=>b.classList.toggle("active",b.dataset.pieceSkin===preferences.skin));
+    }
+
+    function achievementList(){
+      const list=["新棋手"];
+      if(memory.games>=1)list.push("初次对局");
+      if(memory.wins>=1)list.push("首次获胜");
+      if(memory.captures>=10)list.push("吃子达人");
+      if(memory.checks>=5)list.push("将军高手");
+      if(matchStats.best>=3)list.push("三连胜");
+      if(memory.reviews>=1)list.push("复盘学徒");
+      if(memory.openings>=1)list.push("开局入门");
+      if(memory.endgames>=1)list.push("残局练习生");
+      return list;
+    }
+
+    function renderProgressPanels(){
+      $("memoryCard").textContent=memory.games?`我记得你下过 ${memory.games} 局，偏好${memory.captures>memory.games*4?"主动吃子":"稳扎稳打"}，最近最长连胜 ${matchStats.best}。`:"初次见面，我会从这局开始记住你的棋风。";
+      $("playerStats").textContent=`总局数 ${memory.games} · 胜 ${memory.wins} 负 ${memory.losses} · 总步数 ${memory.moves} · 将军 ${memory.checks}`;
+      $("achievements").innerHTML=achievementList().map(name=>`<span class="pill">${name}</span>`).join("");
+    }
+
+    function showReview(){
+      memory.reviews++;saveMemory();
+      const moveCount=$("moveLog").children.length;
+      const advice=moveCount<8?"现在样本还少：先注意不要太早换大子。":memory.captures>moveCount/3?"你这盘吃子很多，下一步重点检查有没有亏子交换。":"你这盘比较稳，下一步可以练习主动制造将军。";
+      $("reviewPanel").textContent=`AI复盘：已记录 ${moveCount} 手。${advice} 建议复看第 ${Math.max(1,Math.ceil(moveCount/2))} 手附近的中局选择。`;
+      renderProgressPanels();
+    }
+
+    function showOpeningLibrary(){
+      memory.openings++;saveMemory();
+      $("openingPanel").innerHTML=OPENINGS.map(item=>`<div>· ${item}</div>`).join("");
+      renderProgressPanels();
+    }
+
+    function showEndgamePractice(){
+      memory.endgames++;saveMemory();
+      const pick=ENDGAMES[memory.endgames%ENDGAMES.length];
+      $("endgamePanel").textContent=`当前残局题：${pick} 提示：先限制对方活动范围，再考虑吃子。`;
+      renderProgressPanels();
+    }
+
+    function showLobby(){
+      $("socialPanel").innerHTML=LOBBY_LINES.map(line=>`<div>· ${line}</div>`).join("")+"<div>· 好友邀请码：NOVA-"+String(Date.now()).slice(-4)+"</div>";
     }
 
     function pseudoMoves(b,r,c){
@@ -519,6 +673,9 @@
       board[to.r][to.c]=moving;board[from.r][from.c]=null;selected=null;moves=[];
       const text=`${sideName(turn)} ${pieceLabel(moving)} ${posName(from)} → ${posName(to)}${taken?"，吃 "+pieceLabel(taken):""}`;
       const li=document.createElement("li");li.textContent=text;$("moveLog").prepend(li);
+      memory.moves++;if(taken){memory.captures++;sayAi("capture");playTone("capture")}else{playTone("move")}
+      if(inCheck(board,turn===RED?BLACK:RED)){memory.checks++;sayAi("check");pulseBoard("check");playTone("check")}else pulseBoard("move");
+      saveMemory();
       if(taken?.type==="k"){finish(turn,`${sideName(turn)} 吃掉对方主帅。`);return}
       turn=turn===RED?BLACK:RED;
       const replies=allMoves(board,turn);
@@ -529,6 +686,8 @@
 
     function finish(winner,copy){
       if(mode==="match")recordMatchResult(winner);
+      memory.games++;if(winner===RED){memory.wins++;sayAi("lose")}else{memory.losses++;sayAi("win")}saveMemory();
+      showReview();
       gameOver=true;render();
       $("winnerTitle").textContent=`${sideName(winner)}获胜`;
       $("winnerCopy").textContent=copy;
@@ -641,6 +800,7 @@
       classicHistory.push({board:clone(classicBoard),turn:classicTurn,moveLog:$("moveLog").innerHTML,actor});
       classicBoard=movedClassicBoard(classicBoard,move);classicSelected=null;classicMoves=[];
       const li=document.createElement("li");li.textContent=`${classicSideName(classicTurn)} ${classicPieceLabel(moving)} ${move.from.r+1},${move.from.c+1} → ${move.to.r+1},${move.to.c+1}${taken?"，吃 "+classicPieceLabel(taken):""}`;$("moveLog").prepend(li);
+      memory.moves++;if(taken){memory.captures++;sayAi("capture");playTone("capture")}else playTone("move");pulseBoard("move");saveMemory();
       if(gameType==="chess"&&taken?.type==="k"){finishClassic(classicTurn,`${classicSideName(classicTurn)} 吃掉对方国王。`);return}
       const other=classicTurn==="w"?"b":"w";
       if(!classicBoard.flat().some(p=>p?.side===other)){finishClassic(classicTurn,`${classicSideName(other)} 没有棋子了。`);return}
@@ -658,6 +818,8 @@
 
     function finishClassic(winner,copy){
       if(mode==="match")recordMatchResult(winner==="w"?RED:BLACK);
+      memory.games++;if(winner==="w"){memory.wins++;sayAi("lose")}else{memory.losses++;sayAi("win")}saveMemory();
+      showReview();
       gameOver=true;render();
       $("winnerTitle").textContent=`${classicSideName(winner)}获胜`;
       $("winnerCopy").textContent=copy;
@@ -754,12 +916,16 @@
       document.querySelectorAll("#modeButtons button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
       document.querySelectorAll("#difficultyButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.difficulty===difficulty);b.disabled=mode!=="ai"||aiProfile==="super"});
       document.querySelectorAll("#aiProfileButtons button").forEach(b=>{b.classList.toggle("active",b.dataset.aiProfile===aiProfile);b.disabled=mode!=="ai"});
+      applyPreferences();renderProgressPanels();
     }
 
     $("gameTypeButtons").onclick=e=>{if(!e.target.dataset.gameType)return;switchGameType(e.target.dataset.gameType)};
     $("modeButtons").onclick=e=>{if(!e.target.dataset.mode)return;mode=e.target.dataset.mode;if(mode==="match")startMatch();else{matchedOpponent=null;matchStatus=mode==="ai"?"人机练习已准备好。":"双人同屏对局已准备好。";resetGame()}};
     $("difficultyButtons").onclick=e=>{if(!e.target.dataset.difficulty||mode!=="ai")return;difficulty=e.target.dataset.difficulty;render()};
     $("aiProfileButtons").onclick=e=>{if(!e.target.dataset.aiProfile||mode!=="ai")return;aiProfile=e.target.dataset.aiProfile;resetGame()};
+    $("themeButtons").onclick=e=>{if(!e.target.dataset.boardTheme)return;preferences.theme=e.target.dataset.boardTheme;savePreferences();render()};
+    $("skinButtons").onclick=e=>{if(!e.target.dataset.pieceSkin)return;preferences.skin=e.target.dataset.pieceSkin;savePreferences();render()};
+    $("reviewButton").onclick=showReview;$("openingButton").onclick=showOpeningLibrary;$("endgameButton").onclick=showEndgamePractice;$("lobbyButton").onclick=showLobby;
     $("matchButton").onclick=startMatch;$("newGame").onclick=()=>mode==="match"?startMatch():resetGame();$("playAgain").onclick=()=>mode==="match"?startMatch():resetGame();$("undoMove").onclick=undoMove;
     function showGame(){
       $("homeScreen").classList.add("hidden");

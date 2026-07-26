@@ -209,3 +209,61 @@ test("对局有胜负、悔棋和棋谱", () => {
   assert.match(game, /function undoMove\(\)/);
   assert.match(game, /id="moveLog"/);
 });
+
+test("除签到和赛事外，加入长期留存功能面板", () => {
+  for (const id of ["aiChat", "memoryCard", "playerStats", "achievements", "reviewPanel", "openingPanel", "endgamePanel", "socialPanel"]) {
+    assert.match(game, new RegExp(`id="${id}"`));
+  }
+  assert.match(game, /AI复盘/);
+  assert.match(game, /开局库/);
+  assert.match(game, /残局练习/);
+  assert.match(game, /好友大厅/);
+  assert.match(game, /观战弹幕/);
+  assert.doesNotMatch(game, /每日签到/);
+  assert.doesNotMatch(game, /签到/);
+  assert.doesNotMatch(game, /赛事/);
+});
+
+test("AI会聊天、记住玩家并生成成就统计", () => {
+  assert.match(game, /const AI_TALKS=/);
+  assert.match(game, /function sayAi\(type="start"\)/);
+  assert.match(game, /const MEMORY_KEY="nova-chess-club-memory"/);
+  assert.match(game, /function loadMemory\(\)/);
+  assert.match(game, /function renderProgressPanels\(\)/);
+  assert.match(game, /achievementList/);
+  assert.match(game, /memory\.games/);
+  assert.match(game, /memory\.moves/);
+});
+
+test("棋子动画、音效、棋盘主题和棋子皮肤可切换", () => {
+  assert.match(game, /id="themeButtons"/);
+  assert.match(game, /data-board-theme="jade"/);
+  assert.match(game, /data-board-theme="ink"/);
+  assert.match(game, /data-board-theme="star"/);
+  assert.match(game, /id="skinButtons"/);
+  assert.match(game, /data-piece-skin="gold"/);
+  assert.match(game, /data-piece-skin="cyber"/);
+  assert.match(game, /function playTone\(kind="move"\)/);
+  assert.match(game, /function pulseBoard\(kind="move"\)/);
+  assert.match(game, /move-pop/);
+  assert.match(game, /check-flash/);
+});
+
+test("学习功能包含AI复盘、开局库和残局练习", () => {
+  assert.match(game, /function showReview\(\)/);
+  assert.match(game, /const OPENINGS=/);
+  assert.match(game, /中炮/);
+  assert.match(game, /屏风马/);
+  assert.match(game, /function showOpeningLibrary\(\)/);
+  assert.match(game, /const ENDGAMES=/);
+  assert.match(game, /三步杀/);
+  assert.match(game, /function showEndgamePractice\(\)/);
+});
+
+test("社交功能先做成本地好友大厅、观战和弹幕", () => {
+  assert.match(game, /const LOBBY_LINES=/);
+  assert.match(game, /function showLobby\(\)/);
+  assert.match(game, /好友邀请码/);
+  assert.match(game, /观战/);
+  assert.match(game, /弹幕/);
+});
