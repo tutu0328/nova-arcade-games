@@ -150,9 +150,9 @@
             <div class="mix-list" id="mixList">可以只放一种，也可以混合多种材料。</div>
           </div>
         </div>
-        <button class="shake" id="shakeBtn" disabled>按住摇酒 · 松开停止</button>
+        <button class="shake" id="shakeBtn" disabled>按住摇酒 · 冰声变小松开</button>
         <div class="shake-status" id="shakeStatus">选好材料后才能摇制</div>
-        <button class="serve" id="serveBtn" disabled>端上这杯饮料</button>
+        <button class="serve" id="serveBtn" disabled>松开后自动端上</button>
         <div class="notice" id="notice" aria-live="polite"></div>
       </section>
     </div>
@@ -420,7 +420,11 @@
         osc.connect(gain).connect(audioContext.destination);osc.start();osc.stop(audioContext.currentTime+duration);
       }catch(_){}
     }
-    function iceClink(volume=.03){
+    function iceVolumeForShake(elapsed=0){
+      const progress=Math.min(1,(shakeDuration+elapsed)/Math.max(1,requiredShake()));
+      return .16-progress*.125;
+    }
+    function iceClink(volume=.09){
       const ctx=ensureAudio();
       if(!ctx||!ctx.createBuffer)return;
       try{
@@ -439,7 +443,9 @@
       if(iceLoopTimer||!state.sound)return;
       const tick=()=>{
         if(!shakeStartedAt||!state.sound){iceLoopTimer=0;return}
-        iceClink(.018+Math.random()*.022);
+        const elapsed=performance.now()-shakeStartedAt;
+        iceClink(iceVolumeForShake(elapsed)+Math.random()*.018);
+        if(shakeDuration+elapsed>requiredShake()*.78)$("shakeStatus").textContent="冰块声正在变小，现在接近最佳时机";
         iceLoopTimer=setTimeout(tick,110+Math.random()*130);
       };
       iceLoopTimer=setTimeout(tick,70);
@@ -502,7 +508,7 @@
       $("nightHud").textContent=`第 ${state.index+1} 天 · ∞`;$("creditHud").textContent=state.credits;$("empathyHud").textContent=state.empathy;
       $("reputationHud").textContent=state.reputation;
       $("drinkName").textContent="尚未完成";$("mixList").textContent="可以只放一种，也可以混合多种材料。";
-      $("liquid").style.height="12%";$("serveBtn").disabled=true;$("shakeBtn").disabled=true;
+      $("liquid").style.height="12%";$("serveBtn").disabled=true;$("serveBtn").textContent="松开后自动端上";$("shakeBtn").disabled=true;
       $("shakeStatus").textContent="选好材料后才能摇制";$("notice").textContent="";
     }
     function findItem(group,id){return ingredients[group].find(item=>item.id===id)}
@@ -530,8 +536,8 @@
       $("drinkName").textContent=drinkName();
       $("liquid").style.height=`${Math.min(92,12+picked.length*16)}%`;
       if(selected.base.length)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base[0]).color},#59355f)`;
-      shakeGrade=null;shakeDuration=0;$("serveBtn").disabled=true;$("shakeBtn").disabled=picked.length===0;
-      $("shakeStatus").textContent=picked.length?`酒保直觉：这杯适合${requiredShake()<1500?"短摇":requiredShake()<2400?"中摇":"长摇"}`:"选好材料后才能摇制";
+      shakeGrade=null;shakeDuration=0;$("serveBtn").disabled=true;$("serveBtn").textContent="松开后自动端上";$("shakeBtn").disabled=picked.length===0;
+      $("shakeStatus").textContent=picked.length?`听冰块声：从清脆变小的时候松开`:"选好材料后才能摇制";
     }
     function selectIngredient(btn){
       const {group,id}=btn.dataset, list=selected[group], existing=list.indexOf(id);
@@ -545,21 +551,32 @@
       let hash=0;for(const char of key)hash=(hash*31+char.charCodeAt(0))>>>0;
       return 900+(hash%2200);
     }
+    function hasIce(){return selected.garnish.includes("ice")}
+    function guestAvoidsIce(){
+      return activeTaste.wants.includes("warm")&&activeTaste.dislikes.includes("clear");
+    }
     function startShake(event){
       if($("shakeBtn").disabled||shakeStartedAt)return;
       event.preventDefault();shakeStartedAt=performance.now();$("shakeBtn").classList.add("active");
-      $("shakeBtn").textContent="正在摇制……松开停止";$("shakeStatus").textContent="听冰块与杯壁的声音判断时机";tone(300,.08);
-      iceClink(.045);startIceLoop();
+      $("shakeBtn").textContent="正在摇制……冰声变小就松开";$("shakeStatus").textContent=shakeDuration?"继续补摇，听到冰声变小再松开":"先听清脆冰块声，变小就是最佳";tone(360,.08);
+      iceClink(.17);startIceLoop();
       try{$("shakeBtn").setPointerCapture(event.pointerId)}catch(_){}
     }
     function stopShake(event){
       if(!shakeStartedAt)return;
-      event.preventDefault();shakeDuration=performance.now()-shakeStartedAt;shakeStartedAt=0;stopIceLoop();$("shakeBtn").classList.remove("active");
+      event.preventDefault();shakeDuration+=performance.now()-shakeStartedAt;shakeStartedAt=0;stopIceLoop();$("shakeBtn").classList.remove("active");
+      if(shakeDuration<requiredShake()){
+        $("shakeBtn").textContent="还少一点 · 继续按住补摇";$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · 冰块声还没变小，可以继续摇`;
+        $("serveBtn").disabled=true;$("serveBtn").textContent="少了还能补摇";
+        tone(360,.08);
+        return;
+      }
       const difference=Math.abs(shakeDuration-requiredShake());
       shakeGrade=difference<=420?"perfect":difference<=900?"fair":"poor";
-      const label={perfect:"节奏恰到好处",fair:"摇制时间有一点偏差",poor:shakeDuration<requiredShake()?"摇得太短，风味没有融合":"摇得太久，风味已经发散"}[shakeGrade];
-      $("shakeBtn").textContent="重新长按摇制";$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · ${label}`;
-      $("serveBtn").disabled=false;tone(shakeGrade==="perfect"?680:shakeGrade==="fair"?430:190,.12);
+      const label={perfect:"冰块声刚好变小，节奏最佳",fair:"冰块声变化抓得有一点偏",poor:shakeDuration<requiredShake()?"松得太早，风味没有融合":"松得太晚，风味已经发散"}[shakeGrade];
+      $("shakeBtn").textContent="已经摇好";$("shakeBtn").disabled=true;$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · ${label} · 已端给客人`;
+      $("serveBtn").disabled=true;$("serveBtn").textContent="已经端给客人";tone(shakeGrade==="perfect"?760:shakeGrade==="fair"?500:230,.12);
+      setTimeout(serve,140);
     }
     function askTaste(){
       const guest=currentGuest(),visit=guestVisit(guest);
@@ -575,7 +592,8 @@
       const conflicts=new Set((activeTaste.dislikes||[]).filter(tag=>tags.includes(tag))).size;
       const total=Object.values(selected).reduce((sum,ids)=>sum+ids.length,0);
       const alcohol=selected.base.some(id=>["ember","lunar","beer","wine"].includes(id));
-      if(total>activeTaste.maxIngredients||conflicts>=2||(activeTaste.noAlcohol&&alcohol))return"complaint";
+      if(total>activeTaste.maxIngredients||conflicts>=2||(activeTaste.noAlcohol&&alcohol)||(guestAvoidsIce()&&hasIce()))return"complaint";
+      if(!guestAvoidsIce()&&!hasIce())return"bad";
       let result=matched>=2&&conflicts===0?"good":matched===1&&conflicts<=1?"okay":"bad";
       if(shakeGrade==="poor")result=result==="good"?"okay":"bad";
       else if(shakeGrade==="fair"&&result==="good")result="okay";
@@ -590,6 +608,8 @@
       const issues=[];
       if(total>activeTaste.maxIngredients)issues.push(`你放了 ${total} 种材料，我最多只能接受 ${activeTaste.maxIngredients} 种`);
       if(activeTaste.noAlcohol&&selected.base.some(id=>["ember","lunar","beer","wine"].includes(id)))issues.push("我明确说过不能喝含酒精的基底");
+      if(guestAvoidsIce()&&hasIce())issues.push("我不喝凉的，这杯不该加冰");
+      if(!guestAvoidsIce()&&!hasIce())issues.push("这杯该加冰，你忘了放彗尾碎冰");
       const disliked=[...new Set(activeTaste.dislikes.filter(tag=>tags.includes(tag)))];
       if(disliked.length)issues.push(`杯里出现了我不喜欢的${disliked.map(tag=>tagNames[tag]).join("、")}味道`);
       if(shakeGrade==="poor")issues.push(shakeDuration<requiredShake()?"摇得太短，材料没有融合":"摇得太久，原本的风味被破坏了");
