@@ -772,6 +772,21 @@
       return canBeCaptured?values[moved.type]*1.25:0;
     }
 
+    function blunderPenalty(b,move,side){
+      const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      if(!moving)return 0;
+      const next=movedBoard(b,move.from,move.to);
+      const risk=hangingPenalty(next,move,side);
+      if(!risk)return 0;
+      const gain=taken?values[taken.type]:0,movingValue=values[moving.type];
+      let penalty=0;
+      if(!gain)penalty+=movingValue>=values.h?movingValue*3.2:movingValue*1.6;
+      else if(risk>gain)penalty+=(risk-gain)*2.4;
+      if(movingValue>=values.h&&gain<movingValue)penalty+=1200;
+      if(moving.type==="r"&&!gain)penalty+=900;
+      return penalty;
+    }
+
     function profitableCaptureScore(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       if(!moving||!taken)return 0;
@@ -790,7 +805,7 @@
       const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       let score=scoreBoard(next,side);
       score+=(taken?values[taken.type]*.85:0)+profitableCaptureScore(b,move,side);
-      score-=hangingPenalty(next,move,side);
+      score-=hangingPenalty(next,move,side)+blunderPenalty(b,move,side);
       if(inCheck(next,side===RED?BLACK:RED))score+=180;
       if(inCheck(next,side))score-=260;
       if(moving?.type==="p"&&crossed(side,move.to.r))score+=45;
@@ -809,7 +824,7 @@
     }
 
     function configuredScore(b,move,side,config){
-      return moveScore(b,move,side)+(Math.random()*config.noise);
+      return moveScore(b,move,side)-blunderPenalty(b,move,side)+(Math.random()*config.noise);
     }
 
     function profileScore(b,move,side,profile){
@@ -818,7 +833,7 @@
       if(profile.style==="deep")return scoreBoard(next,side)*.18+(inCheck(next,side===RED?BLACK:RED)?220:0);
       if(profile.style==="tactical")return (taken?values[taken.type]*1.4:0)+(inCheck(next,side===RED?BLACK:RED)?240:0)+(move.to.r>4?35:0);
       if(profile.style==="weird")return (Math.sin((move.to.r+1)*(move.to.c+2))*95)+(taken?values[taken.type]*.55:0);
-      if(profile.style==="super")return strategicScore(b,move,side)*.55+(inCheck(next,side===RED?BLACK:RED)?260:0)-hangingPenalty(next,move,side)*.8;
+      if(profile.style==="super")return strategicScore(b,move,side)*.55+(inCheck(next,side===RED?BLACK:RED)?260:0)-hangingPenalty(next,move,side)*.8-blunderPenalty(b,move,side);
       return 0;
     }
 
@@ -828,12 +843,12 @@
       if(persona.id==="scholar")return (moving?.type==="h"||moving?.type==="e"?35:0)+(Math.abs(move.to.c-4)<2?28:0)+(totalPieces<12?80:0);
       if(persona.id==="sprinter")return allMoves(next,side).length*5+(taken?25:0);
       if(persona.id==="berserker")return (inCheck(next,other)?260:0)+(taken?values[taken.type]*.65:0)+(enemyKing?(10-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*18:0);
-      if(persona.id==="turtle")return -hangingPenalty(next,move,side)*1.3+(moving?.type==="a"||moving?.type==="e"||moving?.type==="k"?55:0)+(inCheck(next,side)?-500:0);
+      if(persona.id==="turtle")return -hangingPenalty(next,move,side)*1.3-blunderPenalty(b,move,side)*.7+(moving?.type==="a"||moving?.type==="e"||moving?.type==="k"?55:0)+(inCheck(next,side)?-500:0);
       if(persona.id==="endmaster")return totalPieces<=12?strategicScore(b,move,side)*.8+(enemyKing?(12-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*22:0):-Math.abs(move.to.c-4)*8;
       if(persona.id==="trickster"){
         const replies=allMoves(next,other);
         const tempting=replies.some(reply=>next[reply.to.r]?.[reply.to.c]?.type==="p"||next[reply.to.r]?.[reply.to.c]?.type==="c");
-        return (tempting?95:0)+(moving?.type==="h"||moving?.type==="c"?45:0)-hangingPenalty(next,move,side)*.45;
+        return (tempting?95:0)+(moving?.type==="h"||moving?.type==="c"?45:0)-hangingPenalty(next,move,side)*.45-blunderPenalty(b,move,side)*.35;
       }
       return 0;
     }
