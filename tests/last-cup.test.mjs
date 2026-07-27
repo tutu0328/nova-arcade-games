@@ -18,7 +18,6 @@ test("最后一杯摇酒时会持续播放冰块碰杯声音", () => {
   assert.match(game, /return \.16-progress\*\.125;/, "冰块声要足够明显，并在接近最佳时变小");
   assert.match(game, /iceClink\(\.17\);startIceLoop\(\);/, "开始摇酒时需要立即响一声明显的冰块声并进入循环");
   assert.match(game, /shakeStartedAt=0;stopIceLoop\(\);/, "停止摇酒时需要结束循环，避免声音残留");
-  assert.match(game, /冰块声正在变小，现在接近最佳时机/, "需要提示玩家冰块声变小就是最佳附近");
 });
 
 test("最后一杯声音开关会同步关闭摇酒冰块声", () => {
@@ -40,4 +39,11 @@ test("最后一杯默认必须加冰，除非客人不喝凉的", () => {
   assert.match(game, /guestAvoidsIce\(\)&&hasIce\(\)/, "不喝凉的客人加冰要算错误");
   assert.match(game, /这杯该加冰，你忘了放彗尾碎冰/, "没加冰时客人要指出错误");
   assert.match(game, /我不喝凉的，这杯不该加冰/, "不喝凉的客人加冰时要指出错误");
+});
+
+test("最后一杯摇酒不把最佳时机直接写成文字提示", () => {
+  assert.doesNotMatch(game, /冰声变小/, "按钮和状态里不能直接写冰声变小");
+  assert.doesNotMatch(game, /冰块声正在变小/, "摇制过程中不能明牌提示最佳时机");
+  assert.doesNotMatch(game, /最佳时机/, "不能直接告诉玩家最佳时机");
+  assert.doesNotMatch(game, /从清脆变小的时候松开/, "不能把配方式操作提示写出来");
 });

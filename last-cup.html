@@ -150,7 +150,7 @@
             <div class="mix-list" id="mixList">可以只放一种，也可以混合多种材料。</div>
           </div>
         </div>
-        <button class="shake" id="shakeBtn" disabled>按住摇酒 · 冰声变小松开</button>
+        <button class="shake" id="shakeBtn" disabled>按住摇酒</button>
         <div class="shake-status" id="shakeStatus">选好材料后才能摇制</div>
         <button class="serve" id="serveBtn" disabled>松开后自动端上</button>
         <div class="notice" id="notice" aria-live="polite"></div>
@@ -445,7 +445,6 @@
         if(!shakeStartedAt||!state.sound){iceLoopTimer=0;return}
         const elapsed=performance.now()-shakeStartedAt;
         iceClink(iceVolumeForShake(elapsed)+Math.random()*.018);
-        if(shakeDuration+elapsed>requiredShake()*.78)$("shakeStatus").textContent="冰块声正在变小，现在接近最佳时机";
         iceLoopTimer=setTimeout(tick,110+Math.random()*130);
       };
       iceLoopTimer=setTimeout(tick,70);
@@ -537,7 +536,7 @@
       $("liquid").style.height=`${Math.min(92,12+picked.length*16)}%`;
       if(selected.base.length)$("liquid").style.background=`linear-gradient(180deg,${findItem("base",selected.base[0]).color},#59355f)`;
       shakeGrade=null;shakeDuration=0;$("serveBtn").disabled=true;$("serveBtn").textContent="松开后自动端上";$("shakeBtn").disabled=picked.length===0;
-      $("shakeStatus").textContent=picked.length?`听冰块声：从清脆变小的时候松开`:"选好材料后才能摇制";
+      $("shakeStatus").textContent=picked.length?"准备摇酒":"选好材料后才能摇制";
     }
     function selectIngredient(btn){
       const {group,id}=btn.dataset, list=selected[group], existing=list.indexOf(id);
@@ -558,7 +557,7 @@
     function startShake(event){
       if($("shakeBtn").disabled||shakeStartedAt)return;
       event.preventDefault();shakeStartedAt=performance.now();$("shakeBtn").classList.add("active");
-      $("shakeBtn").textContent="正在摇制……冰声变小就松开";$("shakeStatus").textContent=shakeDuration?"继续补摇，听到冰声变小再松开":"先听清脆冰块声，变小就是最佳";tone(360,.08);
+      $("shakeBtn").textContent="正在摇制……";$("shakeStatus").textContent=shakeDuration?"继续补摇":"正在摇酒";tone(360,.08);
       iceClink(.17);startIceLoop();
       try{$("shakeBtn").setPointerCapture(event.pointerId)}catch(_){}
     }
@@ -566,14 +565,14 @@
       if(!shakeStartedAt)return;
       event.preventDefault();shakeDuration+=performance.now()-shakeStartedAt;shakeStartedAt=0;stopIceLoop();$("shakeBtn").classList.remove("active");
       if(shakeDuration<requiredShake()){
-        $("shakeBtn").textContent="还少一点 · 继续按住补摇";$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · 冰块声还没变小，可以继续摇`;
+        $("shakeBtn").textContent="还少一点 · 继续按住补摇";$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · 可以继续摇`;
         $("serveBtn").disabled=true;$("serveBtn").textContent="少了还能补摇";
         tone(360,.08);
         return;
       }
       const difference=Math.abs(shakeDuration-requiredShake());
       shakeGrade=difference<=420?"perfect":difference<=900?"fair":"poor";
-      const label={perfect:"冰块声刚好变小，节奏最佳",fair:"冰块声变化抓得有一点偏",poor:shakeDuration<requiredShake()?"松得太早，风味没有融合":"松得太晚，风味已经发散"}[shakeGrade];
+      const label={perfect:"节奏刚好",fair:"节奏有一点偏",poor:shakeDuration<requiredShake()?"松得太早，风味没有融合":"松得太晚，风味已经发散"}[shakeGrade];
       $("shakeBtn").textContent="已经摇好";$("shakeBtn").disabled=true;$("shakeStatus").textContent=`已摇 ${(shakeDuration/1000).toFixed(1)} 秒 · ${label} · 已端给客人`;
       $("serveBtn").disabled=true;$("serveBtn").textContent="已经端给客人";tone(shakeGrade==="perfect"?760:shakeGrade==="fair"?500:230,.12);
       setTimeout(serve,140);
