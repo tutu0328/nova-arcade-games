@@ -398,18 +398,55 @@
     let state = defaultState();
     let selected = {base:[],flavor:[],garnish:[]};
     let activeTaste=null,shakeStartedAt=0,shakeDuration=0,shakeGrade=null;
-    let audioContext;
+    let audioContext,iceLoopTimer=0;
     const $ = id => document.getElementById(id);
 
+    function ensureAudio(){
+      if(!state.sound) return null;
+      try{
+        audioContext ||= new (window.AudioContext||window.webkitAudioContext)();
+        if(audioContext.state==="suspended") audioContext.resume();
+        return audioContext;
+      }catch(_){return null}
+    }
     function tone(freq=420,duration=.06){
       if(!state.sound) return;
       try{
-        audioContext ||= new (window.AudioContext||window.webkitAudioContext)();
+        const ctx=ensureAudio();
+        if(!ctx)return;
         const osc=audioContext.createOscillator(), gain=audioContext.createGain();
         osc.frequency.value=freq; gain.gain.setValueAtTime(.035,audioContext.currentTime);
         gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);
         osc.connect(gain).connect(audioContext.destination);osc.start();osc.stop(audioContext.currentTime+duration);
       }catch(_){}
+    }
+    function iceClink(volume=.03){
+      const ctx=ensureAudio();
+      if(!ctx||!ctx.createBuffer)return;
+      try{
+        const length=Math.max(1,Math.floor(ctx.sampleRate*.045));
+        const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+        for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
+        const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
+        source.buffer=buffer;filter.type="bandpass";filter.frequency.value=1200+Math.random()*1900;filter.Q.value=8;
+        gain.gain.setValueAtTime(volume,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.055);
+        source.connect(filter).connect(gain).connect(ctx.destination);
+        source.start();source.stop(ctx.currentTime+.06);
+      }catch(_){}
+    }
+    function startIceLoop(){
+      if(iceLoopTimer||!state.sound)return;
+      const tick=()=>{
+        if(!shakeStartedAt||!state.sound){iceLoopTimer=0;return}
+        iceClink(.018+Math.random()*.022);
+        iceLoopTimer=setTimeout(tick,110+Math.random()*130);
+      };
+      iceLoopTimer=setTimeout(tick,70);
+    }
+    function stopIceLoop(){
+      if(!iceLoopTimer)return;
+      clearTimeout(iceLoopTimer);iceLoopTimer=0;
     }
     function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
     function load(){
@@ -451,6 +488,7 @@
       const guest=currentGuest();
       activeTaste=tasteFor(guest);
       selected={base:[],flavor:[],garnish:[]};
+      stopIceLoop();
       shakeStartedAt=0;shakeDuration=0;shakeGrade=null;
       document.querySelectorAll(".ingredient").forEach(btn=>{btn.classList.remove("selected");btn.setAttribute("aria-pressed","false")});
       $("portrait").style.backgroundImage=`url("${guest.portraitSheet||"assets/last-cup-portraits.png"}")`;
@@ -511,11 +549,12 @@
       if($("shakeBtn").disabled||shakeStartedAt)return;
       event.preventDefault();shakeStartedAt=performance.now();$("shakeBtn").classList.add("active");
       $("shakeBtn").textContent="正在摇制……松开停止";$("shakeStatus").textContent="听冰块与杯壁的声音判断时机";tone(300,.08);
+      iceClink(.045);startIceLoop();
       try{$("shakeBtn").setPointerCapture(event.pointerId)}catch(_){}
     }
     function stopShake(event){
       if(!shakeStartedAt)return;
-      event.preventDefault();shakeDuration=performance.now()-shakeStartedAt;shakeStartedAt=0;$("shakeBtn").classList.remove("active");
+      event.preventDefault();shakeDuration=performance.now()-shakeStartedAt;shakeStartedAt=0;stopIceLoop();$("shakeBtn").classList.remove("active");
       const difference=Math.abs(shakeDuration-requiredShake());
       shakeGrade=difference<=420?"perfect":difference<=900?"fair":"poor";
       const label={perfect:"节奏恰到好处",fair:"摇制时间有一点偏差",poor:shakeDuration<requiredShake()?"摇得太短，风味没有融合":"摇得太久，风味已经发散"}[shakeGrade];
@@ -622,7 +661,7 @@
     $("continueBtn").addEventListener("click",()=>begin(false));
     $("resetBtn").addEventListener("click",()=>{localStorage.removeItem(SAVE_KEY);state=defaultState();refreshIntro()});
     $("againBtn").addEventListener("click",()=>begin(true));
-    $("soundBtn").addEventListener("click",()=>{state.sound=!state.sound;$("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;save();tone(480)});
+    $("soundBtn").addEventListener("click",()=>{state.sound=!state.sound;if(!state.sound)stopIceLoop();$("soundBtn").textContent=`声音：${state.sound?"开":"关"}`;save();tone(480)});
   })();
   </script>
 </body>
