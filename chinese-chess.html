@@ -179,7 +179,7 @@
             <button data-mode="local">双人对战</button>
           </div>
         </div>
-        <div class="control-block">
+        <div class="control-block" id="difficultyBlock">
           <h2>人机难度</h2>
           <div class="seg levels" id="difficultyButtons">
             <button data-difficulty="novice">入门</button>
@@ -191,7 +191,7 @@
             <button data-difficulty="legend">宗师</button>
           </div>
         </div>
-        <div class="control-block">
+        <div class="control-block" id="aiProfileBlock">
           <h2>AI 对手</h2>
           <div class="seg profiles" id="aiProfileButtons">
             <button class="active" data-ai-profile="standard">常规AI</button>
@@ -202,7 +202,7 @@
             <button data-ai-profile="super">超级人机</button>
           </div>
         </div>
-        <div class="control-block">
+        <div class="control-block" id="aiPersonaBlock">
           <h2>AI 性格</h2>
           <div class="seg profiles" id="aiPersonaButtons">
             <button class="active" data-ai-persona="scholar">老棋痴</button>
@@ -247,9 +247,9 @@
           <div class="info-card"><small>匹配状态</small><div id="matchStatus">未开始匹配。</div></div>
           <div class="info-card"><small>当前对手</small><div id="opponentInfo">人机对战 · 业余</div></div>
           <div class="info-card"><small>匹配战绩</small><div id="matchRecord">0 胜 0 负 · 连胜 0</div></div>
-          <div class="info-card"><small>AI聊天</small><div id="aiChat" class="chat-line">初次见面，先走一步看看你的棋风。</div></div>
-          <div class="info-card"><small>AI上一步</small><div id="lastAiMove">还没轮到 AI 走。</div></div>
-          <div class="info-card"><small>AI记忆</small><div id="memoryCard">还没记录你的棋风。</div></div>
+          <div class="info-card" id="aiChatCard"><small>AI聊天</small><div id="aiChat" class="chat-line">初次见面，先走一步看看你的棋风。</div></div>
+          <div class="info-card" id="lastAiMoveCard"><small>AI上一步</small><div id="lastAiMove">还没轮到 AI 走。</div></div>
+          <div class="info-card" id="memoryCardWrap"><small>AI记忆</small><div id="memoryCard">还没记录你的棋风。</div></div>
           <div class="info-card"><small>数据统计</small><div id="playerStats">总局数 0 · 总步数 0 · 最长连胜 0</div></div>
           <div class="info-card"><small>成就</small><div id="achievements" class="pill-list"><span class="pill">新棋手</span></div></div>
           <div class="info-card"><small>红方吃子</small><div class="captured" id="redCaptured">—</div></div>
@@ -393,22 +393,26 @@
     const profileById=id=>AI_PROFILES.find(profile=>profile.id===id)||AI_PROFILES[0];
     const personaById=id=>AI_PERSONAS.find(persona=>persona.id===id)||AI_PERSONAS[0];
     const isAutoOpponent=()=>mode==="ai"||mode==="match";
+    function blankMatchStats(){return{wins:0,losses:0,streak:0,best:0}}
+    function blankMemory(){return{games:0,wins:0,losses:0,moves:0,captures:0,checks:0,bestStreak:0,openings:0,endgames:0,reviews:0}}
+    function matchKeyFor(type=gameType){return`${MATCH_KEY}-${type}`}
+    function memoryKeyFor(type=gameType){return`${MEMORY_KEY}-${type}`}
 
-    function loadMatchStats(){
-      try{return JSON.parse(localStorage.getItem(MATCH_KEY))||{wins:0,losses:0,streak:0,best:0}}catch{return{wins:0,losses:0,streak:0,best:0}}
+    function loadMatchStats(type=gameType){
+      try{return JSON.parse(localStorage.getItem(matchKeyFor(type)))||blankMatchStats()}catch{return blankMatchStats()}
     }
 
     function saveMatchStats(){
-      localStorage.setItem(MATCH_KEY,JSON.stringify(matchStats));
+      localStorage.setItem(matchKeyFor(),JSON.stringify(matchStats));
     }
 
-    function loadMemory(){
-      try{return JSON.parse(localStorage.getItem(MEMORY_KEY))||{games:0,wins:0,losses:0,moves:0,captures:0,checks:0,bestStreak:0,openings:0,endgames:0,reviews:0}}catch{return{games:0,wins:0,losses:0,moves:0,captures:0,checks:0,bestStreak:0,openings:0,endgames:0,reviews:0}}
+    function loadMemory(type=gameType){
+      try{return JSON.parse(localStorage.getItem(memoryKeyFor(type)))||blankMemory()}catch{return blankMemory()}
     }
 
     function saveMemory(){
       memory.bestStreak=Math.max(memory.bestStreak,matchStats.best||0);
-      localStorage.setItem(MEMORY_KEY,JSON.stringify(memory));
+      localStorage.setItem(memoryKeyFor(),JSON.stringify(memory));
     }
 
     function loadPreferences(){
@@ -446,7 +450,9 @@
 
     function switchGameType(type){
       if(!GAME_TYPES[type])return;
+      saveMemory();saveMatchStats();
       gameType=type;
+      memory=loadMemory(gameType);matchStats=loadMatchStats(gameType);
       matchStatus=`已切换到${GAME_TYPES[gameType]}。`;
       resetGame();
     }
@@ -848,6 +854,16 @@
       return moveScore(b,move,side)-blunderPenalty(b,move,side)+(Math.random()*config.noise);
     }
 
+    function isObviousBlunder(b,move,side){
+      const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      if(!moving)return false;
+      const gain=taken?values[taken.type]:0,movingValue=values[moving.type];
+      const penalty=blunderPenalty(b,move,side);
+      if(!penalty)return false;
+      if(gain>=movingValue)return false;
+      return penalty>movingValue*1.45;
+    }
+
     function profileScore(b,move,side,profile){
       const next=movedBoard(b,move.from,move.to),taken=b[move.to.r][move.to.c];
       if(profile.style==="steady")return (taken?values[taken.type]*.8:0)+(Math.abs(move.to.c-4)<2?42:0)+(inCheck(next,side)?-180:0);
@@ -891,8 +907,10 @@
       const list=allMoves(board,BLACK);
       const tacticalCapture=bestTacticalCapture(board,list,BLACK,config);
       if(tacticalCapture)return tacticalCapture;
-      if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
-      const ranked=list.map(move=>{
+      const playable=list.filter(move=>!isObviousBlunder(board,move,BLACK));
+      const candidates=playable.length?playable:list;
+      if(Math.random()<config.random)return candidates[Math.floor(Math.random()*candidates.length)];
+      const ranked=candidates.map(move=>{
         const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
         const plan=config.depth>=2?strategicScore(board,move,BLACK):configuredScore(board,move,BLACK,config);
         return{move,score:base+plan+profileScore(board,move,BLACK,profile)+personaScore(board,move,BLACK)};
@@ -1037,15 +1055,18 @@
       const activeProfile=profileById(aiProfile);
       const activePersona=personaById(aiPersona);
       const activeLevel=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:activeProfile.difficulty==="custom"?difficulty:activeProfile.difficulty);
-      $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
+      const localMode=mode==="local";
+      $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=localMode?"无电脑":activeLevel.label;
       $("turnHud").textContent=gameType==="xiangqi"?sideName(turn):classicSideName(classicTurn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:gameType==="xiangqi"?`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`:`<b>${classicSideName(classicTurn)}</b> ${classicSelected?"选择落点。":"请选择棋子。"}`;
       const checked=gameType==="xiangqi"&&inCheck(board,turn);$("checkText").textContent=gameType==="xiangqi"?(checked?`${sideName(turn)}被将军`:"未将军"):`${GAME_TYPES[gameType]} · 难度共享`;
       $("coach").textContent=gameType==="xiangqi"?"红方先行。没有车、马、炮、兵这类能过河进攻的棋子会自动判负。":gameType==="chess"?"国际象棋使用同一套难度和 AI 对手；兵到底会自动升后。":"跳棋使用同一套难度和 AI 对手；能跳吃时必须跳吃。";
       $("matchStatus").textContent=matchStatus;
       $("lastAiMove").textContent=lastAiMoveText;
-      $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
+      ["difficultyBlock","aiProfileBlock","aiPersonaBlock","aiChatCard","lastAiMoveCard","memoryCardWrap"].forEach(id=>$(id).classList.toggle("hidden",localMode));
+      $("aiBubble").classList.toggle("hidden",localMode);
+      $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"好友双人 · 轮流落子";
       $("opponentName").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
-      $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"坐在你对面的人来执黑。":`${activeProfile.intro} 性格：${activePersona.label}，${activePersona.intro} 当前强度：${activeLevel.label}`;
+      $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"好友双人对战：红黑双方轮流落子。":`${activeProfile.intro} 性格：${activePersona.label}，${activePersona.intro} 当前强度：${activeLevel.label}`;
       const avatarText=mode==="match"&&matchedOpponent?matchedOpponent.name.slice(0,1):mode==="local"?"友":activeProfile.avatar;
       const avatarColor=mode==="match"?matchedOpponent.type==="bot"?"#8a512c":"#3d7a5f":mode==="local"?"#6b7280":activeProfile.color;
       const opponentName=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;

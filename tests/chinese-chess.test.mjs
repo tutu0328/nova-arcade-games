@@ -39,7 +39,7 @@ function runGameScriptForRules() {
   globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
   globalThis.setTimeout = fn => fn();
   try {
-    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,isObviousBlunder,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
   } finally {
     globalThis.document = previous.document;
     globalThis.localStorage = previous.localStorage;
@@ -312,11 +312,42 @@ test("AI不会把大子直接走到玩家脸上送吃", () => {
   assert.notDeepEqual(move, suicideMove);
 });
 
+test("AI第一步不会把炮送到红车旁边白给", () => {
+  const {RED, BLACK, chooseAiMove, isObviousBlunder, setAiTestState} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[0][4] = {side: BLACK, type: "k"};
+  b[9][4] = {side: RED, type: "k"};
+  b[7][7] = {side: BLACK, type: "c"};
+  b[9][8] = {side: RED, type: "r"};
+  b[6][4] = {side: RED, type: "p"};
+  b[0][0] = {side: BLACK, type: "r"};
+  const giftCannon = {from: {r: 7, c: 7}, to: {r: 9, c: 7}};
+  assert.equal(isObviousBlunder(b, giftCannon, BLACK), true);
+  setAiTestState({board: b, difficulty: "normal", aiProfile: "standard", aiPersona: "scholar"});
+  for (let i = 0; i < 20; i++) assert.notDeepEqual(chooseAiMove(), giftCannon);
+});
+
 test("不能走出会让自己被将军的位置", () => {
   assert.match(game, /function inCheck\(b,side\)/);
   assert.match(game, /findKing/);
   assert.match(game, /function legalMovesFor\(b,r,c\)/);
   assert.match(game, /!inCheck\(movedBoard\(b,\{r,c\},to\),p\.side\)/);
+});
+
+test("好友双人对战不显示AI性格和AI记忆", () => {
+  assert.match(game, /id="aiPersonaBlock"/);
+  assert.match(game, /id="aiChatCard"/);
+  assert.match(game, /id="memoryCardWrap"/);
+  assert.match(game, /localMode=mode==="local"/);
+  assert.match(game, /aiPersonaBlock/);
+  assert.match(game, /classList\.toggle\("hidden",localMode\)/);
+  assert.match(game, /好友双人对战：红黑双方轮流落子。/);
+});
+
+test("不同棋类的记忆和匹配战绩分开保存", () => {
+  assert.match(game, /function matchKeyFor\(type=gameType\)\{return`\$\{MATCH_KEY\}-\$\{type\}`\}/);
+  assert.match(game, /function memoryKeyFor\(type=gameType\)\{return`\$\{MEMORY_KEY\}-\$\{type\}`\}/);
+  assert.match(game, /memory=loadMemory\(gameType\);matchStats=loadMatchStats\(gameType\)/);
 });
 
 test("对局有胜负、悔棋和棋谱", () => {
@@ -371,7 +402,7 @@ test("AI会聊天、记住玩家并生成成就统计", () => {
   assert.match(game, /id="aiBubble"/);
   assert.match(game, /class="assistant-bubble"/);
   assert.match(game, /const MEMORY_KEY="nova-chess-club-memory"/);
-  assert.match(game, /function loadMemory\(\)/);
+  assert.match(game, /function loadMemory\(type=gameType\)/);
   assert.match(game, /function renderProgressPanels\(\)/);
   assert.match(game, /achievementList/);
   assert.match(game, /memory\.games/);
