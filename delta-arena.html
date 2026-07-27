@@ -554,9 +554,28 @@
       .stick-zone { width: 132px; height: 132px; bottom: 86px; }
       .stick-knob { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
     }
+    @media (orientation: landscape) and (max-height: 620px) {
+      body[data-landscape-ready="true"] .hud { inset: 6px 8px auto; grid-template-columns: auto 1fr auto; align-items: start; }
+      body[data-landscape-ready="true"] .brand, body[data-landscape-ready="true"] .vitals { display: none; }
+      body[data-landscape-ready="true"] .score { justify-self: center; grid-template-columns: 52px 118px 52px; padding: 6px 9px; gap: 6px; }
+      body[data-landscape-ready="true"] .score small { font-size: 7px; }
+      body[data-landscape-ready="true"] .score b { font-size: 18px; }
+      body[data-landscape-ready="true"] .feed { top: 58px; right: 8px; max-width: 34vw; font-size: 10px; }
+      body[data-landscape-ready="true"] #radar { width: 92px; height: 92px; top: 58px; right: 8px; opacity: .9; }
+      body[data-landscape-ready="true"] .bottom { left: 8px; right: auto; bottom: 6px; transform: scale(.72); transform-origin: bottom left; }
+      body[data-landscape-ready="true"] .chat { left: 8px; right: auto; bottom: 126px; width: min(330px, 42vw); }
+      body[data-landscape-ready="true"] .chat-log { max-height: 64px; }
+      body[data-landscape-ready="true"] .touch-actions { right: 8px; bottom: 42px; grid-template-columns: repeat(4, 46px); grid-auto-rows: 38px; gap: 5px; }
+      body[data-landscape-ready="true"] .touch-btn.primary { min-height: 81px; grid-row: span 2; }
+      body[data-landscape-ready="true"] .stick-zone { width: 112px; height: 112px; left: 12px; bottom: 42px; }
+      body[data-landscape-ready="true"] .stick-knob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+      body[data-landscape-ready="true"] .overlay { padding: 10px; }
+      body[data-landscape-ready="true"] .menu { width: min(920px, calc(100% - 20px)); max-height: calc(100dvh - 20px); overflow: auto; padding: 18px; }
+      body[data-landscape-ready="true"] .room, body[data-landscape-ready="true"] .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
-<body>
+<body data-landscape-ready="true">
   <canvas id="world"></canvas>
   <canvas id="game"></canvas>
 

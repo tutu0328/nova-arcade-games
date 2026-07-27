@@ -99,9 +99,15 @@
       .guest h2{font-size:21px}.dialogue,.hint{margin-left:16px;margin-right:16px}.window{height:120px}.planet{width:90px;height:90px;top:18px}
       .glass-zone{grid-template-columns:90px 1fr}.card{padding:28px 20px}.ending-stats{gap:14px}
     }
+    @media(orientation:landscape) and (max-height:620px){
+      body[data-landscape-ready="true"] .topbar{position:relative;min-height:44px;padding:7px 12px}.brand{font-size:12px}.hud{gap:10px}.hud div{font-size:10px}.hud b{font-size:12px}.sound{padding:5px 8px;font-size:12px}
+      body[data-landscape-ready="true"] main{width:calc(100% - 14px);margin:8px auto 12px}.game-grid{grid-template-columns:minmax(330px,.9fr) minmax(360px,1.1fr);gap:10px}
+      body[data-landscape-ready="true"] .guest-stage{min-height:calc(100dvh - 68px)}.window{height:82px}.planet{width:70px;height:70px;top:10px}.guest{grid-template-columns:76px 1fr;gap:10px;padding:10px 12px 2px}.portrait{width:76px;height:88px}.guest h2{font-size:18px;margin:3px 0}.role,.trust-label{font-size:10px}.trust{margin-top:7px}.dialogue{margin:8px 12px 8px;min-height:70px;padding:10px;font-size:12px;line-height:1.55}.hint{display:none}
+      body[data-landscape-ready="true"] .bar-panel{max-height:calc(100dvh - 68px);overflow:auto;padding:12px}.section-title{margin-bottom:9px}.recipe{gap:8px}.ingredient-row h3{margin-bottom:5px}.choices{grid-template-columns:repeat(4,minmax(58px,1fr));gap:5px}.ingredient{min-height:52px;padding:6px 3px}.ingredient .ico{font-size:17px;margin-bottom:2px}.ingredient .name{font-size:9px}.glass-zone{margin-top:10px;min-height:92px;grid-template-columns:82px 1fr;padding:10px}.glass{width:52px;height:72px}.serve,.shake{margin-top:8px;padding:10px}.overlay{padding:10px}.card{max-height:calc(100dvh - 20px);overflow:auto;padding:20px}.title{font-size:42px}.intro-copy{margin:14px auto}.ending-stats{margin:12px 0}
+    }
   </style>
 </head>
-<body>
+<body data-landscape-ready="true">
   <header class="topbar">
     <a class="back" href="index.html">← 游戏库</a>
     <div class="brand">ONE LAST <span>CUP</span></div>

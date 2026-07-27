@@ -99,9 +99,15 @@
     .win{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:18px;background:rgba(16,8,5,.72);backdrop-filter:blur(10px)}
     .win.show{display:grid}.win-card{width:min(480px,100%);padding:34px;border-radius:14px;background:#fff3d8;color:#2b1a10;text-align:center;box-shadow:var(--shadow)}.win-card h2{font-size:32px;margin-bottom:10px}.win-card p{line-height:1.7;color:#704626}
     @media(max-width:860px){.home,main{grid-template-columns:1fr}.home{margin-top:14px}.home-copy{padding:26px 20px}.home-features,.how-grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-wrap:wrap}.hud{margin-left:0;width:100%;justify-content:space-between}.stage{padding:10px}.board-wrap,.classic-wrap{border-width:7px}.board,.classic-board{inset:18px}.river-label{left:18px;right:18px}.piece,.classic-piece{border-width:2px}.opponent-card{grid-template-columns:48px 1fr;padding:10px}.assistant-bubble{margin-left:56px}.ai-avatar{width:48px;border-radius:13px;font-size:20px}.board-ai-badge{right:12px;top:12px;max-width:52%;padding:6px 8px}.board-ai-badge .ai-avatar{width:34px;font-size:15px}.board-ai-badge b{font-size:12px}.status{display:block}.status span{display:block;margin-top:6px}}
+    @media(orientation:landscape) and (max-height:620px){
+      body[data-landscape-ready="true"]{overflow:auto}
+      .topbar{position:relative;min-height:46px;padding:7px 12px}.brand{font-size:13px}.hud{gap:10px}.hud div{font-size:10px}.hud b{font-size:12px}
+      .home{width:calc(100% - 16px);min-height:0;margin:8px auto 14px;grid-template-columns:1fr 1fr;gap:10px}.home-copy{padding:18px}.home-copy h1{font-size:42px}.home-copy p,.home-board-note{font-size:12px;line-height:1.55}.home-features{display:none}.how-play{padding:12px}.how-grid{grid-template-columns:repeat(3,1fr)}.how-card{font-size:12px;padding:10px}
+      main{width:calc(100% - 12px);margin:8px auto 12px;grid-template-columns:minmax(250px,.58fr) minmax(360px,1fr);gap:10px}.controls{max-height:calc(100dvh - 64px);overflow:auto;padding:12px}.control-block{padding-top:10px;margin-top:10px}.seg button,.action{padding:8px 7px;font-size:12px}.info{gap:6px}.info-card{padding:8px;font-size:12px}.stage{padding:8px}.opponent-card{margin-bottom:6px;padding:8px;grid-template-columns:38px 1fr}.assistant-bubble{display:none}.ai-avatar{width:38px;border-radius:11px;font-size:16px}.board-wrap{width:min(56vw,calc(100dvh - 118px));border-width:6px}.classic-wrap{width:min(56vw,calc(100dvh - 118px));border-width:6px}.board,.classic-board{inset:14px}.river-label{left:14px;right:14px}.piece{font-size:clamp(15px,3.2vw,28px)}.classic-square{font-size:clamp(18px,4vw,34px)}.board-ai-badge{display:none}.status{margin-top:6px;padding:8px;font-size:12px}.desk,.log{display:none}
+    }
   </style>
 </head>
-<body>
+<body data-landscape-ready="true">
   <header class="topbar">
     <a class="back" href="index.html">← 游戏库</a>
     <div class="brand">NOVA <span>CHESS CLUB</span></div>
@@ -925,6 +931,31 @@
       return 24;
     }
 
+    function lightProfileScore(b,move,side,profile){
+      const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      let score=quickSearchScore(b,move,side);
+      if(profile.style==="deep")score+=inCheck(next,side===RED?BLACK:RED)?160:0;
+      if(profile.style==="tactical")score+=(taken?values[taken.type]*.55:0)+(inCheck(next,side===RED?BLACK:RED)?180:0);
+      if(profile.style==="super")score+=(taken?values[taken.type]*.7:0)+(inCheck(next,side===RED?BLACK:RED)?220:0)-hangingPenalty(next,move,side)*.7;
+      if(moving?.type==="r"||moving?.type==="c"||moving?.type==="h")score+=35;
+      return score;
+    }
+
+    function lightPersonaScore(b,move,side){
+      const persona=personaById(aiPersona),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      if(persona.id==="scholar")return Math.abs(move.to.c-4)<2?30:0;
+      if(persona.id==="sprinter")return moving?.type==="p"?35:12;
+      if(persona.id==="berserker")return taken?values[taken.type]*.45:move.to.r>4?28:0;
+      if(persona.id==="turtle")return -hangingPenalty(movedBoard(b,move.from,move.to),move,side)*.45;
+      if(persona.id==="endmaster")return Math.abs(move.to.c-4)<2?24:0;
+      if(persona.id==="trickster")return moving?.type==="h"||moving?.type==="c"?32:0;
+      return 0;
+    }
+
+    function shouldUseFastAi(config,b){
+      return config.depth>=2&&activePieceCount(b)>18;
+    }
+
     function isObviousBlunder(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       if(!moving)return false;
@@ -997,6 +1028,10 @@
       if(Math.random()<config.random)return candidates[Math.floor(Math.random()*candidates.length)];
       const effectiveDepth=effectiveSearchDepth(config,board);
       const searchPool=effectiveDepth>0?candidates.map(move=>({move,score:quickSearchScore(board,move,BLACK)})).sort((a,b)=>b.score-a.score).slice(0,searchPoolLimit(config,board)).map(item=>item.move):candidates;
+      if(shouldUseFastAi(config,board)){
+        const fastRanked=searchPool.map(move=>({move,score:lightProfileScore(board,move,BLACK,profile)+lightPersonaScore(board,move,BLACK)})).sort((a,b)=>b.score-a.score);
+        return fastRanked[0]?.move||searchPool[0]||candidates[0];
+      }
       const ranked=searchPool.map(move=>{
         const base=effectiveDepth>0?minimax(movedBoard(board,move.from,move.to),BLACK,effectiveDepth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
         const plan=config.depth>=2?strategicScore(board,move,BLACK):configuredScore(board,move,BLACK,config);

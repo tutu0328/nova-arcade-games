@@ -276,6 +276,8 @@ test("宗师和超级人机不再只按吃子贪心评分", () => {
 test("Codex和超级人机有搜索上限，不会开局卡死", () => {
   assert.match(game, /function effectiveSearchDepth\(config,b\)/);
   assert.match(game, /function searchPoolLimit\(config,b\)/);
+  assert.match(game, /function shouldUseFastAi\(config,b\)/);
+  assert.match(game, /function lightProfileScore\(b,move,side,profile\)/);
   assert.match(game, /pieces>26/);
   assert.match(game, /slice\(0,searchPoolLimit\(config,board\)\)/);
   const {initialBoard, chooseAiMove, effectiveSearchDepth, searchPoolLimit, setAiTestState} = runGameScriptForRules();
@@ -287,7 +289,7 @@ test("Codex和超级人机有搜索上限，不会开局卡死", () => {
     const started = performance.now();
     const move = chooseAiMove();
     assert.ok(move);
-    assert.ok(performance.now() - started < 450);
+    assert.ok(performance.now() - started < 120);
   }
 });
 

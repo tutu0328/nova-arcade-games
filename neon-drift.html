@@ -32,9 +32,17 @@
     .overlay[data-ending="collapse"]{background:radial-gradient(circle at 50% 38%,#2b0b12ee,#02030af7 68%)}.overlay[data-ending="free"]{background:radial-gradient(circle at 50% 35%,#34421fee,#040611f5 68%)}.overlay[data-ending="restore"]{background:radial-gradient(circle at 50% 35%,#13243aee,#03040bf5 68%)}.overlay[data-ending="dawn"]{background:radial-gradient(circle at 50% 35%,#163c42ee,#050611f5 68%)}
     .speech-bubble{width:min(420px,36vw);padding:14px 16px 16px}.speech-text{font-size:clamp(20px,2.3vw,28px)}.speech-note{font-size:13px;line-height:1.48}
     @media(max-width:780px),(pointer:coarse){.controls{inset:auto 0 18px;padding:0 18px}.control-cluster{gap:18px}.touch{width:96px;height:96px;font-size:34px}.touch.drift{width:118px;height:118px;font-size:15px}.top-actions{top:66px;right:14px;gap:14px}.icon-btn{width:48px;height:48px}.bars{bottom:148px;width:calc(100% - 36px)}.bar-row:nth-child(n+2){display:none}.hud{padding:12px 14px;grid-template-columns:1fr 1fr}.hud-left{display:none}.hud-center{display:block;justify-self:start;text-align:left}.hud-right{justify-self:end}.speech-bubble{right:8px;width:40%;padding:9px 10px}.speech-text{font-size:15px}}
+    @media(orientation:landscape) and (max-height:620px){
+      body[data-landscape-ready="true"] .hud{padding:8px 12px;grid-template-columns:1fr auto 1fr}.hud-left{display:block}.hud-center{display:block}.label{font-size:8px;margin-bottom:2px}.value{font-size:12px}.score{font-size:18px}
+      body[data-landscape-ready="true"] .chapter-strip{top:42px;width:calc(100% - 112px);left:56px;gap:4px}.chapter-chip{padding:4px 6px;font-size:8px}
+      body[data-landscape-ready="true"] .bars{left:12px;bottom:10px;width:min(250px,34vw)}.bar-row{margin-top:6px}.bar-row:nth-child(n+2){display:block}.bar-meta{font-size:8px;margin-bottom:3px}.bar-track{height:6px}
+      body[data-landscape-ready="true"] .top-actions{top:8px;right:10px;bottom:auto}.icon-btn{width:40px;height:40px}
+      body[data-landscape-ready="true"] .controls{display:flex;inset:auto 0 8px;padding:0 12px}.control-cluster{gap:10px}.touch{width:64px;height:64px;font-size:24px}.touch.drift{width:82px;height:82px;font-size:11px}
+      body[data-landscape-ready="true"] .panel{width:min(980px,calc(100% - 18px));max-height:calc(100dvh - 18px);overflow:auto}.panel-head{padding:10px 14px}.panel-body{padding:18px}.intro-layout,.story-frame{grid-template-columns:1.05fr .95fr;gap:14px}.intro-cast{height:260px}.title{font-size:48px}.intro-copy{margin:14px 0;line-height:1.55}.mission-map,.choice-wrap{grid-template-columns:repeat(3,1fr);gap:8px}.story-visual{min-height:260px}.story-copy{padding:0}.story-text{font-size:24px}.actions{margin-top:14px}.keys{display:none}
+    }
   </style>
 </head>
-<body>
+<body data-landscape-ready="true">
   <canvas id="game" aria-label="霓虹漂移游戏画面"></canvas>
   <div class="scanlines"></div><div class="vignette"></div><div class="flash" id="flash"></div><div class="toast" id="toast"></div>
   <div class="hud">
