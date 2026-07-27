@@ -39,7 +39,7 @@ function runGameScriptForRules() {
   globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
   globalThis.setTimeout = fn => fn();
   try {
-    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,isObviousBlunder,unresolvedThreatPenalty,threatenedPieces,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,isObviousBlunder,unresolvedThreatPenalty,threatenedPieces,effectiveSearchDepth,searchPoolLimit,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
   } finally {
     globalThis.document = previous.document;
     globalThis.localStorage = previous.localStorage;
@@ -271,6 +271,24 @@ test("宗师和超级人机不再只按吃子贪心评分", () => {
   assert.match(game, /if\(profile\.style==="super"\)return strategicScore/);
   assert.doesNotMatch(game, /values\[taken\.type\]\*3/);
   assert.doesNotMatch(game, /values\[taken\.type\]\*1\.6/);
+});
+
+test("Codex和超级人机有搜索上限，不会开局卡死", () => {
+  assert.match(game, /function effectiveSearchDepth\(config,b\)/);
+  assert.match(game, /function searchPoolLimit\(config,b\)/);
+  assert.match(game, /pieces>26/);
+  assert.match(game, /slice\(0,searchPoolLimit\(config,board\)\)/);
+  const {initialBoard, chooseAiMove, effectiveSearchDepth, searchPoolLimit, setAiTestState} = runGameScriptForRules();
+  const b = initialBoard();
+  assert.equal(effectiveSearchDepth({depth: 3}, b), 1);
+  assert.equal(searchPoolLimit({depth: 3}, b), 6);
+  for (const aiProfile of ["codex", "super"]) {
+    setAiTestState({board: b, difficulty: "legend", aiProfile, aiPersona: "scholar"});
+    const started = performance.now();
+    const move = chooseAiMove();
+    assert.ok(move);
+    assert.ok(performance.now() - started < 450);
+  }
 });
 
 test("黑车能安全吃红炮时AI会吃炮，不会走到炮前面", () => {

@@ -624,7 +624,11 @@
 
     function attackersOf(b,side,pos){
       const other=side===RED?BLACK:RED;
-      return allMoves(b,other).filter(move=>move.to.r===pos.r&&move.to.c===pos.c);
+      const out=[];
+      for(let r=0;r<10;r++)for(let c=0;c<9;c++){
+        if(b[r][c]?.side===other&&pseudoMoves(b,r,c).some(move=>move.r===pos.r&&move.c===pos.c))out.push({from:{r,c},to:pos});
+      }
+      return out;
     }
 
     function threatenedPieces(b,side){
@@ -814,13 +818,15 @@
 
     function hangingPenalty(next,move,side){
       const moved=next[move.to.r]?.[move.to.c];if(!moved)return 0;
-      const other=side===RED?BLACK:RED;
-      const canBeCaptured=allMoves(next,other).some(reply=>reply.to.r===move.to.r&&reply.to.c===move.to.c);
+      const canBeCaptured=attackersOf(next,side,move.to).length;
       return canBeCaptured?values[moved.type]*1.25:0;
     }
 
     function unresolvedThreatPenalty(b,move,side){
-      const before=threatenedPieces(b,side);
+      return unresolvedThreatPenaltyWithThreats(b,move,side,threatenedPieces(b,side));
+    }
+
+    function unresolvedThreatPenaltyWithThreats(b,move,side,before){
       if(!before.length)return 0;
       const next=movedBoard(b,move.from,move.to);
       let penalty=0;
@@ -893,12 +899,49 @@
       return moveScore(b,move,side)-blunderPenalty(b,move,side)-unresolvedThreatPenalty(b,move,side)+(Math.random()*config.noise);
     }
 
+    function quickSearchScore(b,move,side){
+      const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      let score=scoreBoard(next,side)+(taken?values[taken.type]*1.8:0);
+      if(inCheck(next,side===RED?BLACK:RED))score+=220;
+      if(moving?.type==="p"&&crossed(side,move.to.r))score+=45;
+      score-=Math.abs(move.to.c-4)*5;
+      return score;
+    }
+
+    function activePieceCount(b){
+      return b.flat().filter(Boolean).length;
+    }
+
+    function effectiveSearchDepth(config,b){
+      const pieces=activePieceCount(b);
+      if(config.depth>=3&&pieces>26)return 1;
+      if(config.depth>=3&&pieces>18)return 2;
+      return config.depth;
+    }
+
+    function searchPoolLimit(config,b){
+      if(config.depth>=3)return activePieceCount(b)>26?6:activePieceCount(b)>18?8:12;
+      if(config.depth===2)return 14;
+      return 24;
+    }
+
     function isObviousBlunder(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       if(!moving)return false;
       const gain=taken?values[taken.type]:0,movingValue=values[moving.type];
       const penalty=blunderPenalty(b,move,side);
       const ignored=unresolvedThreatPenalty(b,move,side);
+      if(!penalty&&!ignored)return false;
+      if(gain>=movingValue)return false;
+      return penalty>movingValue*1.45||ignored>650;
+    }
+
+    function isObviousBlunderWithThreats(b,move,side,beforeThreats){
+      const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+      if(!moving)return false;
+      const gain=taken?values[taken.type]:0,movingValue=values[moving.type];
+      const penalty=blunderPenalty(b,move,side);
+      const ignored=unresolvedThreatPenaltyWithThreats(b,move,side,beforeThreats);
       if(!penalty&&!ignored)return false;
       if(gain>=movingValue)return false;
       return penalty>movingValue*1.45||ignored>650;
@@ -932,7 +975,8 @@
 
     function minimax(b,side,depth,maximizing,alpha,beta){
       const active=maximizing?side:(side===RED?BLACK:RED);
-      const list=allMoves(b,active).sort((a,bm)=>moveScore(b,bm,side)-moveScore(b,a,side)).slice(0,18);
+      const limit=depth>=3?8:depth===2?10:14;
+      const list=allMoves(b,active).sort((a,bm)=>quickSearchScore(b,bm,side)-quickSearchScore(b,a,side)).slice(0,limit);
       if(depth===0||!list.length)return scoreBoard(b,side);
       if(maximizing){
         let best=-Infinity;for(const m of list){best=Math.max(best,minimax(movedBoard(b,m.from,m.to),side,depth-1,false,alpha,beta));alpha=Math.max(alpha,best);if(beta<=alpha)break}return best;
@@ -947,11 +991,14 @@
       const list=allMoves(board,BLACK);
       const tacticalCapture=bestTacticalCapture(board,list,BLACK,config);
       if(tacticalCapture)return tacticalCapture;
-      const playable=list.filter(move=>!isObviousBlunder(board,move,BLACK));
+      const beforeThreats=threatenedPieces(board,BLACK);
+      const playable=list.filter(move=>!isObviousBlunderWithThreats(board,move,BLACK,beforeThreats));
       const candidates=playable.length?playable:list;
       if(Math.random()<config.random)return candidates[Math.floor(Math.random()*candidates.length)];
-      const ranked=candidates.map(move=>{
-        const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
+      const effectiveDepth=effectiveSearchDepth(config,board);
+      const searchPool=effectiveDepth>0?candidates.map(move=>({move,score:quickSearchScore(board,move,BLACK)})).sort((a,b)=>b.score-a.score).slice(0,searchPoolLimit(config,board)).map(item=>item.move):candidates;
+      const ranked=searchPool.map(move=>{
+        const base=effectiveDepth>0?minimax(movedBoard(board,move.from,move.to),BLACK,effectiveDepth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
         const plan=config.depth>=2?strategicScore(board,move,BLACK):configuredScore(board,move,BLACK,config);
         return{move,score:base+plan+profileScore(board,move,BLACK,profile)+personaScore(board,move,BLACK)};
       }).sort((a,b)=>b.score-a.score);
