@@ -39,7 +39,7 @@ function runGameScriptForRules() {
   globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
   globalThis.setTimeout = fn => fn();
   try {
-    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
   } finally {
     globalThis.document = previous.document;
     globalThis.localStorage = previous.localStorage;
@@ -254,12 +254,12 @@ test("车马炮兵仕相帅都有合法走法限制", () => {
   assert.match(game, /crossed\(p\.side,r\)/);
 });
 
-test("炮仍然遵守原规则，但高难AI会避免炮换马这类亏子交换", () => {
+test("炮仍然遵守原规则，并保留高难AI亏子判断", () => {
   assert.match(game, /if\(p\.type==="c"\)/);
   assert.match(game, /screen=false/);
   assert.match(game, /else if\(!screen&&b\[nr\]\[nc\]\)screen=true/);
   assert.match(game, /else if\(screen&&b\[nr\]\[nc\]\)\{if\(enemy\(b\[nr\]\[nc\],p\.side\)\)out\.push\(\{r:nr,c:nc\}\);break\}/);
-  assert.match(game, /避免炮换马这类亏子交换/);
+  assert.match(game, /function blunderPenalty\(b,move,side\)/);
 });
 
 test("宗师和超级人机不再只按吃子贪心评分", () => {
@@ -284,6 +284,18 @@ test("黑车能安全吃红炮时AI会吃炮，不会走到炮前面", () => {
   setAiTestState({board: b, difficulty: "legend", aiProfile: "standard", aiPersona: "scholar"});
   const move = chooseAiMove();
   assert.deepEqual(move, {from: {r: 4, c: 6}, to: {r: 5, c: 6}});
+});
+
+test("业余AI也会优先吃安全子，不会因为随机错过", () => {
+  const {RED, BLACK, bestTacticalCapture, setAiTestState} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[0][4] = {side: BLACK, type: "k"};
+  b[9][3] = {side: RED, type: "k"};
+  b[4][6] = {side: BLACK, type: "r"};
+  b[5][6] = {side: RED, type: "c"};
+  setAiTestState({board: b, difficulty: "normal", aiProfile: "standard", aiPersona: "scholar"});
+  const list = [{from: {r: 4, c: 6}, to: {r: 5, c: 6}}, {from: {r: 4, c: 6}, to: {r: 4, c: 5}}];
+  assert.deepEqual(bestTacticalCapture(b, list, BLACK, {id: "normal"}), {from: {r: 4, c: 6}, to: {r: 5, c: 6}});
 });
 
 test("AI不会把大子直接走到玩家脸上送吃", () => {
@@ -312,10 +324,35 @@ test("对局有胜负、悔棋和棋谱", () => {
   assert.match(game, /winnerLayer/);
   assert.match(game, /function undoMove\(\)/);
   assert.match(game, /id="moveLog"/);
+  assert.match(game, /id="lastAiMove"/);
+  assert.match(game, /AI上一步：/);
+  assert.match(game, /lastAiMoveSquares=\{type:"xiangqi",from,to\}/);
+  assert.match(game, /cell\.classList\.add\("last-from"\)/);
+  assert.match(game, /cell\.classList\.add\("last-to"\)/);
+});
+
+test("中国象棋没有能过河进攻的子会自动判负", () => {
+  assert.match(game, /function hasRiverCrossingPiece\(b,side\)/);
+  assert.match(game, /function riverCrossingLossWinner\(b\)/);
+  assert.match(game, /没有能过河进攻的棋子，自动判负/);
+  const {RED, BLACK, hasRiverCrossingPiece, riverCrossingLossWinner} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[9][4] = {side: RED, type: "k"};
+  b[9][3] = {side: RED, type: "a"};
+  b[9][5] = {side: RED, type: "a"};
+  b[7][2] = {side: RED, type: "e"};
+  b[0][4] = {side: BLACK, type: "k"};
+  b[3][0] = {side: BLACK, type: "p"};
+  assert.equal(hasRiverCrossingPiece(b, RED), false);
+  assert.equal(hasRiverCrossingPiece(b, BLACK), true);
+  assert.equal(riverCrossingLossWinner(b), BLACK);
+  b[8][4] = {side: RED, type: "c"};
+  assert.equal(hasRiverCrossingPiece(b, RED), true);
+  assert.equal(riverCrossingLossWinner(b), null);
 });
 
 test("除签到和赛事外，加入长期留存功能面板", () => {
-  for (const id of ["aiChat", "memoryCard", "playerStats", "achievements", "reviewPanel", "openingPanel", "endgamePanel", "socialPanel"]) {
+  for (const id of ["aiChat", "lastAiMove", "memoryCard", "playerStats", "achievements", "reviewPanel", "openingPanel", "endgamePanel", "socialPanel"]) {
     assert.match(game, new RegExp(`id="${id}"`));
   }
   assert.match(game, /AI复盘/);

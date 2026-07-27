@@ -68,6 +68,8 @@
     .palace-lines:before,.palace-lines:after{content:"";position:absolute;left:0;top:50%;width:100%;height:2px;background:rgba(255,240,194,.72);transform-origin:center}
     .palace-lines:before{transform:rotate(45deg)}.palace-lines:after{transform:rotate(-45deg)}
     .cell.hint{background:radial-gradient(circle,rgba(61,178,127,.55) 0 22%,rgba(61,178,127,.16) 23% 45%,transparent 46%)}.cell.capture{background:radial-gradient(circle,rgba(197,34,31,.48) 0 42%,rgba(197,34,31,.16) 43% 62%,transparent 63%)}
+    .cell.last-from,.classic-square.last-from{box-shadow:inset 0 0 0 4px rgba(80,64,38,.35);background:radial-gradient(circle,rgba(255,255,255,.26),rgba(255,209,106,.18) 54%,transparent 72%)}
+    .cell.last-to,.classic-square.last-to{box-shadow:inset 0 0 0 5px rgba(61,178,127,.62),0 0 18px rgba(61,178,127,.32);background:radial-gradient(circle,rgba(61,178,127,.48) 0 28%,rgba(255,209,106,.22) 29% 62%,transparent 72%)}
     .opponent-card{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;width:min(100%,720px);margin:0 auto 12px;padding:12px 14px;border:1px solid rgba(105,51,20,.32);border-radius:12px;background:linear-gradient(90deg,rgba(43,26,16,.92),rgba(105,51,20,.72));color:#fff4d8;box-shadow:0 12px 28px rgba(52,21,6,.18)}
     .ai-avatar{--avatar:#8a512c;width:58px;aspect-ratio:1;border-radius:16px;display:grid;place-items:center;background:radial-gradient(circle at 34% 26%,#fff4c7,var(--avatar) 58%,#2b1a10);border:3px solid rgba(255,241,202,.78);color:#2b1a10;font-weight:900;font-size:24px;box-shadow:0 0 0 4px rgba(255,241,202,.1)}
     .opponent-meta small{display:block;color:#ffd16a;font-size:11px;letter-spacing:.14em;font-weight:900}.opponent-meta b{display:block;font-size:19px;margin:3px 0}.opponent-meta span{display:block;color:#e5cda7;font-size:12px;line-height:1.45}
@@ -246,6 +248,7 @@
           <div class="info-card"><small>当前对手</small><div id="opponentInfo">人机对战 · 业余</div></div>
           <div class="info-card"><small>匹配战绩</small><div id="matchRecord">0 胜 0 负 · 连胜 0</div></div>
           <div class="info-card"><small>AI聊天</small><div id="aiChat" class="chat-line">初次见面，先走一步看看你的棋风。</div></div>
+          <div class="info-card"><small>AI上一步</small><div id="lastAiMove">还没轮到 AI 走。</div></div>
           <div class="info-card"><small>AI记忆</small><div id="memoryCard">还没记录你的棋风。</div></div>
           <div class="info-card"><small>数据统计</small><div id="playerStats">总局数 0 · 总步数 0 · 最长连胜 0</div></div>
           <div class="info-card"><small>成就</small><div id="achievements" class="pill-list"><span class="pill">新棋手</span></div></div>
@@ -372,7 +375,7 @@
     const LOBBY_LINES=["江南棋客 VS 北巷车王 · 观战 32","云端炮手正在挑战 DeepSeek","红马过河邀请你下快棋","好友邀请：红马过河想和你下一局","观战席：老棋痴正在复盘中局"];
     const classicText={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟",wm:"●",bm:"●",wK:"♛",bK:"♛"};
     const classicValues={k:10000,q:900,r:500,b:330,n:320,p:100,m:100,K:230};
-    let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",aiPersona="scholar",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。";
+    let board,turn,selected,moves,mode="ai",difficulty="normal",aiProfile="standard",aiPersona="scholar",history,gameOver,thinking=false,matchedOpponent=null,matchStatus="未开始匹配。",lastAiMoveText="还没轮到 AI 走。",lastAiMoveSquares=null;
     let gameType="xiangqi",classicBoard=[],classicTurn="w",classicSelected=null,classicMoves=[],classicHistory=[];
     let matchStats=loadMatchStats();
     let memory=loadMemory(),preferences=loadPreferences();
@@ -451,6 +454,7 @@
     function resetGame(){
       board=initialBoard();turn=RED;selected=null;moves=[];history=[];gameOver=false;thinking=false;
       classicBoard=initialClassicBoard(gameType);classicTurn="w";classicSelected=null;classicMoves=[];classicHistory=[];
+      lastAiMoveText="还没轮到 AI 走。";lastAiMoveSquares=null;
       $("winnerLayer").classList.remove("show");sayAi(memory.games?"start":"start");render();
     }
 
@@ -716,6 +720,20 @@
     function sideName(side){return side===RED?"红方":"黑方";}
     function pieceLabel(p){return p?pieceText[p.side+p.type]:"";}
 
+    function hasRiverCrossingPiece(b,side){
+      for(let r=0;r<10;r++)for(let c=0;c<9;c++){
+        const p=b[r][c];
+        if(p?.side===side&&["r","h","c","p"].includes(p.type))return true;
+      }
+      return false;
+    }
+
+    function riverCrossingLossWinner(b){
+      if(!hasRiverCrossingPiece(b,RED))return BLACK;
+      if(!hasRiverCrossingPiece(b,BLACK))return RED;
+      return null;
+    }
+
     function selectSquare(r,c){
       if(gameOver||thinking)return;
       const p=board[r][c];
@@ -732,8 +750,11 @@
       const li=document.createElement("li");li.textContent=text;$("moveLog").prepend(li);
       memory.moves++;if(taken){memory.captures++;sayAi("capture");playTone("capture")}else{playTone("move")}
       if(inCheck(board,turn===RED?BLACK:RED)){memory.checks++;sayAi("check");pulseBoard("check");playTone("check")}else pulseBoard("move");
+      if(actor==="ai"){lastAiMoveText=`AI上一步：${text}`;lastAiMoveSquares={type:"xiangqi",from,to};$("aiChat").textContent=lastAiMoveText;$("aiBubble").textContent=lastAiMoveText}
       saveMemory();
       if(taken?.type==="k"){finish(turn,`${sideName(turn)} 吃掉对方主帅。`);return}
+      const riverWinner=riverCrossingLossWinner(board);
+      if(riverWinner){finish(riverWinner,`${sideName(riverWinner===RED?BLACK:RED)} 已经没有能过河进攻的棋子，自动判负。`);return}
       turn=turn===RED?BLACK:RED;
       const replies=allMoves(board,turn);
       if(!replies.length){finish(turn===RED?BLACK:RED,inCheck(board,turn)?`${sideName(turn)} 被将死。`:`${sideName(turn)} 无子可走。`);return}
@@ -868,6 +889,8 @@
       const selectedDifficulty=profile.difficulty==="custom"?difficulty:profile.difficulty;
       const config=difficultyById(mode==="match"&&matchedOpponent?matchedOpponent.difficulty:selectedDifficulty);
       const list=allMoves(board,BLACK);
+      const tacticalCapture=bestTacticalCapture(board,list,BLACK,config);
+      if(tacticalCapture)return tacticalCapture;
       if(Math.random()<config.random)return list[Math.floor(Math.random()*list.length)];
       const ranked=list.map(move=>{
         const base=config.depth>0?minimax(movedBoard(board,move.from,move.to),BLACK,config.depth,false,-Infinity,Infinity):scoreBoard(movedBoard(board,move.from,move.to),BLACK);
@@ -876,6 +899,20 @@
       }).sort((a,b)=>b.score-a.score);
       const top=ranked.slice(0,Math.max(1,config.top));
       return top[Math.floor(Math.random()*top.length)].move;
+    }
+
+    function bestTacticalCapture(b,list,side,config){
+      const ranked=list.map(move=>{
+        const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
+        if(!moving||!taken)return null;
+        const gain=values[taken.type],risk=blunderPenalty(b,move,side);
+        const safeEnough=risk<Math.max(values[moving.type],gain)*.75;
+        const score=profitableCaptureScore(b,move,side)+gain*1.4-risk;
+        return safeEnough&&score>=220?{move,score}:null;
+      }).filter(Boolean).sort((a,b)=>b.score-a.score);
+      if(!ranked.length)return null;
+      if(config.id==="novice"&&Math.random()<.35)return null;
+      return ranked[0].move;
     }
 
     function aiMove(){
@@ -902,7 +939,9 @@
       classicHistory.push({board:clone(classicBoard),turn:classicTurn,moveLog:$("moveLog").innerHTML,actor});
       classicBoard=movedClassicBoard(classicBoard,move);classicSelected=null;classicMoves=[];
       const li=document.createElement("li");li.textContent=`${classicSideName(classicTurn)} ${classicPieceLabel(moving)} ${move.from.r+1},${move.from.c+1} → ${move.to.r+1},${move.to.c+1}${taken?"，吃 "+classicPieceLabel(taken):""}`;$("moveLog").prepend(li);
+      const text=li.textContent;
       memory.moves++;if(taken){memory.captures++;sayAi("capture");playTone("capture")}else playTone("move");pulseBoard("move");saveMemory();
+      if(actor==="ai"){lastAiMoveText=`AI上一步：${text}`;lastAiMoveSquares={type:gameType,from:move.from,to:move.to};$("aiChat").textContent=lastAiMoveText;$("aiBubble").textContent=lastAiMoveText}
       if(gameType==="chess"&&taken?.type==="k"){finishClassic(classicTurn,`${classicSideName(classicTurn)} 吃掉对方国王。`);return}
       const other=classicTurn==="w"?"b":"w";
       if(!classicBoard.flat().some(p=>p?.side===other)){finishClassic(classicTurn,`${classicSideName(other)} 没有棋子了。`);return}
@@ -935,13 +974,13 @@
         let last=classicHistory.pop();
         if(isAutoOpponent()&&last?.actor==="ai"&&classicHistory.length)last=classicHistory.pop();
         if(!last)return;
-        classicBoard=clone(last.board);classicTurn=last.turn;classicSelected=null;classicMoves=[];gameOver=false;$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();return;
+        classicBoard=clone(last.board);classicTurn=last.turn;classicSelected=null;classicMoves=[];gameOver=false;lastAiMoveSquares=null;lastAiMoveText="已悔棋，等待 AI 下一步。";$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();return;
       }
       if(!history.length)return;
       let last=history.pop();
       if(isAutoOpponent()&&last?.actor==="ai"&&history.length)last=history.pop();
       if(!last)return;
-      board=clone(last.board);turn=last.turn;selected=null;moves=[];gameOver=false;$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();
+      board=clone(last.board);turn=last.turn;selected=null;moves=[];gameOver=false;lastAiMoveSquares=null;lastAiMoveText="已悔棋，等待 AI 下一步。";$("moveLog").innerHTML=last.moveLog;$("winnerLayer").classList.remove("show");render();
     }
 
     function renderBoard(){
@@ -950,6 +989,8 @@
         const palaceClass=palace(RED,r,c)?"palace-red":palace(BLACK,r,c)?"palace-black":"";
         const cell=document.createElement("button");cell.className=`cell ${r===4||r===5?"river":""} ${palaceClass}`;cell.type="button";cell.dataset.r=r;cell.dataset.c=c;cell.setAttribute("aria-label",`第${r+1}行第${c+1}列`);cell.onclick=()=>selectSquare(r,c);
         cell.style.left=`${c/8*100}%`;cell.style.top=`${r/9*100}%`;
+        if(lastAiMoveSquares?.type==="xiangqi"&&lastAiMoveSquares.from.r===r&&lastAiMoveSquares.from.c===c)cell.classList.add("last-from");
+        if(lastAiMoveSquares?.type==="xiangqi"&&lastAiMoveSquares.to.r===r&&lastAiMoveSquares.to.c===c)cell.classList.add("last-to");
         if(moves.some(m=>m.r===r&&m.c===c))cell.classList.add(board[r][c]?"capture":"hint");
         boardEl.appendChild(cell);
       }
@@ -965,6 +1006,8 @@
         cell.className=`classic-square ${(r+c)%2?"dark":"light"}`;
         cell.dataset.r=r;cell.dataset.c=c;
         cell.setAttribute("aria-label",`${GAME_TYPES[gameType]}第${r+1}行第${c+1}列`);
+        if(lastAiMoveSquares?.type===gameType&&lastAiMoveSquares.from.r===r&&lastAiMoveSquares.from.c===c)cell.classList.add("last-from");
+        if(lastAiMoveSquares?.type===gameType&&lastAiMoveSquares.to.r===r&&lastAiMoveSquares.to.c===c)cell.classList.add("last-to");
         if(classicMoves.some(m=>m.to.r===r&&m.to.c===c))cell.classList.add(p?"capture":"hint");
         if(p){
           const piece=document.createElement("span");
@@ -997,8 +1040,9 @@
       $("modeHud").textContent=mode==="ai"?"人机对战":mode==="match"?"匹配对战":"双人对战";$("difficultyHud").textContent=activeLevel.label;
       $("turnHud").textContent=gameType==="xiangqi"?sideName(turn):classicSideName(classicTurn);$("statusText").innerHTML=thinking?`<b>黑方</b> ${mode==="match"?"对手":"人机"}正在思考。`:gameType==="xiangqi"?`<b>${sideName(turn)}</b> ${selected?"选择落点。":"请选择棋子。"}`:`<b>${classicSideName(classicTurn)}</b> ${classicSelected?"选择落点。":"请选择棋子。"}`;
       const checked=gameType==="xiangqi"&&inCheck(board,turn);$("checkText").textContent=gameType==="xiangqi"?(checked?`${sideName(turn)}被将军`:"未将军"):`${GAME_TYPES[gameType]} · 难度共享`;
-      $("coach").textContent=gameType==="xiangqi"?"红方先行。高难 AI 会尽量避免炮换马这类亏子交换。":gameType==="chess"?"国际象棋使用同一套难度和 AI 对手；兵到底会自动升后。":"跳棋使用同一套难度和 AI 对手；能跳吃时必须跳吃。";
+      $("coach").textContent=gameType==="xiangqi"?"红方先行。没有车、马、炮、兵这类能过河进攻的棋子会自动判负。":gameType==="chess"?"国际象棋使用同一套难度和 AI 对手；兵到底会自动升后。":"跳棋使用同一套难度和 AI 对手；能跳吃时必须跳吃。";
       $("matchStatus").textContent=matchStatus;
+      $("lastAiMove").textContent=lastAiMoveText;
       $("opponentInfo").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.name} · ${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${activeLevel.label}`:mode==="ai"?`${activeProfile.label} · ${activeLevel.label}`:"同屏玩家 · 不使用人机";
       $("opponentName").textContent=mode==="match"&&matchedOpponent?matchedOpponent.name:mode==="local"?"本地玩家":activeProfile.label;
       $("opponentStyle").textContent=mode==="match"&&matchedOpponent?`${matchedOpponent.type==="bot"?"人机补位":"匹配玩家"} · ${matchedOpponent.reason}`:mode==="local"?"坐在你对面的人来执黑。":`${activeProfile.intro} 性格：${activePersona.label}，${activePersona.intro} 当前强度：${activeLevel.label}`;
