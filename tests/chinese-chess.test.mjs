@@ -39,7 +39,7 @@ function runGameScriptForRules() {
   globalThis.window = {scrollTo() {}, AudioContext: null, webkitAudioContext: null};
   globalThis.setTimeout = fn => fn();
   try {
-    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,isObviousBlunder,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
+    return new Function(`${script}; return {RED,BLACK,legalMovesFor,initialBoard,chooseAiMove,blunderPenalty,isObviousBlunder,unresolvedThreatPenalty,threatenedPieces,bestTacticalCapture,hasRiverCrossingPiece,riverCrossingLossWinner,setAiTestState(state){board=state.board;difficulty=state.difficulty||"legend";aiProfile=state.aiProfile||"standard";aiPersona=state.aiPersona||"scholar";mode="ai";matchedOpponent=null;}};`)();
   } finally {
     globalThis.document = previous.document;
     globalThis.localStorage = previous.localStorage;
@@ -327,6 +327,22 @@ test("AI第一步不会把炮送到红车旁边白给", () => {
   for (let i = 0; i < 20; i++) assert.notDeepEqual(chooseAiMove(), giftCannon);
 });
 
+test("AI大子被威胁时不跑不吃也算白给", () => {
+  const {RED, BLACK, chooseAiMove, unresolvedThreatPenalty, threatenedPieces, setAiTestState} = runGameScriptForRules();
+  const b = Array.from({length: 10}, () => Array(9).fill(null));
+  b[0][4] = {side: BLACK, type: "k"};
+  b[9][4] = {side: RED, type: "k"};
+  b[6][4] = {side: RED, type: "p"};
+  b[4][7] = {side: BLACK, type: "r"};
+  b[4][8] = {side: RED, type: "p"};
+  b[2][1] = {side: BLACK, type: "c"};
+  const ignoreThreat = {from: {r: 2, c: 1}, to: {r: 3, c: 1}};
+  assert.equal(threatenedPieces(b, BLACK).some(item => item.r === 4 && item.c === 7 && item.p.type === "r"), true);
+  assert.ok(unresolvedThreatPenalty(b, ignoreThreat, BLACK) > 2000);
+  setAiTestState({board: b, difficulty: "normal", aiProfile: "standard", aiPersona: "scholar"});
+  for (let i = 0; i < 20; i++) assert.notDeepEqual(chooseAiMove(), ignoreThreat);
+});
+
 test("不能走出会让自己被将军的位置", () => {
   assert.match(game, /function inCheck\(b,side\)/);
   assert.match(game, /findKing/);
@@ -360,6 +376,11 @@ test("对局有胜负、悔棋和棋谱", () => {
   assert.match(game, /lastAiMoveSquares=\{type:"xiangqi",from,to\}/);
   assert.match(game, /cell\.classList\.add\("last-from"\)/);
   assert.match(game, /cell\.classList\.add\("last-to"\)/);
+});
+
+test("河界附近的落点提示不会只显示一半", () => {
+  assert.match(game, /\.river-label\{position:absolute;z-index:4/);
+  assert.match(game, /\.cell\.hint,\.cell\.capture,\.cell\.last-from,\.cell\.last-to\{z-index:6\}/);
 });
 
 test("中国象棋没有能过河进攻的子会自动判负", () => {

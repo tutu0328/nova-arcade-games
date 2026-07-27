@@ -61,13 +61,14 @@
     .cell.palace-red{background:radial-gradient(circle,rgba(208,48,31,.22),rgba(255,210,112,.1) 55%,transparent 70%);box-shadow:inset 0 0 0 1px rgba(208,48,31,.18)}
     .cell.palace-black{background:radial-gradient(circle,rgba(46,36,28,.28),rgba(255,224,152,.12) 55%,transparent 70%);box-shadow:inset 0 0 0 1px rgba(46,36,28,.18)}
     .cell.river{background:transparent}
-    .river-label{position:absolute;z-index:6;left:32px;right:32px;top:50%;height:11.2%;transform:translateY(-50%);display:grid;grid-template-columns:1fr 1fr;align-items:center;text-align:center;pointer-events:none;background:linear-gradient(90deg,#ffe3a2,#f5c46b,#ffe3a2);border-top:3px solid rgba(92,44,18,.72);border-bottom:3px solid rgba(92,44,18,.72);box-shadow:0 0 18px rgba(87,36,11,.16)}
+    .river-label{position:absolute;z-index:4;left:32px;right:32px;top:50%;height:11.2%;transform:translateY(-50%);display:grid;grid-template-columns:1fr 1fr;align-items:center;text-align:center;pointer-events:none;background:linear-gradient(90deg,#ffe3a2,#f5c46b,#ffe3a2);border-top:3px solid rgba(92,44,18,.72);border-bottom:3px solid rgba(92,44,18,.72);box-shadow:0 0 18px rgba(87,36,11,.16)}
     .river-label span{font-family:Georgia,"Songti SC","SimSun",serif;font-size:clamp(24px,4.5vw,46px);font-weight:900;color:rgba(104,50,18,.72);letter-spacing:.28em;text-shadow:0 1px 0 rgba(255,240,190,.7)}
     .palace-lines{position:absolute;z-index:2;left:calc(33.333% + 4.7px);width:calc(33.333% - 9.3px);height:calc(30% - 8.4px);pointer-events:none}
     .palace-lines.black{top:14px}.palace-lines.red{bottom:14px}
     .palace-lines:before,.palace-lines:after{content:"";position:absolute;left:0;top:50%;width:100%;height:2px;background:rgba(255,240,194,.72);transform-origin:center}
     .palace-lines:before{transform:rotate(45deg)}.palace-lines:after{transform:rotate(-45deg)}
     .cell.hint{background:radial-gradient(circle,rgba(61,178,127,.55) 0 22%,rgba(61,178,127,.16) 23% 45%,transparent 46%)}.cell.capture{background:radial-gradient(circle,rgba(197,34,31,.48) 0 42%,rgba(197,34,31,.16) 43% 62%,transparent 63%)}
+    .cell.hint,.cell.capture,.cell.last-from,.cell.last-to{z-index:6}
     .cell.last-from,.classic-square.last-from{box-shadow:inset 0 0 0 4px rgba(80,64,38,.35);background:radial-gradient(circle,rgba(255,255,255,.26),rgba(255,209,106,.18) 54%,transparent 72%)}
     .cell.last-to,.classic-square.last-to{box-shadow:inset 0 0 0 5px rgba(61,178,127,.62),0 0 18px rgba(61,178,127,.32);background:radial-gradient(circle,rgba(61,178,127,.48) 0 28%,rgba(255,209,106,.22) 29% 62%,transparent 72%)}
     .opponent-card{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;width:min(100%,720px);margin:0 auto 12px;padding:12px 14px;border:1px solid rgba(105,51,20,.32);border-radius:12px;background:linear-gradient(90deg,rgba(43,26,16,.92),rgba(105,51,20,.72));color:#fff4d8;box-shadow:0 12px 28px rgba(52,21,6,.18)}
@@ -621,6 +622,25 @@
       return out;
     }
 
+    function attackersOf(b,side,pos){
+      const other=side===RED?BLACK:RED;
+      return allMoves(b,other).filter(move=>move.to.r===pos.r&&move.to.c===pos.c);
+    }
+
+    function threatenedPieces(b,side){
+      const out=[];
+      for(let r=0;r<10;r++)for(let c=0;c<9;c++){
+        const p=b[r][c];
+        if(p?.side!==side)continue;
+        const attackers=attackersOf(b,side,{r,c});
+        if(!attackers.length)continue;
+        const cheapest=Math.min(...attackers.map(move=>values[b[move.from.r][move.from.c]?.type]||999));
+        const value=values[p.type]||0;
+        if(value>=values.h||value>cheapest)out.push({r,c,p,value,cheapest,attackers});
+      }
+      return out;
+    }
+
     function rawClassicMovesFor(b,r,c,onlyCaptures=false){
       const p=b[r][c];if(!p)return[];
       const out=[];const add=(nr,nc,extra={})=>{if(insideClassic(nr,nc)&&!own(b[nr][nc],p.side))out.push({from:{r,c},to:{r:nr,c:nc},...extra})};
@@ -799,6 +819,25 @@
       return canBeCaptured?values[moved.type]*1.25:0;
     }
 
+    function unresolvedThreatPenalty(b,move,side){
+      const before=threatenedPieces(b,side);
+      if(!before.length)return 0;
+      const next=movedBoard(b,move.from,move.to);
+      let penalty=0;
+      for(const threat of before){
+        const after=next[threat.r]?.[threat.c];
+        if(!after||after.side!==side||after.type!==threat.p.type)continue;
+        if(!attackersOf(next,side,{r:threat.r,c:threat.c}).length)continue;
+        const movedPiece=b[move.from.r][move.from.c];
+        const gain=b[move.to.r][move.to.c]?values[b[move.to.r][move.to.c].type]:0;
+        const urgent=threat.value>=values.h||threat.value>threat.cheapest*1.5;
+        penalty+=urgent?threat.value*2.8:threat.value*1.2;
+        if(movedPiece?.type==="k"||movedPiece?.type==="a"||movedPiece?.type==="e")penalty+=320;
+        if(gain>=threat.value)penalty-=gain*.6;
+      }
+      return Math.max(0,penalty);
+    }
+
     function blunderPenalty(b,move,side){
       const moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       if(!moving)return 0;
@@ -832,7 +871,7 @@
       const next=movedBoard(b,move.from,move.to),moving=b[move.from.r][move.from.c],taken=b[move.to.r][move.to.c];
       let score=scoreBoard(next,side);
       score+=(taken?values[taken.type]*.85:0)+profitableCaptureScore(b,move,side);
-      score-=hangingPenalty(next,move,side)+blunderPenalty(b,move,side);
+      score-=hangingPenalty(next,move,side)+blunderPenalty(b,move,side)+unresolvedThreatPenalty(b,move,side);
       if(inCheck(next,side===RED?BLACK:RED))score+=180;
       if(inCheck(next,side))score-=260;
       if(moving?.type==="p"&&crossed(side,move.to.r))score+=45;
@@ -851,7 +890,7 @@
     }
 
     function configuredScore(b,move,side,config){
-      return moveScore(b,move,side)-blunderPenalty(b,move,side)+(Math.random()*config.noise);
+      return moveScore(b,move,side)-blunderPenalty(b,move,side)-unresolvedThreatPenalty(b,move,side)+(Math.random()*config.noise);
     }
 
     function isObviousBlunder(b,move,side){
@@ -859,9 +898,10 @@
       if(!moving)return false;
       const gain=taken?values[taken.type]:0,movingValue=values[moving.type];
       const penalty=blunderPenalty(b,move,side);
-      if(!penalty)return false;
+      const ignored=unresolvedThreatPenalty(b,move,side);
+      if(!penalty&&!ignored)return false;
       if(gain>=movingValue)return false;
-      return penalty>movingValue*1.45;
+      return penalty>movingValue*1.45||ignored>650;
     }
 
     function profileScore(b,move,side,profile){
@@ -870,7 +910,7 @@
       if(profile.style==="deep")return scoreBoard(next,side)*.18+(inCheck(next,side===RED?BLACK:RED)?220:0);
       if(profile.style==="tactical")return (taken?values[taken.type]*1.4:0)+(inCheck(next,side===RED?BLACK:RED)?240:0)+(move.to.r>4?35:0);
       if(profile.style==="weird")return (Math.sin((move.to.r+1)*(move.to.c+2))*95)+(taken?values[taken.type]*.55:0);
-      if(profile.style==="super")return strategicScore(b,move,side)*.55+(inCheck(next,side===RED?BLACK:RED)?260:0)-hangingPenalty(next,move,side)*.8-blunderPenalty(b,move,side);
+      if(profile.style==="super")return strategicScore(b,move,side)*.55+(inCheck(next,side===RED?BLACK:RED)?260:0)-hangingPenalty(next,move,side)*.8-blunderPenalty(b,move,side)-unresolvedThreatPenalty(b,move,side);
       return 0;
     }
 
@@ -880,12 +920,12 @@
       if(persona.id==="scholar")return (moving?.type==="h"||moving?.type==="e"?35:0)+(Math.abs(move.to.c-4)<2?28:0)+(totalPieces<12?80:0);
       if(persona.id==="sprinter")return allMoves(next,side).length*5+(taken?25:0);
       if(persona.id==="berserker")return (inCheck(next,other)?260:0)+(taken?values[taken.type]*.65:0)+(enemyKing?(10-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*18:0);
-      if(persona.id==="turtle")return -hangingPenalty(next,move,side)*1.3-blunderPenalty(b,move,side)*.7+(moving?.type==="a"||moving?.type==="e"||moving?.type==="k"?55:0)+(inCheck(next,side)?-500:0);
+      if(persona.id==="turtle")return -hangingPenalty(next,move,side)*1.3-blunderPenalty(b,move,side)*.7-unresolvedThreatPenalty(b,move,side)*.7+(moving?.type==="a"||moving?.type==="e"||moving?.type==="k"?55:0)+(inCheck(next,side)?-500:0);
       if(persona.id==="endmaster")return totalPieces<=12?strategicScore(b,move,side)*.8+(enemyKing?(12-Math.abs(move.to.r-enemyKing.r)-Math.abs(move.to.c-enemyKing.c))*22:0):-Math.abs(move.to.c-4)*8;
       if(persona.id==="trickster"){
         const replies=allMoves(next,other);
         const tempting=replies.some(reply=>next[reply.to.r]?.[reply.to.c]?.type==="p"||next[reply.to.r]?.[reply.to.c]?.type==="c");
-        return (tempting?95:0)+(moving?.type==="h"||moving?.type==="c"?45:0)-hangingPenalty(next,move,side)*.45-blunderPenalty(b,move,side)*.35;
+        return (tempting?95:0)+(moving?.type==="h"||moving?.type==="c"?45:0)-hangingPenalty(next,move,side)*.45-blunderPenalty(b,move,side)*.35-unresolvedThreatPenalty(b,move,side)*.35;
       }
       return 0;
     }
